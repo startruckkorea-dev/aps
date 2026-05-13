@@ -11,8 +11,10 @@ function checkSystemStatus(cfg) {
   const st = cfg && cfg['Status'];
   if (!st || (st.name||'').trim().toLowerCase() !== 'stk' || (st.email||'').trim().toLowerCase() !== 'ok') {
     document.getElementById('maintenance-screen').classList.add('show');
+    document.getElementById('app') && (document.getElementById('app').style.display = 'none');
     return false;
   }
+  document.getElementById('maintenance-screen').classList.remove('show');
   return true;
 }
 </script>
@@ -508,6 +510,7 @@ async function boot(account){
   loading(true,'데이터 불러오는 중...');
   const site=await api('/sites/'+SITE_PATH);
   siteId=site.id;
+  _sysConfig = null;
   const _cfg = await loadSystemConfig();
   if(!checkSystemStatus(_cfg)) return;
   if (_cfg) {
