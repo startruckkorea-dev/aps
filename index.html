@@ -400,7 +400,7 @@ function signOut(){msalApp.logoutRedirect();}
 
 async function token(){
   try{return(await msalApp.acquireTokenSilent({scopes:SCOPES,account:msalApp.getActiveAccount()})).accessToken;}
-  catch(e){if(e.name==='InteractionRequiredAuthError'||(e.errorCode&&e.errorCode.includes('interaction_required'))){const r=await msalApp.acquireTokenPopup({scopes:SCOPES});msalApp.setActiveAccount(r.account);return r.accessToken;}throw e;}
+  catch(e){if(e.name==='InteractionRequiredAuthError'||(e.errorCode&&e.errorCode.includes('interaction_required'))){await msalApp.acquireTokenRedirect({scopes:SCOPES});return null;}throw e;}
 }
 
 // ── 페이지네이션 전체 조회 헬퍼 ──
