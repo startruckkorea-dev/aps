@@ -329,7 +329,7 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#f5f7f
     <div class="confirm-sub" id="confirm-sub"></div>
     <div id="confirm-scc-notice" style="display:none;background:#fef9c3;border:1px solid #fde047;border-radius:8px;padding:14px 16px;margin-bottom:12px">
       <div style="font-size:.83rem;color:#854d0e;margin-bottom:12px">
-        ⚠️ SCC 결재는 <strong>체크리스트 작성 · PDF 워터마크 · 전자서명 암호화</strong> 처리가 포함됩니다.<br>반드시 SCC 시스템에서 직접 승인해 주세요.
+        ⚠️ STK Contract 결재는 계약서 전문 검토 · 체크리스트 작성 · PDF 워터마크 및 전자서명 암호화 처리가 포함되어 있어 APS 요약 화면에서 결재를 진행할 수 없습니다.<br><br>반드시 SCC 시스템에서 직접 확인 후 승인해 주세요.
       </div>
       <button onclick="window.open('https://scc.startruckkorea.com','_blank');closeConfirm();"
         style="width:100%;padding:10px;background:#0078d4;color:#fff;border:none;border-radius:6px;font-size:.88rem;font-weight:700;cursor:pointer">
@@ -715,12 +715,8 @@ function showConfirm(apprId,action,reqId,sysKey,apprRole='',apprOrder=0){
   );
   const isFinal = !isReject && !hasNext;
 
-  // SCC: 체크리스트/서명 필요 역할 차단 (Compliance/Legal/Controlling/Accounting/CFO/CEO/RD)
-  const needChecklist = sysKey==='SCC' && !isReject &&
-    (apprRole.includes('Compliance') || apprRole.includes('Legal') ||
-     apprRole.includes('Controlling') || apprRole.includes('Contract Checklist') ||
-     apprRole.includes('Accounting') || apprRole.includes('CFO') ||
-     apprRole.includes('CEO') || apprRole.includes('RD'));
+  // SCC: 모든 결재자 차단 — 계약서 검토 특성상 APS 요약으로 결재 불가
+  const needChecklist = sysKey==='SCC' && !isReject;
   const sccNotice = document.getElementById('confirm-scc-notice');
   if(sccNotice) sccNotice.style.display = needChecklist ? '' : 'none';
 
@@ -731,7 +727,7 @@ function showConfirm(apprId,action,reqId,sysKey,apprRole='',apprOrder=0){
 
   // 서브 텍스트
   const blockApproval = needChecklist || needBPCode;
-  if(needChecklist) document.getElementById('confirm-sub').textContent='체크리스트 작성 · PDF 워터마크 · 전자서명 암호화 처리가 필요합니다. SCC 시스템에서 진행해 주세요.';
+  if(needChecklist) document.getElementById('confirm-sub').textContent='STK Contract 결재는 계약서 전문 검토가 필요하여 APS에서 직접 진행할 수 없습니다.';
   else if(needBPCode) document.getElementById('confirm-sub').textContent='이 결재는 BP Code 입력이 필요합니다. BP Master 시스템에서 진행해 주세요.';
   else document.getElementById('confirm-sub').textContent=isReject?'반려 사유를 입력해주세요. (필수)':'이 신청을 승인하시겠습니까?';
 
