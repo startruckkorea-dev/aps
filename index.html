@@ -583,7 +583,7 @@ function renderAll(){
         <div class="item-right" onclick="event.stopPropagation()">
           ${stBadge(f.Status)}
           ${isPending
-            ?`<button class="btn-approve" onclick="showConfirm(${item.id},'승인',${f.RequestID},'${sys.key}','${(f.ApproverRole||'').replace(/'/g,'')}')" >승인</button><button class="btn-reject" onclick="showConfirm(${item.id},'반려',${f.RequestID},'${sys.key}','${(f.ApproverRole||'').replace(/'/g,'')}')" >반려</button>`
+            ?`<button class="btn-approve" onclick="quickConfirm(${item.id},'승인',${f.RequestID},'${sys.key}','${(f.ApproverRole||'').replace(/'/g,'')}',${f.ApprovalOrder||0})">승인</button><button class="btn-reject" onclick="quickConfirm(${item.id},'반려',${f.RequestID},'${sys.key}','${(f.ApproverRole||'').replace(/'/g,'')}',${f.ApprovalOrder||0})">반려</button>`
             :`<span class="done-label">완료</span>`}
         </div>
       </div>`;
@@ -692,6 +692,16 @@ async function showDetail(sysKey,reqId){
   }catch(e){document.getElementById('detail-content').innerHTML=`<p style="color:#e53e3e;padding:16px">오류: ${e.message}</p>`;}
 }
 function closeDetail(){document.getElementById('detail-modal').className='';}
+
+async function quickConfirm(apprId,action,reqId,sysKey,apprRole='',apprOrder=0){
+  try{
+    const sys=SYSTEMS.find(s=>s.key===sysKey);
+    const data=await apiAll('/sites/'+siteId+'/lists/'+sys.apr+'/items?$expand=fields');
+    _currentApprList=data.value.filter(i=>Number(i.fields.RequestID)===Number(reqId))
+      .sort((a,b)=>a.fields.ApprovalOrder-b.fields.ApprovalOrder);
+  }catch(e){ _currentApprList=[]; }
+  showConfirm(apprId,action,reqId,sysKey,apprRole,apprOrder);
+}
 
 function showConfirm(apprId,action,reqId,sysKey,apprRole='',apprOrder=0){
   const apprList = _currentApprList || [];
