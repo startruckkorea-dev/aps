@@ -381,7 +381,7 @@ const SYSTEMS=[
   {key:'GA_IDC', name:'GA ID Card',       apr:'IDC_Approvals',    req:'IDC_Requests',   url:'https://ga.startruckkorea.com/',        historyList:'IDC_Approvals'},
 ];
 
-let msalApp=null,user=null,siteId=null,_allData={},_pending=null;
+let msalApp=null,user=null,siteId=null,_allData={},_pending=null,_currentApprList=[];
 const PAGE_SIZE=5;
 let _pages={};
 
@@ -683,18 +683,19 @@ async function showDetail(sysKey,reqId){
       </div>`;}).join('')+'</div>';
 
     const myPending=apprList.find(a=>(a.fields.ApproverEmail||'').toLowerCase()===(user.email||'').toLowerCase()&&(a.fields.Status||'').trim()==='대기');
-    const apprListData=apprList; // showConfirm에 전달용
+    _currentApprList = apprList; // 전역 저장 — showConfirm onclick에서 참조
     document.getElementById('detail-content').innerHTML=info+apprHtml+
       (myPending?`<div class="modal-action">
-        <button onclick="showConfirm(${myPending.id},'승인',${reqId},'${sysKey}','${(myPending.fields.ApproverRole||'').replace(/'/g,'')}',${myPending.fields.ApprovalOrder||0},apprListData)" class="btn-approve">✅ 승인</button>
-        <button onclick="showConfirm(${myPending.id},'반려',${reqId},'${sysKey}','${(myPending.fields.ApproverRole||'').replace(/'/g,'')}',${myPending.fields.ApprovalOrder||0},apprListData)" class="btn-reject">❌ 반려</button>
+        <button onclick="showConfirm(${myPending.id},'승인',${reqId},'${sysKey}','${(myPending.fields.ApproverRole||'').replace(/'/g,'')}',${myPending.fields.ApprovalOrder||0})" class="btn-approve">✅ 승인</button>
+        <button onclick="showConfirm(${myPending.id},'반려',${reqId},'${sysKey}','${(myPending.fields.ApproverRole||'').replace(/'/g,'')}',${myPending.fields.ApprovalOrder||0})" class="btn-reject">❌ 반려</button>
       </div>`:'');
   }catch(e){document.getElementById('detail-content').innerHTML=`<p style="color:#e53e3e;padding:16px">오류: ${e.message}</p>`;}
 }
 function closeDetail(){document.getElementById('detail-modal').className='';}
 
-function showConfirm(apprId,action,reqId,sysKey,apprRole='',apprOrder=0,apprList=[]){
-  _pending={apprId,action,reqId,sysKey,apprOrder,apprList};
+function showConfirm(apprId,action,reqId,sysKey,apprRole='',apprOrder=0){
+  const apprList = _currentApprList || [];
+  _pending={apprId,action,reqId,sysKey,apprOrder};
   const isReject=action==='반려';
   document.getElementById('confirm-title').textContent=isReject?'❌ 반려 확인':'✅ 승인 확인';
 
