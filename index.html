@@ -336,12 +336,12 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#f5f7f
         🔗 SCC 결재 시스템으로 이동
       </button>
     </div>
-    <div id="confirm-bp-notice" style="display:none;background:#ede9fe;border:1px solid #c4b5fd;border-radius:8px;padding:14px 16px;margin-bottom:12px">
-      <div style="font-size:.83rem;color:#4c1d95;margin-bottom:12px">
+    <div id="confirm-bp-notice" style="display:none;background:#fef9c3;border:1px solid #fde047;border-radius:8px;padding:14px 16px;margin-bottom:12px">
+      <div style="font-size:.83rem;color:#854d0e;margin-bottom:12px">
         ⚠️ BP Master Data 최종 결재는 <strong>BP Code 입력</strong>이 필요합니다.<br>BP Master 시스템에서 직접 승인해 주세요.
       </div>
       <button onclick="window.open('https://bp-master.startruckkorea.com','_blank');closeConfirm();"
-        style="width:100%;padding:10px;background:#7c3aed;color:#fff;border:none;border-radius:6px;font-size:.88rem;font-weight:700;cursor:pointer">
+        style="width:100%;padding:10px;background:#0078d4;color:#fff;border:none;border-radius:6px;font-size:.88rem;font-weight:700;cursor:pointer">
         🔗 BP Master 결재 시스템으로 이동
       </button>
     </div>
@@ -683,62 +683,50 @@ async function showDetail(sysKey,reqId){
       </div>`;}).join('')+'</div>';
 
     const myPending=apprList.find(a=>(a.fields.ApproverEmail||'').toLowerCase()===(user.email||'').toLowerCase()&&(a.fields.Status||'').trim()==='대기');
+    const apprListData=apprList; // showConfirm에 전달용
     document.getElementById('detail-content').innerHTML=info+apprHtml+
       (myPending?`<div class="modal-action">
-        <button onclick="showConfirm(${myPending.id},'승인',${reqId},'${sysKey}','${(myPending.fields.ApproverRole||'').replace(/'/g,'')}',${myPending.fields.ApprovalOrder||0})" class="btn-approve">✅ 승인</button>
-        <button onclick="showConfirm(${myPending.id},'반려',${reqId},'${sysKey}','${(myPending.fields.ApproverRole||'').replace(/'/g,'')}',${myPending.fields.ApprovalOrder||0})" class="btn-reject">❌ 반려</button>
+        <button onclick="showConfirm(${myPending.id},'승인',${reqId},'${sysKey}','${(myPending.fields.ApproverRole||'').replace(/'/g,'')}',${myPending.fields.ApprovalOrder||0},apprListData)" class="btn-approve">✅ 승인</button>
+        <button onclick="showConfirm(${myPending.id},'반려',${reqId},'${sysKey}','${(myPending.fields.ApproverRole||'').replace(/'/g,'')}',${myPending.fields.ApprovalOrder||0},apprListData)" class="btn-reject">❌ 반려</button>
       </div>`:'');
   }catch(e){document.getElementById('detail-content').innerHTML=`<p style="color:#e53e3e;padding:16px">오류: ${e.message}</p>`;}
 }
 function closeDetail(){document.getElementById('detail-modal').className='';}
 
-function showConfirm(apprId,action,reqId,sysKey,apprRole='',apprOrder=0){
-  // apprList는 현재 열린 detail의 데이터에서 가져옴
-  const detailApprItems = Array.from(document.querySelectorAll('.appr-item')).map(el=>{
-    const order = parseInt(el.querySelector('.appr-order')?.textContent||'0');
-    const status = el.querySelector('[style*="font-weight:700"]')?.textContent?.trim()||'';
-    return { fields:{ ApprovalOrder:order, Status:status } };
-  });
-  _pending={apprId,action,reqId,sysKey,apprOrder,apprList:detailApprItems};
+function showConfirm(apprId,action,reqId,sysKey,apprRole='',apprOrder=0,apprList=[]){
+  _pending={apprId,action,reqId,sysKey,apprOrder,apprList};
   const isReject=action==='반려';
   document.getElementById('confirm-title').textContent=isReject?'❌ 반려 확인':'✅ 승인 확인';
-  // SCC 체크리스트 필요 역할 감지
-  const needChecklist = sysKey==='SCC' && !isReject &&
-    (apprRole.includes('Compliance')||apprRole.includes('Controlling')||apprRole.includes('Accounting'));
-  const sccNotice = document.getElementById('confirm-scc-notice');
-  if(needChecklist){
-    document.getElementById('confirm-sub').textContent='이 결재는 체크리스트 작성이 필요합니다. SCC 시스템에서 진행해 주세요.';
-    if(sccNotice) sccNotice.style.display='';
-  } else {
-    document.getElementById('confirm-sub').textContent=isReject?'반려 사유를 입력해주세요. (필수)':'이 신청을 승인하시겠습니까?';
-    if(sccNotice) sccNotice.style.display='none';
-  }
 
-  // BP 최종 결재자 감지 (다음 대기(잠김) 단계가 없으면 최종)
+  // 최종 결재자 여부: 현재 apprOrder 이후에 대기(잠김) 단계가 없으면 최종
+  const hasNext = apprList.some(i=>
+    (i.fields.Status||'').trim()==='대기(잠김)' && (i.fields.ApprovalOrder||0) > apprOrder
+  );
+  const isFinal = !isReject && !hasNext;
+
+  // SCC 최종 결재자 차단
+  const needChecklist = sysKey==='SCC' && isFinal;
+  const sccNotice = document.getElementById('confirm-scc-notice');
+  if(sccNotice) sccNotice.style.display = needChecklist ? '' : 'none';
+
+  // BP 최종 결재자 차단
+  const needBPCode = sysKey==='BP' && isFinal;
   const bpNotice = document.getElementById('confirm-bp-notice');
-  let needBPCode = false;
-  if(sysKey==='BP' && !isReject){
-    // apprList에서 현재 결재 이후 대기(잠김) 항목 존재 여부 확인
-    const currentOrder = _pending && _pending.apprOrder ? _pending.apprOrder : 0;
-    const hasNext = (_pending && _pending.apprList || [])
-      .some(i=>(i.fields.Status||'').trim()==='대기(잠김)' && i.fields.ApprovalOrder > currentOrder);
-    needBPCode = !hasNext;
-  }
-  if(needBPCode){
-    document.getElementById('confirm-sub').textContent='이 결재는 BP Code 입력이 필요합니다. BP Master 시스템에서 진행해 주세요.';
-    if(bpNotice) bpNotice.style.display='';
-  } else {
-    if(bpNotice) bpNotice.style.display='none';
-  }
+  if(bpNotice) bpNotice.style.display = needBPCode ? '' : 'none';
+
+  // 서브 텍스트
+  const blockApproval = needChecklist || needBPCode;
+  if(needChecklist) document.getElementById('confirm-sub').textContent='이 결재는 체크리스트 작성이 필요합니다. SCC 시스템에서 진행해 주세요.';
+  else if(needBPCode) document.getElementById('confirm-sub').textContent='이 결재는 BP Code 입력이 필요합니다. BP Master 시스템에서 진행해 주세요.';
+  else document.getElementById('confirm-sub').textContent=isReject?'반려 사유를 입력해주세요. (필수)':'이 신청을 승인하시겠습니까?';
+
   const commentEl=document.getElementById('confirm-comment');
   commentEl.value='';commentEl.placeholder=isReject?'반려 사유 입력 (필수)':'의견 입력 (선택사항)';
   const okBtn=document.getElementById('confirm-ok-btn');
   okBtn.textContent=isReject?'반려 처리':'승인 처리';
   okBtn.style.background=isReject?'#dc2626':'#16a34a';
   okBtn.style.color='#fff';okBtn.onclick=doApproval;
-  // 체크리스트 필요 시 의견입력/버튼 숨기기
   const cancelBtn=document.getElementById('confirm-cancel-btn');
-  const blockApproval = needChecklist || needBPCode;
   commentEl.style.display=blockApproval?'none':'';
   okBtn.style.display=blockApproval?'none':'';
   if(cancelBtn) cancelBtn.style.display=blockApproval?'none':'';
