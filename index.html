@@ -715,8 +715,11 @@ function showConfirm(apprId,action,reqId,sysKey,apprRole='',apprOrder=0){
   );
   const isFinal = !isReject && !hasNext;
 
-  // SCC: 모든 결재자 차단 (체크리스트 작성 필요)
-  const needChecklist = sysKey==='SCC' && !isReject;
+  // SCC: 체크리스트 필요 역할만 차단 (Compliance/Legal/Controlling/Accounting)
+  const needChecklist = sysKey==='SCC' && !isReject &&
+    (apprRole.includes('Compliance') || apprRole.includes('Legal') ||
+     apprRole.includes('Controlling') || apprRole.includes('Contract Checklist') ||
+     apprRole.includes('Accounting'));
   const sccNotice = document.getElementById('confirm-scc-notice');
   if(sccNotice) sccNotice.style.display = needChecklist ? '' : 'none';
 
