@@ -640,66 +640,71 @@ function card(sys,inner,cnt){
 // ── Comment 정리 (SCC 체크리스트 raw text → 깔끔하게) ──
 function formatComment(comment, sysKey) {
   if (!comment) return '';
-  if (sysKey !== 'SCC') return escHtml(comment);
 
-  // SCC 체크리스트 형식: "[체크리스트] ☐/☑ 항목명 → 설명: 결과\nComment: 내용"
-  // 체크리스트 파트와 Comment 파트 분리
-  const lines = comment.split(/\n|\\n/).map(l => l.trim()).filter(Boolean);
-  let html = '';
-  let commentText = '';
+  // 1. HTML 엔티티 디코드
+  let raw = comment
+    .replace(/&#58;/g, ':').replace(/&#x3A;/g, ':')
+    .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'");
 
-  for (const line of lines) {
-    if (line.startsWith('[체크리스트]')) {
-      // 헤더 제거 후 나머지 파싱
-      const body = line.replace('[체크리스트]', '').trim();
-      html += parseChecklistLine(body);
-    } else if (line.startsWith('☐') || line.startsWith('☑')) {
-      html += parseChecklistLine(line);
-    } else if (line.startsWith('Comment:')) {
-      commentText = line.replace('Comment:', '').trim();
-    } else if (line.includes('☐') || line.includes('☑')) {
-      // 인라인으로 섞인 체크리스트 항목 분리
-      const parts = line.split(/(?=☐|☑)/);
-      parts.forEach(p => p.trim() && (html += parseChecklistLine(p.trim())));
-    } else {
-      commentText += (commentText ? ' ' : '') + line;
-    }
+  // 2. ExternalClass div 및 모든 HTML 태그 제거 → 순수 텍스트 추출
+  raw = raw.replace(/<div[^>]*ExternalClass[^>]*>([\s\S]*?)<\/div>/gi, (m, inner) => '\n' + inner)
+           .replace(/<[^>]+>/g, '')
+           .replace(/&nbsp;/g, ' ')
+           .trim();
+
+  if (sysKey !== 'SCC') return escHtml(raw).replace(/\n/g, '<br>');
+
+  // 3. SCC: 체크박스 항목(☐/☑)과 [체크리스트] 텍스트 분리 파싱
+  // 체크박스 줄: "☐ 항목명" 또는 "☑ 항목명"
+  // 상세결과 줄: "→ 설명: 결과" 형태 (ExternalClass 안에 있던 내용)
+  // Comment 줄: "Comment: 내용"
+
+  // 체크박스 줄들 먼저 수집
+  const checkLines = [];
+  const checkPattern = /([☐☑])\s*([^\n☐☑\[→]+)/g;
+  let m;
+  while ((m = checkPattern.exec(raw)) !== null) {
+    checkLines.push({ checked: m[1] === '☑', title: m[2].trim() });
   }
 
-  let result = '';
-  if (html) result += `<div style="margin-bottom:4px">${html}</div>`;
-  if (commentText) result += `<span style="color:#475569">${escHtml(commentText)}</span>`;
-  return result || escHtml(comment);
-}
+  // → 결과들 수집 (순서대로 체크항목에 매핑)
+  const resultPattern = /→\s*([^:→\n]+?):\s*([^\n→]+?)(?=→|Comment:|$)/g;
+  const results = [];
+  while ((m = resultPattern.exec(raw)) !== null) {
+    results.push({ desc: m[1].trim(), val: m[2].trim() });
+  }
 
-function parseChecklistLine(line) {
-  const checked = line.startsWith('☑');
-  const icon = checked ? '✅' : '☐';
-  const color = checked ? '#16a34a' : '#94a3b8';
-  // "☐/☑ 항목명 → 세부내용: 결과" 파싱
-  const text = line.replace(/^[☐☑]\s*/, '');
-  const parts = text.split('→');
-  const title = escHtml(parts[0].trim());
-  const detail = parts.slice(1).map(p => p.trim()).filter(Boolean);
-  let html = `<div style="display:flex;align-items:flex-start;gap:4px;margin:2px 0">`;
-  html += `<span style="color:${color};flex-shrink:0">${icon}</span>`;
-  html += `<span style="color:#334155">${title}`;
-  if (detail.length) {
-    detail.forEach(d => {
-      // "설명: 결과" 형식
-      const ci = d.indexOf(':');
-      if (ci > -1) {
-        const desc = escHtml(d.slice(0,ci).trim());
-        const val  = escHtml(d.slice(ci+1).trim());
-        if (val) html += `<span style="color:#64748b"> → <em>${desc}</em>: <strong>${val}</strong></span>`;
-      } else {
-        html += `<span style="color:#64748b"> → ${escHtml(d)}</span>`;
+  // Comment: 텍스트 추출
+  const commentMatch = raw.match(/Comment:\s*(.+)/);
+  const commentText = commentMatch ? commentMatch[1].trim() : '';
+
+  // 4. 렌더링
+  let html = '';
+
+  if (checkLines.length > 0) {
+    checkLines.forEach((cl, i) => {
+      const icon = cl.checked ? '✅' : '☐';
+      const color = cl.checked ? '#16a34a' : '#94a3b8';
+      const result = results[i];
+      html += `<div style="display:flex;align-items:flex-start;gap:5px;margin:3px 0;line-height:1.4">`;
+      html += `<span style="color:${color};flex-shrink:0;font-size:.85em">${icon}</span>`;
+      html += `<span style="color:#334155;font-size:.82em">${escHtml(cl.title)}`;
+      if (result) {
+        const valColor = result.val==='YES'?'#16a34a': result.val.includes('미선택')||result.val==='NO'?'#dc2626':'#475569';
+        html += ` <span style="color:#94a3b8">—</span> <span style="color:${valColor};font-weight:600">${escHtml(result.val)}</span>`;
       }
+      html += `</span></div>`;
     });
   }
-  html += `</span></div>`;
-  return html;
+
+  if (commentText) {
+    html += `<div style="margin-top:5px;padding:4px 8px;background:#f8fafc;border-left:2px solid #cbd5e1;font-size:.8em;color:#475569">${escHtml(commentText)}</div>`;
+  }
+
+  return html || escHtml(raw).replace(/\n/g, '<br>');
 }
+
+function parseChecklistLine(line) { return ''; } // 미사용 (하위 호환)
 
 function escHtml(str) {
   return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
