@@ -637,6 +637,75 @@ function card(sys,inner,cnt){
   </div>`;
 }
 
+// ── Comment 정리 (SCC 체크리스트 raw text → 깔끔하게) ──
+function formatComment(comment, sysKey) {
+  if (!comment) return '';
+  if (sysKey !== 'SCC') return escHtml(comment);
+
+  // SCC 체크리스트 형식: "[체크리스트] ☐/☑ 항목명 → 설명: 결과\nComment: 내용"
+  // 체크리스트 파트와 Comment 파트 분리
+  const lines = comment.split(/\n|\\n/).map(l => l.trim()).filter(Boolean);
+  let html = '';
+  let commentText = '';
+
+  for (const line of lines) {
+    if (line.startsWith('[체크리스트]')) {
+      // 헤더 제거 후 나머지 파싱
+      const body = line.replace('[체크리스트]', '').trim();
+      html += parseChecklistLine(body);
+    } else if (line.startsWith('☐') || line.startsWith('☑')) {
+      html += parseChecklistLine(line);
+    } else if (line.startsWith('Comment:')) {
+      commentText = line.replace('Comment:', '').trim();
+    } else if (line.includes('☐') || line.includes('☑')) {
+      // 인라인으로 섞인 체크리스트 항목 분리
+      const parts = line.split(/(?=☐|☑)/);
+      parts.forEach(p => p.trim() && (html += parseChecklistLine(p.trim())));
+    } else {
+      commentText += (commentText ? ' ' : '') + line;
+    }
+  }
+
+  let result = '';
+  if (html) result += `<div style="margin-bottom:4px">${html}</div>`;
+  if (commentText) result += `<span style="color:#475569">${escHtml(commentText)}</span>`;
+  return result || escHtml(comment);
+}
+
+function parseChecklistLine(line) {
+  const checked = line.startsWith('☑');
+  const icon = checked ? '✅' : '☐';
+  const color = checked ? '#16a34a' : '#94a3b8';
+  // "☐/☑ 항목명 → 세부내용: 결과" 파싱
+  const text = line.replace(/^[☐☑]\s*/, '');
+  const parts = text.split('→');
+  const title = escHtml(parts[0].trim());
+  const detail = parts.slice(1).map(p => p.trim()).filter(Boolean);
+  let html = `<div style="display:flex;align-items:flex-start;gap:4px;margin:2px 0">`;
+  html += `<span style="color:${color};flex-shrink:0">${icon}</span>`;
+  html += `<span style="color:#334155">${title}`;
+  if (detail.length) {
+    detail.forEach(d => {
+      // "설명: 결과" 형식
+      const ci = d.indexOf(':');
+      if (ci > -1) {
+        const desc = escHtml(d.slice(0,ci).trim());
+        const val  = escHtml(d.slice(ci+1).trim());
+        if (val) html += `<span style="color:#64748b"> → <em>${desc}</em>: <strong>${val}</strong></span>`;
+      } else {
+        html += `<span style="color:#64748b"> → ${escHtml(d)}</span>`;
+      }
+    });
+  }
+  html += `</span></div>`;
+  return html;
+}
+
+function escHtml(str) {
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+// ──────────────────────────────────────────────────────────────
+
 async function showDetail(sysKey,reqId){
   const modal=document.getElementById('detail-modal');
   document.getElementById('detail-content').innerHTML='<div style="text-align:center;padding:32px;color:#718096"><div class="spinner" style="margin:0 auto 12px"></div>불러오는 중...</div>';
@@ -676,7 +745,7 @@ async function showDetail(sysKey,reqId){
             <div class="appr-role">${af.ApproverRole||''}</div>
             <div class="appr-person">${af.ApproverName||''} · ${af.ApproverEmail||''}</div>
             ${af.ApprovalDate?`<div class="appr-date">${fmt(af.ApprovalDate)}</div>`:''}
-            ${af.Comment?`<div class="appr-comment">💬 ${af.Comment}</div>`:''}
+            ${af.Comment?`<div class="appr-comment">💬 ${formatComment(af.Comment,sysKey)}</div>`:''}
           </div>
         </div>
         <span style="color:${sc[af.Status]||'#4a5568'};font-weight:700;font-size:.78rem;white-space:nowrap;padding-left:8px">${af.Status||''}</span>
