@@ -369,8 +369,9 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#f5f7f
     <button class="modal-close" onclick="closeDetail()">✕</button>
     <div id="detail-sys-badge" class="modal-sys-badge"></div>
     <div class="modal-title" id="detail-title"></div>
-    <div style="margin:-4px 0 16px;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:6px;font-size:.78rem;color:#92400e;line-height:1.6;">
-      <span style="font-weight:600;">※ 유의사항</span>&nbsp; 아래 내용은 요약된 정보입니다. 결재 전 반드시 해당 시스템에서 상세 내용을 직접 확인하신 후 진행하시기 바랍니다.
+    <div style="margin:-4px 0 16px;padding:12px 16px;background:#fffbeb;border:1px solid #fde68a;border-radius:6px;font-size:.78rem;color:#92400e;line-height:1.8;">
+      <div style="font-weight:700;margin-bottom:2px;">※ 유의사항</div>
+      <div>아래 내용은 요약 정보이므로, 결재 진행 전 반드시 해당 시스템에서 상세 내용을 직접 확인해주시기 바랍니다.</div>
     </div>
     <div id="detail-content"></div>
   </div>
@@ -732,7 +733,7 @@ async function showDetail(sysKey,reqId){
 
     let info=sec('기본 정보')+row('신청번호','#'+reqId)+row('신청자',f.RequesterEmail)+
       row('상태',stBadge(f.Status))+row('신청일',fmt(f.RequestDate));
-    if(sysKey==='GW')       info+=sec('신청 정보')+row('Source',f.Source)+row('Amount',f.Amount)+row('Type',f.GoodwillType)+row('Title',f.Title)+row('Description','<div style="white-space:pre-wrap">'+(f.Description||'-')+'</div>');
+    if(sysKey==='GW')       info+=sec('신청 정보')+row('Source',f.Source)+row('Amount',(f.Amount||'').replace(/^(\d+)~$/, (m,n)=>Number(n).toLocaleString()+'~').replace(/^(\d+)~(\d+)$/, (m,a,b)=>Number(a).toLocaleString()+'~'+Number(b).toLocaleString()))+row('Type',f.GoodwillType)+row('Title',f.Title)+row('Description','<div style="white-space:pre-wrap">'+(f.Description||'-')+'</div>');
     else if(sysKey==='BP')  info+=sec('신청 정보')+row('BP Type',f.BPType)+row('Sub Category',f.SubCategory)+row('BP Name',f.BPName);
     else if(sysKey==='FA')  info+=sec('신청 정보')+row('FA Type',f.FAType)+row('Title',f.Title);
     else if(sysKey==='SCC') info+=sec('신청 정보')+row('Type',f.ContractCompanyType)+row('Title',f.Title)+row('Partner',f.ContractPartner);
