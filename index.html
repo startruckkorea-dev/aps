@@ -724,7 +724,7 @@ async function showDetail(sysKey,reqId){
     else if(sysKey==='BP')  info+=sec('신청 정보')+row('BP Type',f.BPType)+row('Sub Category',f.SubCategory)+row('BP Name',f.BPName);
     else if(sysKey==='FA')  info+=sec('신청 정보')+row('FA Type',f.FAType)+row('Title',f.Title);
     else if(sysKey==='SCC') info+=sec('신청 정보')+row('Type',f.ContractCompanyType)+row('Title',f.Title)+row('Partner',f.ContractPartner);
-    else if(sysKey==='IT')  info+=sec('신청 정보')+row('Type',f.TicketType)+row('Title',f.Title)+row('Description','<div style="white-space:pre-wrap">'+(f.Description||'-')+'</div>');
+    else if(sysKey==='IT')  info+=sec('신청 정보')+row('Type',f.TicketType)+row('Title',f.Title)+row('대상 시스템',f.Systems||'-');
     else if(sysKey==='MC')  info+=sec('신청 정보')+row('Company',f.Company)+row('Department',f.Department)+row('Car Model',f.CarModel)+row('Period',f.Period)+row('Driver',f.DriverName);
     else if(sysKey==='RR')  info+=sec('신청 정보')+row('Vehicle Model',f.VehicleModel)+row('Plate No.',f.PlateNumber)+row('Accident Type',f.AccidentType)+row('Date/Time',f.AccidentDateTime)+row('Location',f.Location)+row('Description','<div style="white-space:pre-wrap">'+(f.Description||'-')+'</div>');
     else if(sysKey==='GA_STN') info+=sec('신청 정보')+row('Company',f.Company)+row('Cost Center',f.CostCenter)+row('Description',f.Description||'-');
