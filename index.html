@@ -826,6 +826,13 @@ async function doApproval(){
   const sys=SYSTEMS.find(s=>s.key===sysKey);
   loading(true,action==='승인'?'승인 처리 중...':'반려 처리 중...');
   try{
+    // 이중 결재 방지: PATCH 전 현재 Status 확인
+    const _cur=await api('/sites/'+siteId+'/lists/'+sys.apr+'/items/'+apprId+'?$expand=fields');
+    if(_cur.fields.Status!=='대기'){
+      loading(false);
+      alert('이미 처리된 결재 항목입니다.\n다른 창에서 처리되었거나 이미 완료된 항목입니다.');
+      await loadAll(); return;
+    }
     await api('/sites/'+siteId+'/lists/'+sys.apr+'/items/'+apprId,'PATCH',{fields:{Status:action==='승인'?'승인':action,ApprovalDate:new Date().toISOString(),Comment:comment}});
     if(action==='반려'){
       await api('/sites/'+siteId+'/lists/'+sys.req+'/items/'+reqId,'PATCH',{fields:{Status:'반려'}});
