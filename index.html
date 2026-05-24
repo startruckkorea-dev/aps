@@ -602,8 +602,17 @@ function renderAll(){
     if(!d){html+=card(sys,'<div class="sys-empty">⏳ 불러오는 중...</div>',0);continue;}
     if(d.error){html+=card(sys,`<div class="sys-empty" style="color:#e53e3e">⚠️ ${d.error}</div>`,0);continue;}
 
-    let mine=d.apprItems.filter(i=>(i.fields.ApproverEmail||'').toLowerCase()===myEmail);
-    if(fSt)mine=mine.filter(i=>(i.fields.Status||'').trim()===fSt);
+    // 내 결재 항목: 같은 RequestID가 여러 개일 경우 '대기' 우선, 없으면 최신 1개만 표시
+    const _myAll = d.apprItems.filter(i=>(i.fields.ApproverEmail||'').toLowerCase()===myEmail);
+    const _reqIdMap = {};
+    _myAll.forEach(i=>{
+      const rid = String(i.fields.RequestID);
+      const st = (i.fields.Status||'').trim();
+      if(!_reqIdMap[rid]) { _reqIdMap[rid]=i; }
+      else if(st==='대기') { _reqIdMap[rid]=i; } // 대기 항목 우선
+    });
+    let mine = Object.values(_reqIdMap);
+    if(fSt) mine=mine.filter(i=>(i.fields.Status||'').trim()===fSt);
     mine=mine.sort((a,b)=>{
       const ra=d.reqMap[String(a.fields.RequestID)],rb=d.reqMap[String(b.fields.RequestID)];
       return new Date(rb?.RequestDate||0)-new Date(ra?.RequestDate||0);
