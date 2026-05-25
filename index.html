@@ -734,12 +734,7 @@ function renderAll(){
   const contentEl = document.getElementById('content');
   const mainPageEl = document.getElementById('aps-main-page');
   if (total === 0 && fSt === '대기') {
-    // topnav + ql-strip 높이를 제외한 나머지 공간에서 중앙 정렬
-    const topnav = document.querySelector('.topnav');
-    const ql = document.querySelector('.ql-strip');
-    const usedH = (topnav ? topnav.offsetHeight : 56) + (ql ? ql.offsetHeight : 48);
-    const avail = Math.max(300, window.innerHeight - usedH - 80);
-    contentEl.style.cssText = `display:flex;align-items:center;justify-content:center;height:${avail}px;`;
+    contentEl.style.cssText = 'padding-top:40px;';
     contentEl.innerHTML = doneBanner;
   } else {
     contentEl.style.cssText = '';
