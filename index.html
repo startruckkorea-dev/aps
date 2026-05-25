@@ -734,24 +734,15 @@ function renderAll(){
   const contentEl = document.getElementById('content');
   const mainPageEl = document.getElementById('aps-main-page');
   if (total === 0 && fSt === '대기') {
-    // 배너만 있을 때: 화면 중앙에 배치
-    mainPageEl.style.minHeight = '';
-    mainPageEl.style.display = 'flex';
-    mainPageEl.style.flexDirection = 'column';
-    contentEl.style.flex = '1';
-    contentEl.style.display = 'flex';
-    contentEl.style.alignItems = 'center';
-    contentEl.style.justifyContent = 'center';
-    contentEl.style.padding = '40px 0';
+    // topnav + ql-strip 높이를 제외한 나머지 공간에서 중앙 정렬
+    const topnav = document.querySelector('.topnav');
+    const ql = document.querySelector('.ql-strip');
+    const usedH = (topnav ? topnav.offsetHeight : 56) + (ql ? ql.offsetHeight : 48);
+    const avail = Math.max(300, window.innerHeight - usedH - 80);
+    contentEl.style.cssText = `display:flex;align-items:center;justify-content:center;height:${avail}px;`;
     contentEl.innerHTML = doneBanner;
   } else {
-    mainPageEl.style.display = '';
-    mainPageEl.style.minHeight = '';
-    contentEl.style.flex = '';
-    contentEl.style.display = '';
-    contentEl.style.alignItems = '';
-    contentEl.style.justifyContent = '';
-    contentEl.style.padding = '';
+    contentEl.style.cssText = '';
     contentEl.innerHTML = mainContent ? `<div class="cards-grid">${mainContent}</div>` : '';
   }
 }
