@@ -39,7 +39,7 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#f5f7f
 .btn-signout:hover{background:rgba(255,255,255,.1);color:#fff}
 
 /* ── Page ── */
-.page{padding:24px 28px 20px}
+.page{padding:24px 28px 60px}
 
 /* ── Top bar ── */
 .topbar{display:flex;align-items:center;gap:8px;margin-bottom:18px;flex-wrap:nowrap}
@@ -109,10 +109,10 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#f5f7f
 .pg-btn:disabled{opacity:.3;cursor:not-allowed}
 
 /* ── All done ── */
-.all-done-banner{background:linear-gradient(90deg,#f0fdf4,#dcfce7);border:1px solid #86efac;border-radius:14px;padding:24px 32px;display:flex;align-items:center;gap:16px;margin:40px auto;max-width:480px;justify-content:center;box-shadow:0 4px 20px rgba(22,101,52,.1)}
+.all-done-banner{background:linear-gradient(90deg,#f0fdf4,#dcfce7);border:1px solid #86efac;border-radius:14px;padding:14px 24px;display:flex;align-items:center;gap:12px;margin-bottom:18px}
 .all-done-banner .icon{font-size:1.4rem}
-.all-done-banner .msg{font-size:1.1rem;font-weight:700;color:#166534}
-.all-done-banner .sub{font-size:.82rem;color:#15803d;margin-top:4px}
+.all-done-banner .msg{font-size:.9rem;font-weight:700;color:#166534}
+.all-done-banner .sub{font-size:.78rem;color:#4ade80;margin-top:1px}
 /* ── quick-links bar ── */
 .ql-strip{background:#fff;border-bottom:1px solid #e2e8f0;padding:0 28px;display:flex;align-items:center;gap:0;overflow-x:auto;scrollbar-width:none}
 .ql-strip::-webkit-scrollbar{display:none}
@@ -674,7 +674,7 @@ function renderAll(){
     });
     total+=mine.length;
 
-    if(!mine.length){continue;} // 빈 카드 숨김
+    if(!mine.length){html+=card(sys,`<div class="sys-empty">✓ ${fSt==='대기'?'결재 대기 항목이 없습니다':'항목이 없습니다'}</div>`,0);continue;}
 
     const totalItems=mine.length;
     const totalPages=Math.max(1,Math.ceil(totalItems/PAGE_SIZE));
@@ -731,15 +731,10 @@ function renderAll(){
     ?''
     :html||'<div style="grid-column:1/-1;text-align:center;padding:40px;color:#94a3b8;font-size:.85rem">📭 필터 조건에 해당하는 항목이 없습니다.</div>';
 
-  const contentEl = document.getElementById('content');
-  const mainPageEl = document.getElementById('aps-main-page');
-  if (total === 0 && fSt === '대기') {
-    contentEl.style.cssText = 'padding-top:40px;';
-    contentEl.innerHTML = doneBanner;
-  } else {
-    contentEl.style.cssText = '';
-    contentEl.innerHTML = mainContent ? `<div class="cards-grid">${mainContent}</div>` : '';
-  }
+  document.getElementById('content').innerHTML=`
+    ${doneBanner}
+    ${mainContent?`<div class="cards-grid">${mainContent}</div>`:''}
+`;
 }
 
 function card(sys,inner,cnt){
@@ -1086,7 +1081,7 @@ function exportAdminExcel() {
 </script>
 
 <!-- FOOTER -->
-<footer style="margin-top:20px;padding:18px 28px;border-top:1px solid #e2e8f0;background:transparent;">
+<footer style="margin-top:48px;padding:18px 28px;border-top:1px solid #e2e8f0;background:transparent;">
   <div style="max-width:1200px;margin:0 auto;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
     <div style="font-family:'Segoe UI',sans-serif;font-size:.72rem;color:#94a3b8;">
       © 2026 Star Truck Korea &nbsp;·&nbsp; STK APS — Integrated Approval System
