@@ -325,7 +325,46 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#f5f7f
     <a href="https://ga.startruckkorea.com/" target="_blank" class="ql-btn"><div class="qi" style="background:#6366f118;color:#6366f1">📋</div><span class="ql">General Affairs</span></a>
   </div>
 
-  <div class="page">
+  <div id="aps-admin-page" style="display:none;padding:12px 20px 0;">
+    <div class="topbar">
+      <span class="topbar-title">⚙️ APS 전체 결재 관리</span>
+      <span class="topbar-cnt" id="admin-total-count"></span>
+      <div class="topbar-space"></div>
+      <button class="btn-refresh" onclick="loadAdminPage()">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+        새로고침
+      </button>
+      <button onclick="exportAdminExcel()" style="background:#1d6f42;color:#fff;border:none;border-radius:6px;padding:6px 14px;font-size:.8rem;font-weight:600;cursor:pointer;font-family:inherit;margin-left:8px;">📊 Excel</button>
+      <button onclick="switchApsTab('main')" style="background:#f1f5f9;color:#374151;border:1px solid #d1d5db;border-radius:6px;padding:6px 14px;font-size:.8rem;cursor:pointer;font-family:inherit;margin-left:8px;">← 결재함</button>
+    </div>
+    <div class="filter-row" style="margin:8px 0 12px;">
+      <select id="admin-filter-sys" class="filter-select" onchange="renderAdminTable()">
+        <option value="">전체 시스템</option>
+        <option value="IT">IT Ticket</option>
+        <option value="SCC">STK Contract</option>
+        <option value="GW">Goodwill</option>
+        <option value="BP">BP Master</option>
+        <option value="FA">FA Registration</option>
+        <option value="MC">Mobility Car</option>
+        <option value="RR">Repair Report</option>
+        <option value="GA_STN">GA Stationery</option>
+        <option value="GA_BC">GA Business Card</option>
+        <option value="GA_IDC">GA ID Card</option>
+      </select>
+      <select id="admin-filter-status" class="filter-select" onchange="renderAdminTable()">
+        <option value="">전체 상태</option>
+        <option value="대기">대기</option>
+        <option value="승인">승인</option>
+        <option value="반려">반려</option>
+        <option value="승인완료">승인완료</option>
+        <option value="대기(잠김)">대기(잠김)</option>
+      </select>
+      <input id="admin-search" class="filter-select" type="text" placeholder="신청자/제목 검색..." oninput="renderAdminTable()" style="min-width:200px;" />
+    </div>
+    <div id="admin-table-wrap"></div>
+  </div>
+
+  <div class="page" id="aps-main-page">
     <!-- Topbar -->
     <div class="topbar">
       <span class="topbar-title">결재 대기함</span>
@@ -867,18 +906,21 @@ async function doApproval(){
 
 // ── APS 관리자 탭 ──────────────────────────
 function switchApsTab(tab) {
-  const mainPage = document.querySelector('.page');
+  const mainPage  = document.getElementById('aps-main-page');
   const adminPage = document.getElementById('aps-admin-page');
   const adminBtn  = document.getElementById('aps-admin-btn');
+  const qlStrip   = document.querySelector('.ql-strip');
   if (tab === 'admin') {
-    mainPage.style.display = 'none';
+    if(mainPage)  mainPage.style.display  = 'none';
+    if(qlStrip)   qlStrip.style.display   = 'none';
     adminPage.style.display = 'block';
-    if(adminBtn) adminBtn.style.background = '#0F2744';
+    if(adminBtn)  adminBtn.style.background = '#0F2744';
     loadAdminPage();
   } else {
-    mainPage.style.display = 'block';
+    if(mainPage)  mainPage.style.display  = 'block';
+    if(qlStrip)   qlStrip.style.display   = '';
     adminPage.style.display = 'none';
-    if(adminBtn) adminBtn.style.background = '#0078d4';
+    if(adminBtn)  adminBtn.style.background = '#0078d4';
   }
 }
 
@@ -992,46 +1034,6 @@ function exportAdminExcel() {
 </script>
 
 <!-- FOOTER -->
-  <!-- 관리자 탭 페이지 -->
-  <div id="aps-admin-page" style="display:none;padding:0 24px;">
-    <div class="topbar">
-      <span class="topbar-title">⚙️ APS 전체 결재 관리</span>
-      <span class="topbar-cnt" id="admin-total-count"></span>
-      <div class="topbar-space"></div>
-      <button class="btn-refresh" onclick="loadAdminPage()">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
-        새로고침
-      </button>
-      <button onclick="exportAdminExcel()" style="background:#1d6f42;color:#fff;border:none;border-radius:6px;padding:6px 14px;font-size:.8rem;font-weight:600;cursor:pointer;font-family:inherit;margin-left:8px;">📊 Excel</button>
-      <button onclick="switchApsTab('main')" style="background:#f1f5f9;color:#374151;border:1px solid #d1d5db;border-radius:6px;padding:6px 14px;font-size:.8rem;cursor:pointer;font-family:inherit;margin-left:8px;">← 결재함</button>
-    </div>
-    <div class="filter-row" style="margin-bottom:12px;">
-      <select id="admin-filter-sys" class="filter-select" onchange="renderAdminTable()">
-        <option value="">전체 시스템</option>
-        <option value="IT">IT Ticket</option>
-        <option value="SCC">STK Contract</option>
-        <option value="GW">Goodwill</option>
-        <option value="BP">BP Master</option>
-        <option value="FA">FA Registration</option>
-        <option value="MC">Mobility Car</option>
-        <option value="RR">Repair Report</option>
-        <option value="GA_STN">GA Stationery</option>
-        <option value="GA_BC">GA Business Card</option>
-        <option value="GA_IDC">GA ID Card</option>
-      </select>
-      <select id="admin-filter-status" class="filter-select" onchange="renderAdminTable()">
-        <option value="">전체 상태</option>
-        <option value="대기">대기</option>
-        <option value="승인">승인</option>
-        <option value="반려">반려</option>
-        <option value="승인완료">승인완료</option>
-        <option value="대기(잠김)">대기(잠김)</option>
-      </select>
-      <input id="admin-search" class="filter-select" type="text" placeholder="신청자/제목 검색..." oninput="renderAdminTable()" style="min-width:200px;" />
-    </div>
-    <div id="admin-table-wrap"></div>
-  </div>
-
 <footer style="margin-top:48px;padding:18px 28px;border-top:1px solid #e2e8f0;background:transparent;">
   <div style="max-width:1200px;margin:0 auto;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
     <div style="font-family:'Segoe UI',sans-serif;font-size:.72rem;color:#94a3b8;">
