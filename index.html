@@ -864,6 +864,131 @@ async function doApproval(){
   }catch(e){alert('오류: '+e.message);}
   finally{loading(false);}
 }
+
+// ── APS 관리자 탭 ──────────────────────────
+function switchApsTab(tab) {
+  const mainPage = document.querySelector('.page');
+  const adminPage = document.getElementById('aps-admin-page');
+  const adminBtn  = document.getElementById('aps-admin-btn');
+  if (tab === 'admin') {
+    mainPage.style.display = 'none';
+    adminPage.style.display = 'block';
+    if(adminBtn) adminBtn.style.background = '#0F2744';
+    loadAdminPage();
+  } else {
+    mainPage.style.display = 'block';
+    adminPage.style.display = 'none';
+    if(adminBtn) adminBtn.style.background = '#0078d4';
+  }
+}
+
+let _adminData = [];
+
+async function loadAdminPage() {
+  document.getElementById('admin-table-wrap').innerHTML = '<div style="padding:40px;text-align:center;color:#94a3b8;">전체 데이터 로딩 중...</div>';
+  _adminData = [];
+  await Promise.all(SYSTEMS.map(async sys => {
+    try {
+      const [aprData, reqData] = await Promise.all([
+        apiAll('/sites/'+siteId+'/lists/'+sys.apr+'/items?$expand=fields'),
+        apiAll('/sites/'+siteId+'/lists/'+sys.req+'/items?$expand=fields'),
+      ]);
+      const reqMap = {};
+      reqData.value.forEach(r => { reqMap[r.id] = r.fields; });
+      aprData.value.forEach(i => {
+        const rf = reqMap[String(i.fields.RequestID)] || {};
+        _adminData.push({
+          sysKey: sys.key, sysLabel: sys.label || sys.key,
+          apprId: i.id, reqId: i.fields.RequestID,
+          title: rf.Title || i.fields.Title || '-',
+          requester: rf.RequesterEmail || '-',
+          approverEmail: i.fields.ApproverEmail || '-',
+          approverName: i.fields.ApproverName || '-',
+          approverRole: i.fields.ApproverRole || '-',
+          order: i.fields.ApprovalOrder || '-',
+          status: (i.fields.Status?.Value || i.fields.Status || '').trim(),
+          comment: i.fields.Comment || '',
+          requestDate: rf.RequestDate || '',
+          approvalDate: i.fields.ApprovalDate || '',
+        });
+      });
+    } catch(e) {}
+  }));
+  document.getElementById('admin-total-count').textContent = '총 '+_adminData.length+'건';
+  renderAdminTable();
+}
+
+function renderAdminTable() {
+  const fSys    = document.getElementById('admin-filter-sys').value;
+  const fStatus = document.getElementById('admin-filter-status').value;
+  const fSearch = (document.getElementById('admin-search').value||'').toLowerCase();
+  const rows = _adminData.filter(r =>
+    (!fSys    || r.sysKey === fSys) &&
+    (!fStatus || r.status === fStatus) &&
+    (!fSearch || r.title.toLowerCase().includes(fSearch) || r.requester.toLowerCase().includes(fSearch))
+  );
+  const stMap = {'대기':'#b45309','승인':'#15803d','반려':'#b91c1c','대기(잠김)':'#718096','승인완료':'#15803d'};
+  const stBg  = {'대기':'#fef3c7','승인':'#dcfce7','반려':'#fee2e2','대기(잠김)':'#f1f5f9','승인완료':'#dcfce7'};
+  document.getElementById('admin-total-count').textContent = '필터 '+rows.length+'건 / 전체 '+_adminData.length+'건';
+  if (!rows.length) {
+    document.getElementById('admin-table-wrap').innerHTML = '<div style="padding:40px;text-align:center;color:#94a3b8;">데이터가 없습니다.</div>';
+    return;
+  }
+  const trs = rows.map(r => `
+    <tr style="border-bottom:1px solid #f1f5f9;font-size:.8rem;">
+      <td style="padding:8px 10px;color:#0078d4;font-weight:600;">${r.sysLabel}</td>
+      <td style="padding:8px 10px;text-align:center;">${r.reqId}</td>
+      <td style="padding:8px 10px;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.title}</td>
+      <td style="padding:8px 10px;color:#374151;">${r.requester}</td>
+      <td style="padding:8px 10px;">${r.approverName}<br><span style="color:#94a3b8;font-size:.72rem;">${r.approverEmail}</span></td>
+      <td style="padding:8px 10px;color:#64748b;">${r.approverRole}</td>
+      <td style="padding:8px 10px;text-align:center;">${r.order}</td>
+      <td style="padding:8px 10px;text-align:center;">
+        <span style="background:${stBg[r.status]||'#f1f5f9'};color:${stMap[r.status]||'#374151'};border-radius:10px;padding:2px 8px;font-size:.75rem;font-weight:600;">${r.status}</span>
+      </td>
+      <td style="padding:8px 10px;color:#94a3b8;font-size:.75rem;">${r.requestDate?r.requestDate.slice(0,10):'-'}</td>
+      <td style="padding:8px 10px;color:#94a3b8;font-size:.75rem;">${r.approvalDate?r.approvalDate.slice(0,16).replace('T',' '):'-'}</td>
+    </tr>`).join('');
+  document.getElementById('admin-table-wrap').innerHTML = `
+    <div style="overflow-x:auto;border-radius:8px;border:1px solid #e2e8f0;">
+      <table style="width:100%;border-collapse:collapse;background:#fff;">
+        <thead><tr style="background:#1e3a5f;color:#fff;font-size:.78rem;">
+          <th style="padding:10px;text-align:left;">시스템</th>
+          <th style="padding:10px;">신청번호</th>
+          <th style="padding:10px;text-align:left;">제목</th>
+          <th style="padding:10px;text-align:left;">신청자</th>
+          <th style="padding:10px;text-align:left;">결재자</th>
+          <th style="padding:10px;text-align:left;">역할</th>
+          <th style="padding:10px;">차수</th>
+          <th style="padding:10px;">상태</th>
+          <th style="padding:10px;">신청일</th>
+          <th style="padding:10px;">결재일</th>
+        </tr></thead>
+        <tbody>${trs}</tbody>
+      </table>
+    </div>`;
+}
+
+function exportAdminExcel() {
+  if (!_adminData.length) { alert('먼저 관리자 탭을 열어 데이터를 로드해주세요.'); return; }
+  const fSys    = document.getElementById('admin-filter-sys').value;
+  const fStatus = document.getElementById('admin-filter-status').value;
+  const fSearch = (document.getElementById('admin-search').value||'').toLowerCase();
+  const rows = _adminData.filter(r =>
+    (!fSys    || r.sysKey === fSys) &&
+    (!fStatus || r.status === fStatus) &&
+    (!fSearch || r.title.toLowerCase().includes(fSearch) || r.requester.toLowerCase().includes(fSearch))
+  );
+  const ws = XLSX.utils.json_to_sheet(rows.map(r => ({
+    '시스템': r.sysLabel, '신청번호': r.reqId, '제목': r.title,
+    '신청자': r.requester, '결재자명': r.approverName, '결재자이메일': r.approverEmail,
+    '역할': r.approverRole, '차수': r.order, '상태': r.status,
+    '코멘트': r.comment, '신청일': r.requestDate, '결재일': r.approvalDate,
+  })));
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'APS 전체결재');
+  XLSX.writeFile(wb, 'APS_전체결재_'+new Date().toISOString().slice(0,10)+'.xlsx');
+}
 </script>
 
 <!-- FOOTER -->
