@@ -731,10 +731,29 @@ function renderAll(){
     ?''
     :html||'<div style="grid-column:1/-1;text-align:center;padding:40px;color:#94a3b8;font-size:.85rem">📭 필터 조건에 해당하는 항목이 없습니다.</div>';
 
-  document.getElementById('content').innerHTML=`
-    ${doneBanner}
-    ${mainContent?`<div class="cards-grid">${mainContent}</div>`:''}
-`;
+  const contentEl = document.getElementById('content');
+  const mainPageEl = document.getElementById('aps-main-page');
+  if (total === 0 && fSt === '대기') {
+    // 배너만 있을 때: 화면 중앙에 배치
+    mainPageEl.style.minHeight = '';
+    mainPageEl.style.display = 'flex';
+    mainPageEl.style.flexDirection = 'column';
+    contentEl.style.flex = '1';
+    contentEl.style.display = 'flex';
+    contentEl.style.alignItems = 'center';
+    contentEl.style.justifyContent = 'center';
+    contentEl.style.padding = '40px 0';
+    contentEl.innerHTML = doneBanner;
+  } else {
+    mainPageEl.style.display = '';
+    mainPageEl.style.minHeight = '';
+    contentEl.style.flex = '';
+    contentEl.style.display = '';
+    contentEl.style.alignItems = '';
+    contentEl.style.justifyContent = '';
+    contentEl.style.padding = '';
+    contentEl.innerHTML = mainContent ? `<div class="cards-grid">${mainContent}</div>` : '';
+  }
 }
 
 function card(sys,inner,cnt){
