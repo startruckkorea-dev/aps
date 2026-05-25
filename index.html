@@ -353,11 +353,10 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#f5f7f
       </select>
       <select id="admin-filter-status" class="filter-select" onchange="renderAdminTable(true)">
         <option value="">전체 상태</option>
+        <option value="진행중">진행중</option>
         <option value="대기">대기</option>
-        <option value="승인">승인</option>
-        <option value="반려">반려</option>
         <option value="승인완료">승인완료</option>
-        <option value="대기(잠김)">대기(잠김)</option>
+        <option value="반려">반려</option>
       </select>
       <input id="admin-search" class="filter-select" type="text" placeholder="신청자/제목 검색..." oninput="renderAdminTable(true)" style="min-width:200px;" />
     </div>
@@ -935,23 +934,35 @@ async function loadAdminPage() {
         apiAll('/sites/'+siteId+'/lists/'+sys.apr+'/items?$expand=fields'),
         apiAll('/sites/'+siteId+'/lists/'+sys.req+'/items?$expand=fields'),
       ]);
-      const reqMap = {};
-      reqData.value.forEach(r => { reqMap[r.id] = r.fields; });
+      const aprMap = {};
       aprData.value.forEach(i => {
-        const rf = reqMap[String(i.fields.RequestID)] || {};
+        const rid = String(i.fields.RequestID);
+        if (!aprMap[rid]) aprMap[rid] = [];
+        aprMap[rid].push(i.fields);
+      });
+      reqData.value.forEach(r => {
+        const rf = r.fields;
+        const rid = String(r.id);
+        const aprs = aprMap[rid] || [];
+        const aprStatuses = aprs.map(a => (a.Status && a.Status.Value ? a.Status.Value : a.Status || '').trim());
+        let reqStatus = rf.Status || '대기';
+        if (aprStatuses.some(s => s === '반려')) reqStatus = '반려';
+        else if (aprStatuses.length && aprStatuses.every(s => s === '승인')) reqStatus = '승인완료';
+        else if (aprStatuses.some(s => s === '대기')) reqStatus = '진행중';
+        const doneAprs = aprs.filter(a => {const s=(a.Status&&a.Status.Value?a.Status.Value:a.Status||'').trim();return s==='승인'||s==='반려';}).sort((a,b)=>(a.ApprovalOrder||0)-(b.ApprovalOrder||0));
+        const pendingAprs = aprs.filter(a => (a.Status&&a.Status.Value?a.Status.Value:a.Status||'').trim()==='대기').sort((a,b)=>(a.ApprovalOrder||0)-(b.ApprovalOrder||0));
         _adminData.push({
           sysKey: sys.key, sysLabel: sys.label || sys.key,
-          apprId: i.id, reqId: i.fields.RequestID,
-          title: rf.Title || i.fields.Title || '-',
+          reqId: r.id,
+          title: rf.Title || '-',
           requester: rf.RequesterEmail || '-',
-          approverEmail: i.fields.ApproverEmail || '-',
-          approverName: i.fields.ApproverName || '-',
-          approverRole: i.fields.ApproverRole || '-',
-          order: i.fields.ApprovalOrder || '-',
-          status: (i.fields.Status?.Value || i.fields.Status || '').trim(),
-          comment: i.fields.Comment || '',
+          reqStatus,
+          totalAprs: aprs.length,
+          doneCount: doneAprs.length,
+          nextApprover: pendingAprs.length ? (pendingAprs[0].ApproverName||'-') : '-',
+          nextRole: pendingAprs.length ? (pendingAprs[0].ApproverRole||'-') : '-',
           requestDate: rf.RequestDate || '',
-          approvalDate: i.fields.ApprovalDate || '',
+          lastApprovalDate: doneAprs.length ? (doneAprs[doneAprs.length-1].ApprovalDate||'') : '',
         });
       });
     } catch(e) {}
@@ -969,14 +980,13 @@ function renderAdminTable(resetPage) {
   const fStatus = document.getElementById('admin-filter-status').value;
   const fSearch = (document.getElementById('admin-search').value||'').toLowerCase();
 
-  // 최신순 정렬 (reqId 내림차순, 같으면 apprId 내림차순)
   const rows = _adminData
     .filter(r =>
       (!fSys    || r.sysKey === fSys) &&
-      (!fStatus || r.status === fStatus) &&
+      (!fStatus || r.reqStatus === fStatus) &&
       (!fSearch || r.title.toLowerCase().includes(fSearch) || r.requester.toLowerCase().includes(fSearch))
     )
-    .sort((a, b) => (Number(b.reqId)||0) - (Number(a.reqId)||0) || (Number(b.apprId)||0) - (Number(a.apprId)||0));
+    .sort((a, b) => (Number(b.reqId)||0) - (Number(a.reqId)||0));
 
   const totalPages = Math.max(1, Math.ceil(rows.length / ADMIN_PAGE_SIZE));
   if (_adminPage > totalPages) _adminPage = totalPages;
@@ -992,29 +1002,27 @@ function renderAdminTable(resetPage) {
     return;
   }
 
-  const stMap = {'대기':'#b45309','승인':'#15803d','반려':'#b91c1c','대기(잠김)':'#718096','승인완료':'#15803d'};
-  const stBg  = {'대기':'#fef3c7','승인':'#dcfce7','반려':'#fee2e2','대기(잠김)':'#f1f5f9','승인완료':'#dcfce7'};
+  const stMap = {'대기':'#b45309','진행중':'#1d4ed8','승인완료':'#15803d','반려':'#b91c1c'};
+  const stBg  = {'대기':'#fef3c7','진행중':'#dbeafe','승인완료':'#dcfce7','반려':'#fee2e2'};
 
   const trs = pageRows.map(r => `
     <tr style="border-bottom:1px solid #f1f5f9;font-size:.8rem;">
       <td style="padding:8px 10px;color:#0078d4;font-weight:600;">${r.sysLabel}</td>
-      <td style="padding:8px 10px;text-align:center;">${r.reqId}</td>
-      <td style="padding:8px 10px;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.title}</td>
+      <td style="padding:8px 10px;text-align:center;color:#374151;font-weight:600;">${r.reqId}</td>
+      <td style="padding:8px 10px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.title}</td>
       <td style="padding:8px 10px;color:#374151;">${r.requester}</td>
-      <td style="padding:8px 10px;">${r.approverName}<br><span style="color:#94a3b8;font-size:.72rem;">${r.approverEmail}</span></td>
-      <td style="padding:8px 10px;color:#64748b;">${r.approverRole}</td>
-      <td style="padding:8px 10px;text-align:center;">${r.order}</td>
       <td style="padding:8px 10px;text-align:center;">
-        <span style="background:${stBg[r.status]||'#f1f5f9'};color:${stMap[r.status]||'#374151'};border-radius:10px;padding:2px 8px;font-size:.75rem;font-weight:600;">${r.status}</span>
+        <span style="background:${stBg[r.reqStatus]||'#f1f5f9'};color:${stMap[r.reqStatus]||'#374151'};border-radius:10px;padding:2px 10px;font-size:.75rem;font-weight:600;">${r.reqStatus}</span>
       </td>
+      <td style="padding:8px 10px;text-align:center;color:#64748b;">${r.doneCount} / ${r.totalAprs}차</td>
+      <td style="padding:8px 10px;color:#374151;font-size:.78rem;">${r.nextApprover !== '-' ? r.nextApprover+'<br><span style="color:#94a3b8;font-size:.7rem;">'+r.nextRole+'</span>' : '<span style="color:#94a3b8;">-</span>'}</td>
       <td style="padding:8px 10px;color:#94a3b8;font-size:.75rem;">${r.requestDate?r.requestDate.slice(0,10):'-'}</td>
-      <td style="padding:8px 10px;color:#94a3b8;font-size:.75rem;">${r.approvalDate?r.approvalDate.slice(0,16).replace('T',' '):'-'}</td>
+      <td style="padding:8px 10px;color:#94a3b8;font-size:.75rem;">${r.lastApprovalDate?r.lastApprovalDate.slice(0,16).replace('T',' '):'-'}</td>
     </tr>`).join('');
 
-  // 페이지네이션 버튼
   const pgBtns = [];
   if (_adminPage > 1) pgBtns.push(`<button onclick="adminGoPage(1)" style="${pgBtnStyle()}">«</button><button onclick="adminGoPage(${_adminPage-1})" style="${pgBtnStyle()}">‹</button>`);
-  for (let p = Math.max(1, _adminPage-2); p <= Math.min(totalPages, _adminPage+2); p++) {
+  for (let p = Math.max(1,_adminPage-2); p <= Math.min(totalPages,_adminPage+2); p++) {
     pgBtns.push(`<button onclick="adminGoPage(${p})" style="${pgBtnStyle(p===_adminPage)}">${p}</button>`);
   }
   if (_adminPage < totalPages) pgBtns.push(`<button onclick="adminGoPage(${_adminPage+1})" style="${pgBtnStyle()}">›</button><button onclick="adminGoPage(${totalPages})" style="${pgBtnStyle()}">»</button>`);
@@ -1027,12 +1035,11 @@ function renderAdminTable(resetPage) {
           <th style="padding:10px;">신청번호</th>
           <th style="padding:10px;text-align:left;">제목</th>
           <th style="padding:10px;text-align:left;">신청자</th>
-          <th style="padding:10px;text-align:left;">결재자</th>
-          <th style="padding:10px;text-align:left;">역할</th>
-          <th style="padding:10px;">차수</th>
           <th style="padding:10px;">상태</th>
+          <th style="padding:10px;">결재진행</th>
+          <th style="padding:10px;text-align:left;">다음결재자</th>
           <th style="padding:10px;">신청일</th>
-          <th style="padding:10px;">결재일</th>
+          <th style="padding:10px;">최근결재일</th>
         </tr></thead>
         <tbody>${trs}</tbody>
       </table>
@@ -1062,9 +1069,10 @@ function exportAdminExcel() {
   );
   const ws = XLSX.utils.json_to_sheet(rows.map(r => ({
     '시스템': r.sysLabel, '신청번호': r.reqId, '제목': r.title,
-    '신청자': r.requester, '결재자명': r.approverName, '결재자이메일': r.approverEmail,
-    '역할': r.approverRole, '차수': r.order, '상태': r.status,
-    '코멘트': r.comment, '신청일': r.requestDate, '결재일': r.approvalDate,
+    '신청자': r.requester, '상태': r.reqStatus,
+    '결재진행': r.doneCount+'/'+r.totalAprs+'차',
+    '다음결재자': r.nextApprover, '다음결재역할': r.nextRole,
+    '신청일': r.requestDate, '최근결재일': r.lastApprovalDate,
   })));
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'APS 전체결재');
