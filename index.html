@@ -796,11 +796,17 @@ async function showDetail(sysKey,reqId){
     else if(sysKey==='GA_IDC') info+=sec('신청 정보')+row('Issue Type',f.IssueType)+row('Cost Center',f.CostCenter)+row('Description',f.Description||'-');
 
     const apprHtml=sec('결재 이력')+'<div class="appr-history">'+
-      apprList.map(a=>{const af=a.fields;return`<div class="appr-item">
+      apprList.map(a=>{
+        const af=a.fields;
+        const _o=String(af.ApprovalOrder||'');
+        const _r=af.ApproverRole||'';
+        const _rc=_r.startsWith(_o+'차')?_r.slice(_o.length+1).trim():_r;
+        const _rp=_rc.replace(/^결재자\s*/,'');
+        const _dr=_rp?`<b>${_o}차</b> 결재자(${_rp})`:`<b>${_o}차</b> 결재자`;
+        return`<div class="appr-item">
         <div style="display:flex;align-items:flex-start;flex:1">
-          <span class="appr-order">${af.ApprovalOrder}</span>
           <div class="appr-info">
-            <div class="appr-role">${af.ApproverRole||''}</div>
+            <div class="appr-role" style="font-size:.85rem">${_dr}</div>
             <div class="appr-person">${af.ApproverName||''} · ${af.ApproverEmail||''}</div>
             ${af.ApprovalDate?`<div class="appr-date">${fmt(af.ApprovalDate)}</div>`:''}
             ${af.Comment?`<div class="appr-comment">💬 ${formatComment(af.Comment,sysKey)}</div>`:''}
