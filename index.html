@@ -678,12 +678,10 @@ function goPage(sysKey,p){_pages[sysKey]=p;renderAll();}
 // == APS 공지 배너 ==
 async function loadAnnouncements(){
   try{
-    const dr=await api('/sites/'+siteId+'/drive/root/children?$select=id,name,@microsoft.graph.downloadUrl');
-    const f=(dr.value||[]).find(f=>f.name==='APS_announcement.xlsx');
-    if(!f)return;
-    const url=f['@microsoft.graph.downloadUrl'];
-    if(!url)return;
-    await parseAnnXlsx(url);
+    // 파일 직접 경로로 접근
+    const fi=await api('/sites/'+siteId+'/drive/root:/APS_announcement.xlsx');
+    if(!fi||!fi['@microsoft.graph.downloadUrl']){console.warn('[ANN] 파일 없음');return;}
+    await parseAnnXlsx(fi['@microsoft.graph.downloadUrl']);
   }catch(e){console.warn('[ANN]',e.message);}
 }
 
@@ -745,12 +743,15 @@ async function parseAnnXlsx(url){
     rows.push(arr.map(function(v){return v===undefined?'':v;}));
   });
   var data=rows.slice(1).filter(function(r){return r[0]&&r[4];});
+  console.log('[ANN] data rows:',data.length,'total rows:',rows.length);
   if(data.length)renderAnnouncements(data);
+  else console.warn('[ANN] no valid data rows');
 }
 
 function renderAnnouncements(rows){
+  console.log('[ANN] renderAnnouncements rows:',rows.length);
   var wrap=document.getElementById('ann-wrap');
-  if(!wrap||!rows.length)return;
+  if(!wrap||!rows.length){console.warn('[ANN] wrap=',wrap,'rows=',rows.length);return;}
   rows.sort(function(a,b){return String(b[0]).localeCompare(String(a[0]));});
   var total=rows.length;
   function itemHtml(r){
