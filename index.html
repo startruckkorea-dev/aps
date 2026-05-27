@@ -343,7 +343,7 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#f5f7f
         <span class="nav-user-name" id="user-name"></span>
       </div>
       <button id="ann-bell-btn" onclick="toggleAnnPopup()" style="display:none;position:relative;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);color:#fff;border-radius:6px;padding:6px 12px;font-size:.82rem;cursor:pointer;font-family:inherit;transition:background .15s" onmouseover="this.style.background='rgba(255,255,255,.22)'" onmouseout="this.style.background='rgba(255,255,255,.12)'">📢 시스템 공지 <span id="ann-bell-cnt" style="background:#ef4444;color:#fff;border-radius:10px;padding:1px 6px;font-size:.62rem;font-weight:700;margin-left:3px">0</span></button>
-      <button id="apv-bell-btn" onclick="toggleApvPopup()" style="display:none;position:relative;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);color:#fff;border-radius:6px;padding:6px 12px;font-size:.82rem;cursor:pointer;font-family:inherit;transition:background .15s" onmouseover="this.style.background='rgba(255,255,255,.22)'" onmouseout="this.style.background='rgba(255,255,255,.12)'">✅ 내 결재 대기 <span id="apv-bell-cnt" style="background:#16a34a;color:#fff;border-radius:10px;padding:1px 6px;font-size:.62rem;font-weight:700;margin-left:3px">0</span></button>
+      <button id="apv-bell-btn" onclick="toggleApvPopup()" style="display:none;position:relative;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);color:#fff;border-radius:6px;padding:6px 12px;font-size:.82rem;cursor:pointer;font-family:inherit;transition:background .15s" onmouseover="this.style.background='rgba(255,255,255,.22)'" onmouseout="this.style.background='rgba(255,255,255,.12)'">✅ 결재 대기 <span id="apv-bell-cnt" style="background:#16a34a;color:#fff;border-radius:10px;padding:1px 6px;font-size:.62rem;font-weight:700;margin-left:3px">0</span></button>
       <button id="aps-admin-btn" onclick="switchApsTab('admin')" style="display:none;background:#0078d4;color:#fff;border:none;border-radius:6px;padding:6px 14px;font-size:.8rem;font-weight:600;cursor:pointer;font-family:inherit;margin-right:8px;">⚙️ 관리자</button>
       <button class="btn-signout" onclick="signOut()">로그아웃</button>
     </div>
@@ -1455,7 +1455,7 @@ function exportAdminExcel() {
 <!-- 결재 팝업 -->
 <div id="apv-popup" class="apv-popup">
   <div class="apv-popup-head">
-    <span class="apv-popup-title">✅ 내 결재 대기</span>
+    <span class="apv-popup-title">✅ 결재 대기</span>
     <button class="apv-popup-close" onclick="closeApvPopup()">✕</button>
   </div>
   <div id="apv-popup-body" class="apv-popup-body">
