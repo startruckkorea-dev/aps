@@ -121,7 +121,7 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#f5f7f
 .ann-type-notification{background:#fef9c3;color:#92400e}
 .ann-item-date{font-size:.67rem;color:#94a3b8}
 .ann-item-time{font-size:.66rem;color:#64748b;background:#f1f5f9;border-radius:3px;padding:1px 4px}
-.ann-item-body{font-size:.75rem;color:#334155;line-height:1.6}
+.ann-item-title{font-size:.78rem;font-weight:700;color:#1e293b;margin-bottom:3px}.ann-item-body{font-size:.75rem;color:#334155;line-height:1.6}
 .ann-modal-overlay{position:fixed;inset:0;background:rgba(15,23,42,.45);z-index:600;display:flex;align-items:center;justify-content:center;padding:20px}
 .ann-modal-box{background:#fff;border-radius:12px;width:100%;max-width:580px;max-height:80vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.2)}
 .ann-modal-header{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid #e2e8f0}
@@ -758,7 +758,7 @@ async function parseAnnXlsx(url){
     });
     rows.push(arr.map(function(v){return v===undefined?'':v;}));
   });
-  var data=rows.slice(1).filter(function(r){return r[0]&&r[4];});
+  var data=rows.slice(1).filter(function(r){return r[0]&&(r[4]||r[5]);});
   console.log('[ANN] data rows:',data.length,'total rows:',rows.length);
   if(data.length)renderAnnouncements(data);
   else console.warn('[ANN] no valid data rows');
@@ -778,7 +778,8 @@ function annItemHtml(r){
   var t1=annFmtTime(String(r[1]||''));
   var t2=annFmtTime(String(r[2]||''));
   var type=String(r[3]||'update').toLowerCase().trim();
-  var body=String(r[4]||'').replace(/\n/g,'<br>');
+  var title=String(r[4]||'');
+  var body=String(r[5]||'').replace(/\n/g,'<br>');
   var typeLabel=type==='notification'
     ?'<span class="ann-item-type ann-type-notification">공지</span>'
     :'<span class="ann-item-type ann-type-update">업데이트</span>';
@@ -786,7 +787,8 @@ function annItemHtml(r){
   var cls=type==='notification'?'ann-notification':'ann-update';
   return '<div class="ann-item '+cls+'">'
     +'<div class="ann-item-meta">'+typeLabel+'<span class="ann-item-date">'+date+'</span>'+timeStr+'</div>'
-    +'<div class="ann-item-body">'+body+'</div>'
+    +(title?'<div class="ann-item-title">'+title+'</div>':'')
+    +(body?'<div class="ann-item-body">'+body+'</div>':'')
     +'</div>';
 }
 function renderAnnouncements(rows){
