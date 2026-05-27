@@ -892,8 +892,8 @@ function renderApvPopup(){
   items.sort(function(a,b){return new Date(b.rf.RequestDate||0)-new Date(a.rf.RequestDate||0);});
   var now7=new Date();
   // Split: within 7 days (active) vs older
-  var activeItems=items.filter(function(it){return (now7-new Date(it.rf.RequestDate||0))<=7*24*60*60*1000;});
-  var oldItems=items.filter(function(it){return (now7-new Date(it.rf.RequestDate||0))>7*24*60*60*1000;});
+  var activeItems=items.filter(function(it){return (now7-new Date(it.rf.RequestDate||0))<=1*24*60*60*1000;});
+  var oldItems=items.filter(function(it){return (now7-new Date(it.rf.RequestDate||0))>1*24*60*60*1000;});
   console.log('[APV popup] total='+items.length+' active='+activeItems.length+' old='+oldItems.length);
   // 배지 = activeItems 기준 (updateApvBadge와 동일 로직)
   var cntEl=document.getElementById('apv-bell-cnt');
@@ -904,7 +904,7 @@ function renderApvPopup(){
   var html='';
   // active + old 합쳐서 렌더, old는 노란색 표시
   items.forEach(function(it){
-    var isOld=(now7-new Date(it.rf.RequestDate||0))>7*24*60*60*1000;
+    var isOld=(now7-new Date(it.rf.RequestDate||0))>1*24*60*60*1000;
     var sys=it.sys,f=it.f,rf=it.rf,item=it.item;
     var sumText=summary(sys.key,rf)||'-';
     var email=(rf.RequesterEmail||'-').replace(/@.*/,'');
@@ -961,7 +961,7 @@ function updateApvBadge(){
       if(wids.has(String(f.RequestID)))return;
       totalCnt++;
       var rf=d.reqMap[String(f.RequestID)]||{};
-      if((now-new Date(rf.RequestDate||0))<=7*24*60*60*1000)activeCnt++;
+      if((now-new Date(rf.RequestDate||0))<=1*24*60*60*1000)activeCnt++;
     });
   });
   var n=totalCnt;
