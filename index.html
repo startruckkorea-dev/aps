@@ -897,7 +897,7 @@ function renderApvPopup(){
   console.log('[APV popup] total='+items.length+' active='+activeItems.length+' old='+oldItems.length);
   // 배지 = activeItems 기준 (updateApvBadge와 동일 로직)
   var cntEl=document.getElementById('apv-bell-cnt');
-  if(cntEl)cntEl.textContent=activeItems.length>0?activeItems.length:items.length;
+  if(cntEl)cntEl.textContent=items.length;
   // sync bell button visibility
   var bellBtn=document.getElementById('apv-bell-btn');
   if(bellBtn)bellBtn.style.display='inline-flex';
@@ -964,7 +964,7 @@ function updateApvBadge(){
       if((now-new Date(rf.RequestDate||0))<=7*24*60*60*1000)activeCnt++;
     });
   });
-  var n=activeCnt>0?activeCnt:totalCnt;
+  var n=totalCnt;
   var bell=document.getElementById('apv-bell-btn');
   var el=document.getElementById('apv-bell-cnt');
   if(bell)bell.style.display='inline-flex';
