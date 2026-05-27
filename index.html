@@ -113,6 +113,34 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#f5f7f
 .all-done-banner .icon{font-size:3rem;margin-bottom:16px;line-height:1;}
 .all-done-banner .msg{font-size:1.25rem;font-weight:700;color:#0f2744;margin-bottom:6px;letter-spacing:-.01em;}
 .all-done-banner .sub{font-size:.78rem;color:#94a3b8;letter-spacing:.04em;margin-top:4px;text-transform:uppercase;}
+/* ── 공지 배너 ── */
+.ann-wrap{margin:0 0 18px 0}
+.ann-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.ann-title-row{display:flex;align-items:center;gap:7px}
+.ann-icon{font-size:.9rem}
+.ann-label{font-size:.75rem;font-weight:700;color:#1d4ed8;letter-spacing:.02em}
+.ann-cnt{background:#1d4ed8;color:#fff;border-radius:10px;padding:1px 7px;font-size:.65rem;font-weight:700}
+.ann-more-btn{background:none;border:none;font-size:.72rem;color:#64748b;cursor:pointer;padding:2px 6px;border-radius:4px;transition:background .15s}
+.ann-more-btn:hover{background:#f1f5f9;color:#1d4ed8}
+.ann-list{display:flex;flex-direction:column;gap:6px}
+.ann-item{background:#fff;border:1px solid #e2e8f0;border-left:3px solid #1d4ed8;border-radius:6px;padding:10px 14px;display:flex;align-items:flex-start;gap:10px;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+.ann-item.ann-notification{border-left-color:#f59e0b}
+.ann-item.ann-update{border-left-color:#10b981}
+.ann-item-left{flex:1;min-width:0}
+.ann-item-date{font-size:.68rem;color:#94a3b8;margin-bottom:3px}
+.ann-item-time{font-size:.68rem;color:#64748b;background:#f1f5f9;border-radius:3px;padding:1px 5px;margin-left:4px}
+.ann-item-type{display:inline-block;font-size:.62rem;font-weight:700;border-radius:3px;padding:1px 6px;margin-right:6px;text-transform:uppercase;letter-spacing:.03em}
+.ann-type-update{background:#dcfce7;color:#15803d}
+.ann-type-notification{background:#fef9c3;color:#92400e}
+.ann-item-body{font-size:.77rem;color:#334155;line-height:1.55;white-space:pre-line;margin-top:2px}
+/* 전체 공지 모달 */
+.ann-modal-overlay{position:fixed;inset:0;background:rgba(15,23,42,.45);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px}
+.ann-modal-box{background:#fff;border-radius:12px;width:100%;max-width:640px;max-height:80vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.2)}
+.ann-modal-header{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid #e2e8f0}
+.ann-modal-title{font-size:.95rem;font-weight:700;color:#0f172a}
+.ann-modal-close{background:#f1f5f9;border:none;width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:.85rem;color:#64748b;display:flex;align-items:center;justify-content:center}
+.ann-modal-body{overflow-y:auto;padding:16px 20px;display:flex;flex-direction:column;gap:8px}
+
 /* ── quick-links bar ── */
 .ql-strip{background:#fff;border-bottom:1px solid #e2e8f0;padding:0 28px;display:flex;align-items:center;gap:0;overflow-x:auto;scrollbar-width:none}
 .ql-strip::-webkit-scrollbar{display:none}
@@ -375,6 +403,9 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#f5f7f
       </button>
     </div>
 
+    <!-- 공지 배너 -->
+    <div class="ann-wrap" id="ann-wrap" style="display:none"></div>
+
     <!-- Filter -->
     <div class="filter-row">
       <select class="filter-select" id="filter-sys" onchange="resetPages();renderAll()">
@@ -614,6 +645,7 @@ async function boot(account){
     }
   }
   await loadAll();
+  loadAnnouncements();
 }
 
 async function loadAll(){
@@ -644,6 +676,208 @@ function stBadge(st){
 
 function resetPages(){_pages={};}
 function goPage(sysKey,p){_pages[sysKey]=p;renderAll();}
+
+
+// ── 공지 배너 ────────────────────────────────────────────────
+async function loadAnnouncements() {
+  try {
+    // STK-DB 문서 라이브러리에서 APS_announcement.xlsx 검색
+    const driveRes = await api('/sites/' + siteId + '/drive/root/children?$select=id,name,@microsoft.graph.downloadUrl');
+    const files = (driveRes.value || []);
+    const file = files.find(f => f.name === 'APS_announcement.xlsx');
+    if (!file) return;
+    const dlUrl = file['@microsoft.graph.downloadUrl'];
+    if (!dlUrl) return;
+    const resp = await fetch(dlUrl);
+    if (!resp.ok) return;
+    const buf = await resp.arrayBuffer();
+    const rows = parseXlsxRows(buf);
+    if (rows.length > 1) renderAnnouncements(rows.slice(1).filter(r => r[0] && r[4]));
+  } catch(e) { console.warn('[ANN] 공지 로드 실패:', e.message); }
+}
+
+function parseXlsxRows(buf) {
+  // Minimal stored-only ZIP + XML parser (no deflate needed for xlsx saved as xlsx from Excel Online)
+  try {
+    const u8 = new Uint8Array(buf);
+    function readUint16(o){return u8[o]|(u8[o+1]<<8);}
+    function readUint32(o){return u8[o]|(u8[o+1]<<8)|(u8[o+2]<<16)|(u8[o+3]<<24);}
+    const dec = new TextDecoder('utf-8');
+    const files = {};
+    let i = 0;
+    while (i < u8.length - 4) {
+      if (u8[i]===0x50&&u8[i+1]===0x4B&&u8[i+2]===0x03&&u8[i+3]===0x04) {
+        const method = readUint16(i+8);
+        const compSz = readUint32(i+18);
+        const fnLen  = readUint16(i+26);
+        const exLen  = readUint16(i+28);
+        const fn     = dec.decode(u8.slice(i+30, i+30+fnLen));
+        const dStart = i+30+fnLen+exLen;
+        if (method===0) files[fn] = dec.decode(u8.slice(dStart, dStart+compSz));
+        i = dStart + compSz;
+      } else i++;
+    }
+    // If deflated, try decompression via DecompressionStream
+    const needed = ['xl/sharedStrings.xml','xl/worksheets/sheet1.xml'];
+    const missing = needed.filter(k => !files[k]);
+    if (missing.length) {
+      // Try DecompressionStream async approach — skip for now, log
+      console.warn('[ANN] XLSX uses deflate compression — need async parse');
+      return [];
+    }
+    // Shared strings
+    const strings = [];
+    (files['xl/sharedStrings.xml']||'').replace(/<si>([\s\S]*?)<\/si>/g, (_,si) => {
+      const parts = [];
+      si.replace(/<t(?:[^>]*)>([\s\S]*?)<\/t>/g, (_,t) => parts.push(t));
+      strings.push(parts.join('').replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&#xA;/g,'
+').replace(/&apos;/g,"'").replace(/&quot;/g,'"'));
+    });
+    // Sheet rows — simplified: extract all cell values in order per row
+    const rows = [];
+    let curRow = null, curRowNum = -1;
+    (files['xl/worksheets/sheet1.xml']||'').replace(/<row[^>]*r="(\d+)"[^>]*>([\s\S]*?)<\/row>/g, (_,rn,cells) => {
+      const rowArr = [];
+      cells.replace(/<c [^>]*r="([A-Z]+)(\d+)"([^>]*)>([\s\S]*?)<\/c>/g, (_,col,r,attrs,inner) => {
+        const t = (attrs.match(/t="([^"]+)"/)||[])[1]||'';
+        const v = (inner.match(/<v>([\s\S]*?)<\/v>/)||[])[1]||'';
+        const val = t==='s' ? (strings[parseInt(v)]||'') : v;
+        // column index A=0,B=1,...
+        const ci = col.split('').reduce((a,c)=>a*26+(c.charCodeAt(0)-64),0)-1;
+        rowArr[ci] = val;
+      });
+      rows.push(rowArr.map(v=>v===undefined?'':v));
+    });
+    return rows;
+  } catch(e) { console.warn('[ANN] parse error:', e); return []; }
+}
+
+// Async version using DecompressionStream for deflated xlsx
+async function loadAnnouncementsAsync(dlUrl) {
+  const resp = await fetch(dlUrl);
+  if (!resp.ok) return;
+  const buf = await resp.arrayBuffer();
+  const u8 = new Uint8Array(buf);
+  function readUint16(o){return u8[o]|(u8[o+1]<<8);}
+  function readUint32(o){return u8[o]|(u8[o+1]<<8)|(u8[o+2]<<16)|(u8[o+3]<<24);}
+  const dec = new TextDecoder('utf-8');
+  const needed = {'xl/sharedStrings.xml':null,'xl/worksheets/sheet1.xml':null};
+  const tasks = [];
+  let i = 0;
+  while (i < u8.length - 4) {
+    if (u8[i]===0x50&&u8[i+1]===0x4B&&u8[i+2]===0x03&&u8[i+3]===0x04) {
+      const method  = readUint16(i+8);
+      const compSz  = readUint32(i+18);
+      const uncompSz= readUint32(i+22);
+      const fnLen   = readUint16(i+26);
+      const exLen   = readUint16(i+28);
+      const fn      = dec.decode(u8.slice(i+30, i+30+fnLen));
+      const dStart  = i+30+fnLen+exLen;
+      if (fn in needed) {
+        const chunk = u8.slice(dStart, dStart+compSz);
+        if (method===0) {
+          needed[fn] = dec.decode(chunk);
+        } else if (method===8 && typeof DecompressionStream !== 'undefined') {
+          tasks.push((async()=>{
+            const ds = new DecompressionStream('deflate-raw');
+            const w = ds.writable.getWriter(); w.write(chunk); w.close();
+            const chunks = []; const reader = ds.readable.getReader();
+            while(true){const{done,value}=await reader.read();if(done)break;chunks.push(value);}
+            const total = chunks.reduce((a,c)=>a+c.length,0);
+            const out = new Uint8Array(total); let off=0;
+            chunks.forEach(c=>{out.set(c,off);off+=c.length;});
+            needed[fn] = dec.decode(out);
+          })());
+        }
+      }
+      i = dStart + compSz;
+    } else i++;
+  }
+  await Promise.all(tasks);
+  if (!needed['xl/sharedStrings.xml'] || !needed['xl/worksheets/sheet1.xml']) return;
+  // reuse parseXlsxRows logic inline
+  const strings = [];
+  (needed['xl/sharedStrings.xml']||'').replace(/<si>([\s\S]*?)<\/si>/g, (_,si) => {
+    const parts = []; si.replace(/<t(?:[^>]*)>([\s\S]*?)<\/t>/g, (_,t)=>parts.push(t));
+    strings.push(parts.join('').replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&#xA;/g,'\n').replace(/&apos;/g,"'").replace(/&quot;/g,'"'));
+  });
+  const rows = [];
+  (needed['xl/worksheets/sheet1.xml']||'').replace(/<row[^>]*r="(\d+)"[^>]*>([\s\S]*?)<\/row>/g, (_,rn,cells) => {
+    const rowArr = [];
+    cells.replace(/<c [^>]*r="([A-Z]+)(\d+)"([^>]*)>([\s\S]*?)<\/c>/g, (_,col,r,attrs,inner) => {
+      const t = (attrs.match(/t="([^"]+)"/)||[])[1]||'';
+      const v = (inner.match(/<v>([\s\S]*?)<\/v>/)||[])[1]||'';
+      const val = t==='s'?(strings[parseInt(v)]||''):v;
+      const ci = col.split('').reduce((a,c)=>a*26+(c.charCodeAt(0)-64),0)-1;
+      rowArr[ci] = val;
+    });
+    rows.push(rowArr.map(v=>v===undefined?'':v));
+  });
+  const dataRows = rows.slice(1).filter(r=>r[0]&&r[4]);
+  if (dataRows.length) renderAnnouncements(dataRows);
+}
+
+// Override loadAnnouncements to use async deflate
+async function loadAnnouncements() {
+  try {
+    const driveRes = await api('/sites/'+siteId+'/drive/root/children?$select=id,name,@microsoft.graph.downloadUrl');
+    const file = (driveRes.value||[]).find(f=>f.name==='APS_announcement.xlsx');
+    if (!file) return;
+    const dlUrl = file['@microsoft.graph.downloadUrl'];
+    if (!dlUrl) return;
+    await loadAnnouncementsAsync(dlUrl);
+  } catch(e) { console.warn('[ANN]', e.message); }
+}
+
+function renderAnnouncements(rows) {
+  const wrap = document.getElementById('ann-wrap');
+  if (!wrap || !rows.length) return;
+  rows.sort((a,b)=>String(b[0]).localeCompare(String(a[0])));
+  const total = rows.length;
+  const preview = rows.slice(0,4);
+  function itemHtml(r) {
+    const date=String(r[0]||''), time1=String(r[1]||''), time2=String(r[2]||'');
+    const type=String(r[3]||'update').toLowerCase().trim();
+    const body=String(r[4]||'');
+    const typeLabel = type==='notification'
+      ? '<span class="ann-item-type ann-type-notification">공지</span>'
+      : '<span class="ann-item-type ann-type-update">업데이트</span>';
+    const timeStr = time1?`<span class="ann-item-time">${time1}${time2?' ~ '+time2:''}</span>`:'';
+    return `<div class="ann-item ann-${type==='notification'?'notification':'update'}">
+      <div class="ann-item-left">
+        <div class="ann-item-date">${typeLabel}${date}${timeStr}</div>
+        <div class="ann-item-body">${body.replace(/\n/g,'<br>')}</div>
+      </div></div>`;
+  }
+  window._annRows=rows; window._annItemHtml=itemHtml;
+  wrap.style.display='';
+  wrap.innerHTML=`
+    <div class="ann-header">
+      <div class="ann-title-row">
+        <span class="ann-icon">📢</span>
+        <span class="ann-label">시스템 공지</span>
+        <span class="ann-cnt">${total}</span>
+      </div>
+      ${total>4?`<button class="ann-more-btn" onclick="showAllAnnouncements()">전체 보기 (${total}건) →</button>`:''}
+    </div>
+    <div class="ann-list">${preview.map(itemHtml).join('')}</div>`;
+}
+
+function showAllAnnouncements() {
+  const rows=window._annRows||[], itemHtml=window._annItemHtml||(()=>'');
+  const overlay=document.createElement('div');
+  overlay.className='ann-modal-overlay';
+  overlay.onclick=e=>{if(e.target===overlay)overlay.remove();};
+  overlay.innerHTML=`<div class="ann-modal-box">
+    <div class="ann-modal-header">
+      <span class="ann-modal-title">📢 시스템 공지 전체 (${rows.length}건)</span>
+      <button class="ann-modal-close" onclick="this.closest('.ann-modal-overlay').remove()">✕</button>
+    </div>
+    <div class="ann-modal-body">${rows.map(itemHtml).join('')}</div>
+  </div>`;
+  document.body.appendChild(overlay);
+}
+// ────────────────────────────────────────────────────────────
 
 function renderAll(){
   const fSys=document.getElementById('filter-sys').value;
