@@ -892,9 +892,13 @@ function renderApvPopup(){
   // Split: within 7 days (active) vs older
   var activeItems=items.filter(function(it){return (now7-new Date(it.rf.RequestDate||0))<=7*24*60*60*1000;});
   var oldItems=items.filter(function(it){return (now7-new Date(it.rf.RequestDate||0))>7*24*60*60*1000;});
+  console.log('[APV popup] total='+items.length+' active='+activeItems.length+' old='+oldItems.length);
   // 배지 = activeItems 기준 (updateApvBadge와 동일 로직)
   var cntEl=document.getElementById('apv-bell-cnt');
   if(cntEl)cntEl.textContent=activeItems.length>0?activeItems.length:items.length;
+  // sync bell button visibility
+  var bellBtn=document.getElementById('apv-bell-btn');
+  if(bellBtn)bellBtn.style.display='inline-flex';
   var html='';
   var renderList=activeItems.length?activeItems:items;
   if(!activeItems.length&&items.length){
@@ -984,14 +988,15 @@ function updateApvBadge(){
       if(wids.has(String(f.RequestID)))return;
       totalCnt++;
       var rf=d.reqMap[String(f.RequestID)]||{};
-      if((now-new Date(rf.RequestDate||0))<=7*24*60*60*1000) activeCnt++;
+      if((now-new Date(rf.RequestDate||0))<=7*24*60*60*1000)activeCnt++;
     });
   });
-  var displayCnt=activeCnt>0?activeCnt:totalCnt;
+  var n=activeCnt>0?activeCnt:totalCnt;
   var bell=document.getElementById('apv-bell-btn');
-  var cntEl=document.getElementById('apv-bell-cnt');
+  var el=document.getElementById('apv-bell-cnt');
   if(bell)bell.style.display='inline-flex';
-  if(cntEl)cntEl.textContent=displayCnt;
+  if(el)el.textContent=n;
+  console.log('[APV badge] activeCnt='+activeCnt+' totalCnt='+totalCnt+' display='+n);
 }
 // == 결재 팝업 끝 ==
 
