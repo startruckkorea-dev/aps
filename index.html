@@ -658,7 +658,11 @@ function renderAll(){
     if(d.error){html+=card(sys,`<div class="sys-empty" style="color:#e53e3e">⚠️ ${d.error}</div>`,0);continue;}
 
     // 내 결재 항목: 같은 RequestID가 여러 개일 경우 '대기' 우선, 없으면 최신 1개만 표시
-    const _myAll = d.apprItems.filter(i=>(i.fields.ApproverEmail||'').toLowerCase()===myEmail);
+    const _myAll = d.apprItems.filter(i=>{
+      const st=(i.fields.Status||'').trim();
+      return (i.fields.ApproverEmail||'').toLowerCase()===myEmail
+        && st!=='철회(잠김)' && st!=='철회';
+    });
     const _reqIdMap = {};
     _myAll.forEach(i=>{
       const rid = String(i.fields.RequestID);
