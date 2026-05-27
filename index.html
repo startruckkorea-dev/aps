@@ -342,8 +342,8 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#f5f7f
         <div class="nav-user-avatar" id="user-avatar">?</div>
         <span class="nav-user-name" id="user-name"></span>
       </div>
-      <button id="ann-bell-btn" onclick="toggleAnnPopup()" style="display:none;position:relative;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);color:#fff;border-radius:6px;padding:6px 12px;font-size:.82rem;cursor:pointer;font-family:inherit;transition:background .15s" onmouseover="this.style.background='rgba(255,255,255,.22)'" onmouseout="this.style.background='rgba(255,255,255,.12)'">📢 시스템 공지 <span id="ann-bell-cnt" style="background:#ef4444;color:#fff;border-radius:10px;padding:1px 6px;font-size:.62rem;font-weight:700;margin-left:3px">0</span></button>
-      <button id="apv-bell-btn" onclick="toggleApvPopup()" style="display:none;position:relative;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);color:#fff;border-radius:6px;padding:6px 12px;font-size:.82rem;cursor:pointer;font-family:inherit;transition:background .15s" onmouseover="this.style.background='rgba(255,255,255,.22)'" onmouseout="this.style.background='rgba(255,255,255,.12)'">✅ 결재 대기 <span id="apv-bell-cnt" style="background:#16a34a;color:#fff;border-radius:10px;padding:1px 6px;font-size:.62rem;font-weight:700;margin-left:3px">0</span></button>
+      <button id="ann-bell-btn" onclick="toggleAnnPopup()" style="display:none;align-items:center;gap:5px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);color:#fff;border-radius:6px;padding:6px 12px;font-size:.82rem;cursor:pointer;font-family:inherit;transition:background .15s" onmouseover="this.style.background='rgba(255,255,255,.22)'" onmouseout="this.style.background='rgba(255,255,255,.12)'" style="line-height:1">📢 시스템 공지 <span id="ann-bell-cnt" style="vertical-align:middle;background:#ef4444;color:#fff;border-radius:10px;padding:1px 6px;font-size:.62rem;font-weight:700;margin-left:3px;vertical-align:middle">0</span></button>
+      <button id="apv-bell-btn" onclick="toggleApvPopup()" style="display:none;align-items:center;gap:5px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);color:#fff;border-radius:6px;padding:6px 12px;font-size:.82rem;cursor:pointer;font-family:inherit;transition:background .15s" onmouseover="this.style.background='rgba(255,255,255,.22)'" onmouseout="this.style.background='rgba(255,255,255,.12)'" style="line-height:1">✅ 결재 대기 <span id="apv-bell-cnt" style="vertical-align:middle;background:#16a34a;color:#fff;border-radius:10px;padding:1px 6px;font-size:.62rem;font-weight:700;margin-left:3px;vertical-align:middle">0</span></button>
       <button id="aps-admin-btn" onclick="switchApsTab('admin')" style="display:none;background:#0078d4;color:#fff;border:none;border-radius:6px;padding:6px 14px;font-size:.8rem;font-weight:600;cursor:pointer;font-family:inherit;margin-right:8px;">⚙️ 관리자</button>
       <button class="btn-signout" onclick="signOut()">로그아웃</button>
     </div>
@@ -813,7 +813,7 @@ function renderAnnouncements(rows){
   // bell button
   var bell=document.getElementById('ann-bell-btn');
   var cnt=document.getElementById('ann-bell-cnt');
-  if(bell){bell.style.display='inline-flex';bell.style.alignItems='center';}
+  if(bell){bell.style.display='inline-flex';bell.style.alignItems='center';bell.style.gap='5px';}
   if(cnt)cnt.textContent=recentCnt;
   // popup body — 2일 이내/미래만 표시, 이전 건은 접힘 섹션
   var now2=new Date();
@@ -996,7 +996,7 @@ function updateApvBadge(){
   var n=totalCnt;
   var bell=document.getElementById('apv-bell-btn');
   var el=document.getElementById('apv-bell-cnt');
-  if(bell)bell.style.display='inline-flex';
+  if(bell){bell.style.display='inline-flex';bell.style.alignItems='center';bell.style.gap='5px';}
   if(el)el.textContent=n;
   console.log('[APV badge] activeCnt='+activeCnt+' totalCnt='+totalCnt+' display='+n);
 }
