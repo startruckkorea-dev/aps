@@ -815,11 +815,29 @@ function renderAnnouncements(rows){
   var cnt=document.getElementById('ann-bell-cnt');
   if(bell){bell.style.display='inline-flex';bell.style.alignItems='center';}
   if(cnt)cnt.textContent=recentCnt;
-  // popup body
+  // popup body — 2일 이내/미래만 표시, 이전 건은 접힘 섹션
+  var now2=new Date();
+  var yesterday2=new Date(now2-1*24*60*60*1000);
+  var yestStr2=yesterday2.toISOString().slice(0,10).replace(/-/g,'.');
+  var recentRows=rows.filter(function(r){return String(r[0]||'').trim()>=yestStr2;});
+  var oldRows=rows.filter(function(r){return String(r[0]||'').trim()<yestStr2;});
   var body=document.getElementById('ann-popup-body');
-  if(body)body.innerHTML=rows.slice(0,4).map(annItemHtml).join('');
+  if(!body)return;
+  var html=recentRows.map(annItemHtml).join('');
+  if(oldRows.length){
+    html+='<div id="ann-old-toggle" onclick="annToggleOld()" style="margin-top:4px;padding:5px 8px;background:#f8fafc;border-radius:5px;cursor:pointer;font-size:.71rem;color:#94a3b8;text-align:center">▼ 이전 공지 ('+oldRows.length+'건)</div>';
+    html+='<div id="ann-old-list" style="display:none;flex-direction:column;gap:6px;opacity:.7">'+oldRows.map(annItemHtml).join('')+'</div>';
+  }
+  body.innerHTML=html;
   var moreBtn=document.getElementById('ann-popup-more');
-  if(moreBtn)moreBtn.style.display=total>4?'':'none';
+  if(moreBtn)moreBtn.style.display='none';
+}
+function annToggleOld(){
+  var t=document.getElementById('ann-old-toggle');
+  var l=document.getElementById('ann-old-list');
+  if(!t||!l)return;
+  if(l.style.display==='none'){l.style.display='flex';t.textContent=t.textContent.replace('▼','▲');}
+  else{l.style.display='none';t.textContent=t.textContent.replace('▲','▼');}
 }
 function toggleAnnPopup(){
   var p=document.getElementById('ann-popup');
