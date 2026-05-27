@@ -113,29 +113,34 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#f5f7f
 .all-done-banner .icon{font-size:3rem;margin-bottom:16px;line-height:1;}
 .all-done-banner .msg{font-size:1.25rem;font-weight:700;color:#0f2744;margin-bottom:6px;letter-spacing:-.01em;}
 .all-done-banner .sub{font-size:.78rem;color:#94a3b8;letter-spacing:.04em;margin-top:4px;text-transform:uppercase;}
-.ann-wrap{margin:0 0 18px 0}
-.ann-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
-.ann-title-row{display:flex;align-items:center;gap:7px}
-.ann-label{font-size:.75rem;font-weight:700;color:#1d4ed8;letter-spacing:.02em}
-.ann-cnt{background:#1d4ed8;color:#fff;border-radius:10px;padding:1px 7px;font-size:.65rem;font-weight:700}
-.ann-more-btn{background:none;border:none;font-size:.72rem;color:#64748b;cursor:pointer;padding:2px 8px;border-radius:4px;transition:background .15s}
-.ann-more-btn:hover{background:#f1f5f9;color:#1d4ed8}
-.ann-list{display:flex;flex-direction:column;gap:6px}
-.ann-item{background:#fff;border:1px solid #e2e8f0;border-left:3px solid #1d4ed8;border-radius:6px;padding:10px 14px;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+.ann-wrap{margin:0 0 14px 0}
+.ann-bar{display:flex;align-items:center;gap:8px;padding:7px 14px;background:#fff;border:1px solid #e2e8f0;border-radius:8px;cursor:pointer;user-select:none;box-shadow:0 1px 3px rgba(0,0,0,.04);transition:background .15s}
+.ann-bar:hover{background:#f8faff}
+.ann-bar-left{display:flex;align-items:center;gap:7px;flex:1}
+.ann-bar-icon{font-size:.85rem}
+.ann-bar-label{font-size:.75rem;font-weight:700;color:#1d4ed8}
+.ann-bar-cnt{background:#1d4ed8;color:#fff;border-radius:10px;padding:1px 7px;font-size:.62rem;font-weight:700}
+.ann-bar-arrow{font-size:.7rem;color:#94a3b8;transition:transform .2s}
+.ann-bar-arrow.open{transform:rotate(180deg)}
+.ann-more-btn{background:none;border:none;font-size:.72rem;color:#64748b;cursor:pointer;padding:2px 8px;border-radius:4px;white-space:nowrap}
+.ann-more-btn:hover{color:#1d4ed8}
+.ann-panel{display:none;margin-top:6px;display:flex;flex-direction:column;gap:5px}
+.ann-panel.collapsed{display:none}
+.ann-item{background:#fff;border:1px solid #e2e8f0;border-left:3px solid #10b981;border-radius:6px;padding:8px 14px;box-shadow:0 1px 2px rgba(0,0,0,.03)}
 .ann-item.ann-notification{border-left-color:#f59e0b}
-.ann-item.ann-update{border-left-color:#10b981}
-.ann-item-date{font-size:.68rem;color:#94a3b8;margin-bottom:4px}
-.ann-item-type{display:inline-block;font-size:.62rem;font-weight:700;border-radius:3px;padding:1px 6px;margin-right:5px;text-transform:uppercase}
+.ann-item-meta{display:flex;align-items:center;gap:6px;margin-bottom:3px}
+.ann-item-type{font-size:.6rem;font-weight:700;border-radius:3px;padding:1px 6px;text-transform:uppercase}
 .ann-type-update{background:#dcfce7;color:#15803d}
 .ann-type-notification{background:#fef9c3;color:#92400e}
-.ann-item-time{font-size:.68rem;color:#64748b;background:#f1f5f9;border-radius:3px;padding:1px 5px;margin-left:3px}
-.ann-item-body{font-size:.77rem;color:#334155;line-height:1.6;margin-top:2px}
+.ann-item-date{font-size:.68rem;color:#94a3b8}
+.ann-item-time{font-size:.68rem;color:#64748b;background:#f1f5f9;border-radius:3px;padding:1px 5px}
+.ann-item-body{font-size:.76rem;color:#334155;line-height:1.6}
 .ann-modal-overlay{position:fixed;inset:0;background:rgba(15,23,42,.45);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px}
-.ann-modal-box{background:#fff;border-radius:12px;width:100%;max-width:640px;max-height:80vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.2)}
-.ann-modal-header{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid #e2e8f0}
-.ann-modal-title{font-size:.95rem;font-weight:700;color:#0f172a}
-.ann-modal-close{background:#f1f5f9;border:none;width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:.85rem;color:#64748b;display:flex;align-items:center;justify-content:center}
-.ann-modal-body{overflow-y:auto;padding:16px 20px;display:flex;flex-direction:column;gap:8px}
+.ann-modal-box{background:#fff;border-radius:12px;width:100%;max-width:620px;max-height:80vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.2)}
+.ann-modal-header{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid #e2e8f0}
+.ann-modal-title{font-size:.9rem;font-weight:700;color:#0f172a}
+.ann-modal-close{background:#f1f5f9;border:none;width:26px;height:26px;border-radius:50%;cursor:pointer;font-size:.8rem;color:#64748b;display:flex;align-items:center;justify-content:center}
+.ann-modal-body{overflow-y:auto;padding:14px 18px;display:flex;flex-direction:column;gap:6px}
 /* ── quick-links bar ── */
 .ql-strip{background:#fff;border-bottom:1px solid #e2e8f0;padding:0 28px;display:flex;align-items:center;gap:0;overflow-x:auto;scrollbar-width:none}
 .ql-strip::-webkit-scrollbar{display:none}
@@ -748,14 +753,24 @@ async function parseAnnXlsx(url){
   else console.warn('[ANN] no valid data rows');
 }
 
+function annFmtTime(v){
+  if(!v||v==='')return '';
+  var f=parseFloat(v);
+  if(isNaN(f))return v;
+  var totalMin=Math.round(f*24*60);
+  var h=Math.floor(totalMin/60)%24;
+  var m=totalMin%60;
+  return (h<10?'0':'')+h+':'+(m<10?'0':'')+m;
+}
 function renderAnnouncements(rows){
-  console.log('[ANN] renderAnnouncements rows:',rows.length);
   var wrap=document.getElementById('ann-wrap');
-  if(!wrap||!rows.length){console.warn('[ANN] wrap=',wrap,'rows=',rows.length);return;}
+  if(!wrap||!rows.length)return;
   rows.sort(function(a,b){return String(b[0]).localeCompare(String(a[0]));});
   var total=rows.length;
   function itemHtml(r){
-    var date=String(r[0]||''),t1=String(r[1]||''),t2=String(r[2]||'');
+    var date=String(r[0]||'');
+    var t1=annFmtTime(String(r[1]||''));
+    var t2=annFmtTime(String(r[2]||''));
     var type=String(r[3]||'update').toLowerCase().trim();
     var body=String(r[4]||'').replace(/\n/g,'<br>');
     var typeLabel=type==='notification'
@@ -764,7 +779,7 @@ function renderAnnouncements(rows){
     var timeStr=t1?('<span class="ann-item-time">'+t1+(t2?' ~ '+t2:'')+'</span>'):'';
     var cls=type==='notification'?'ann-notification':'ann-update';
     return '<div class="ann-item '+cls+'">'
-      +'<div class="ann-item-date">'+typeLabel+date+timeStr+'</div>'
+      +'<div class="ann-item-meta">'+typeLabel+'<span class="ann-item-date">'+date+'</span>'+timeStr+'</div>'
       +'<div class="ann-item-body">'+body+'</div>'
       +'</div>';
   }
@@ -773,13 +788,31 @@ function renderAnnouncements(rows){
   wrap.style.display='';
   var moreBtn=total>4?('<button class="ann-more-btn" onclick="showAllAnn()">전체 보기 ('+total+'건) →</button>'):'';
   wrap.innerHTML=
-    '<div class="ann-header">'
-    +'<div class="ann-title-row"><span style="font-size:.9rem">📢</span><span class="ann-label">시스템 공지</span><span class="ann-cnt">'+total+'</span></div>'
-    +moreBtn
+    '<div class="ann-bar" onclick="toggleAnn(this)">'
+    +'<div class="ann-bar-left">'
+    +'<span class="ann-bar-icon">📢</span>'
+    +'<span class="ann-bar-label">시스템 공지</span>'
+    +'<span class="ann-bar-cnt">'+total+'</span>'
     +'</div>'
-    +'<div class="ann-list">'+rows.slice(0,4).map(itemHtml).join('')+'</div>';
+    +moreBtn
+    +'<span class="ann-bar-arrow">▼</span>'
+    +'</div>'
+    +'<div class="ann-panel collapsed" id="ann-panel">'
+    +rows.slice(0,4).map(itemHtml).join('')
+    +'</div>';
 }
-
+function toggleAnn(bar){
+  var panel=document.getElementById('ann-panel');
+  if(!panel)return;
+  var arrow=bar.querySelector('.ann-bar-arrow');
+  if(panel.classList.contains('collapsed')){
+    panel.classList.remove('collapsed');
+    if(arrow)arrow.classList.add('open');
+  }else{
+    panel.classList.add('collapsed');
+    if(arrow)arrow.classList.remove('open');
+  }
+}
 function showAllAnn(){
   var rows=window._annRows||[];
   var fn=window._annItemHtml||(function(){return '';});
@@ -793,6 +826,7 @@ function showAllAnn(){
   document.body.appendChild(ov);
 }
 // == APS 공지 배너 끝 ==
+
 
 function renderAll(){
   const fSys=document.getElementById('filter-sys').value;
