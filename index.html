@@ -66,7 +66,7 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#f5f7f
 .sys-dot{width:8px;height:8px;border-radius:50%;background:#1a5fb4}
 .sys-IT .sys-dot,.sys-SCC .sys-dot,.sys-GW .sys-dot,.sys-BP .sys-dot,.sys-FA .sys-dot,.sys-MC .sys-dot,.sys-RR .sys-dot,.sys-GA_STN .sys-dot,.sys-GA_BC .sys-dot,.sys-GA_IDC .sys-dot{background:#1a5fb4}
 .sys-name{font-size:.88rem;font-weight:700;color:#1e293b}
-.sys-cnt-pill{background:#ef4444;color:#fff;border-radius:20px;padding:1px 8px;font-size:.65rem;font-weight:700;margin-left:2px}
+.sys-cnt-pill{background:#ef4444;color:#fff;border-radius:20px;padding:1px 8px;font-size:.65rem;font-weight:700;margin-left:2px}.sys-cnt-gray{background:#94a3b8!important}
 .sys-link{font-size:.72rem;color:#64748b;text-decoration:none;padding:4px 12px;border:1px solid #e2e8f0;border-radius:20px;transition:all .15s;font-weight:500}
 .sys-link:hover{border-color:#3b82f6;color:#3b82f6}
 .sys-divider{height:1px;background:#f1f5f9;margin:0 18px}
@@ -729,6 +729,7 @@ function renderAll(){
     html+=card(sys,
       `<div class="item-list">${rows}</div>
       ${pgHtml||`<div class="card-footer"><span class="footer-total">전체 ${totalItems}건</span></div>`}`,
+      mine.filter(i=>(i.fields.Status||'').trim()==='대기').length,
       mine.length);
   }
 
@@ -747,13 +748,18 @@ function renderAll(){
 `;
 }
 
-function card(sys,inner,cnt){
+function card(sys,inner,pendingCnt,totalCnt){
+  const badgeHtml = pendingCnt>0
+    ? `<span class="sys-cnt-pill">${pendingCnt}</span>`
+    : totalCnt>0
+      ? `<span class="sys-cnt-pill sys-cnt-gray">${totalCnt}</span>`
+      : '';
   return`<div class="sys-card sys-${sys.key}">
     <div class="sys-card-header">
       <div class="sys-card-left">
         <span class="sys-dot"></span>
         <span class="sys-name">${sys.name}</span>
-        ${cnt>0?`<span class="sys-cnt-pill">${cnt}</span>`:''}
+        ${badgeHtml}
       </div>
       <a href="${sys.url}" target="_self" class="sys-link">바로가기 →</a>
     </div>
