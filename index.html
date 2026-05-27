@@ -773,7 +773,7 @@ function annItemHtml(r){
   var typeLabel=type==='notification'
     ?'<span class="ann-item-type ann-type-notification">공지</span>'
     :'<span class="ann-item-type ann-type-update">업데이트</span>';
-  var timeStr=t1?('<span class="ann-item-time">'+t1+(t2?' ~ '+t2:'')+'</span>'):'';
+  var timeStr=t1?('<span class="ann-item-time">'+t1+(t2&&t2!=='00:00'?' ~ '+t2:'')+'</span>'):'';
   var cls=type==='notification'?'ann-notification':'ann-update';
   return '<div class="ann-item '+cls+'">'
     +'<div class="ann-item-meta">'+typeLabel+'<span class="ann-item-date">'+date+'</span>'+timeStr+'</div>'
