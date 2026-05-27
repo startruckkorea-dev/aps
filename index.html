@@ -472,6 +472,15 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#f5f7f
         🔗 BP Master 결재 시스템으로 이동
       </button>
     </div>
+    <div id="confirm-fa-notice" style="display:none;background:#fef3c7;border:1px solid #fcd34d;border-radius:8px;padding:14px 16px;margin-bottom:12px">
+      <div style="font-size:.83rem;color:#92400e;margin-bottom:12px">
+        ⚠️ FA 회계담당자 결재 시 <b>FA Code 입력이 필수</b>입니다.<br><br>반드시 FA Registration 시스템에서 직접 확인 후 승인해 주세요.
+      </div>
+      <button onclick="window.location.href='https://fa.startruckkorea.com';closeConfirm();"
+        style="width:100%;padding:10px;background:#0078d4;color:#fff;border:none;border-radius:6px;font-size:.88rem;font-weight:700;cursor:pointer">
+        🔗 FA Registration 결재 시스템으로 이동
+      </button>
+    </div>
     <textarea class="confirm-comment" id="confirm-comment" rows="3"></textarea>
     <div class="confirm-btns">
       <button class="btn-cancel" id="confirm-cancel-btn" onclick="closeConfirm()">취소</button>
@@ -893,8 +902,9 @@ function renderApvPopup(){
     var role=f.ApproverRole||'';
     var isSCC=sys.key==='SCC';
     var isBP=sys.key==='BP';
+    var isFAAccountant=(sys.key==='FA'&&(f.ApproverRole||'').includes('회계담당자'));
     var apprId=item.id, reqId=f.RequestID, sysKey=sys.key, apprOrder=f.ApprovalOrder||0;
-    var btnHtml=isSCC||isBP
+    var btnHtml=isSCC||isBP||isFAAccountant
       ?('<a href="'+sys.url+'" target="_self" style="font-size:.72rem;color:#0078d4;text-decoration:none;border:1px solid #bfdbfe;border-radius:4px;padding:3px 10px">시스템에서 결재 →</a>')
       :('<button class="btn-approve" onclick="closeApvPopup();quickConfirm('+apprId+',\'승인\','+reqId+',\''+sysKey+'\',\''+role.replace(/'/g,'')+'\','+apprOrder+')">승인</button>'
         +'<button class="btn-reject" onclick="closeApvPopup();quickConfirm('+apprId+',\'반려\','+reqId+',\''+sysKey+'\',\''+role.replace(/'/g,'')+'\','+apprOrder+')">반려</button>');
@@ -923,8 +933,9 @@ function renderApvPopup(){
       var dateStr=fmt(rf.RequestDate);
       var role=f.ApproverRole||'';
       var isSCC=(sys.key==='SCC');var isBP=(sys.key==='BP');
+      var isFAAccountant2=(sys.key==='FA'&&(f.ApproverRole||'').includes('회계담당자'));
       var apprId=item.id,reqId=f.RequestID,sysKey=sys.key,apprOrder=f.ApprovalOrder||0;
-      var btnHtml=isSCC||isBP
+      var btnHtml=isSCC||isBP||isFAAccountant2
         ?('<a href="'+sys.url+'" target="_self" style="font-size:.72rem;color:#0078d4;text-decoration:none;border:1px solid #bfdbfe;border-radius:4px;padding:3px 10px">시스템에서 결재 →</a>')
         :('<button class="btn-approve" onclick="closeApvPopup();quickConfirm('+apprId+',' + "'" + '승인' + "'" + ','+reqId+',' + "'" + sysKey + "'" + ',' + "'" + role.replace(/'/g,'') + "'" + ','+apprOrder+')">승인</button>'
           +'<button class="btn-reject" onclick="closeApvPopup();quickConfirm('+apprId+',' + "'" + '반려' + "'" + ','+reqId+',' + "'" + sysKey + "'" + ',' + "'" + role.replace(/'/g,'') + "'" + ','+apprOrder+')">반려</button>');
@@ -1041,7 +1052,7 @@ function renderAll(){
         <div class="item-right" onclick="event.stopPropagation()">
           ${stBadge(f.Status)}
           ${isPending
-            ?`<button class="btn-approve" onclick="quickConfirm(${item.id},'승인',${f.RequestID},'${sys.key}','${(f.ApproverRole||'').replace(/'/g,'')}',${f.ApprovalOrder||0})">승인</button><button class="btn-reject" onclick="quickConfirm(${item.id},'반려',${f.RequestID},'${sys.key}','${(f.ApproverRole||'').replace(/'/g,'')}',${f.ApprovalOrder||0})">반려</button>`
+            ?(()=>{const _isFAacc=sys.key==='FA'&&(f.ApproverRole||'').includes('회계담당자');return _isFAacc?`<a href="${sys.url}" target="_self" style="font-size:.72rem;color:#0078d4;text-decoration:none;border:1px solid #bfdbfe;border-radius:4px;padding:3px 10px">FA에서 결재 →</a>`:`<button class="btn-approve" onclick="quickConfirm(${item.id},'승인',${f.RequestID},'${sys.key}','${(f.ApproverRole||'').replace(/'/g,'')}',${f.ApprovalOrder||0})">승인</button><button class="btn-reject" onclick="quickConfirm(${item.id},'반려',${f.RequestID},'${sys.key}','${(f.ApproverRole||'').replace(/'/g,'')}',${f.ApprovalOrder||0})">반려</button>`;})()
             :`<span class="done-label">완료</span>`}
         </div>
       </div>`;
@@ -1208,10 +1219,16 @@ function showConfirm(apprId,action,reqId,sysKey,apprRole='',apprOrder=0){
   const bpNotice = document.getElementById('confirm-bp-notice');
   if(bpNotice) bpNotice.style.display = needBPCode ? '' : 'none';
 
+  // FA: 회계담당자 역할은 FA Code 입력 필요 → 차단
+  const needFACode = sysKey==='FA' && !isReject && (apprRole||'').includes('회계담당자');
+  const faNotice = document.getElementById('confirm-fa-notice');
+  if(faNotice) faNotice.style.display = needFACode ? '' : 'none';
+
   // 서브 텍스트
-  const blockApproval = needChecklist || needBPCode;
+  const blockApproval = needChecklist || needBPCode || needFACode;
   if(needChecklist) document.getElementById('confirm-sub').textContent='STK Contract 결재는 계약서 전문 검토가 필요하여 APS에서 직접 진행할 수 없습니다.';
   else if(needBPCode) document.getElementById('confirm-sub').textContent='BP Master Data 결재는 첨부파일 검토 및 상세 내용 확인이 필요하여 APS에서 직접 수행할 수 없습니다.';
+  else if(needFACode) document.getElementById('confirm-sub').textContent='FA 회계담당자 결재는 FA Code 입력이 필요하여 APS에서 직접 수행할 수 없습니다.';
   else document.getElementById('confirm-sub').textContent=isReject?'반려 사유를 입력해주세요. (필수)':'이 신청을 승인하시겠습니까?';
 
   const commentEl=document.getElementById('confirm-comment');
