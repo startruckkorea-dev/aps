@@ -892,7 +892,7 @@ function renderApvPopup(){
   var oldItems=items.filter(function(it){return (now7-new Date(it.rf.RequestDate||0))>7*24*60*60*1000;});
   // 배지 = activeItems 기준 (updateApvBadge와 동일 로직)
   var cntEl=document.getElementById('apv-bell-cnt');
-  if(cntEl)cntEl.textContent=activeItems.length||items.length;
+  if(cntEl)cntEl.textContent=activeItems.length>0?activeItems.length:items.length;
   var html='';
   var renderList=activeItems.length?activeItems:items;
   if(!activeItems.length&&items.length){
@@ -967,7 +967,7 @@ function updateApvBadge(){
   if(!user)return;
   var myEmail=(user.email||'').toLowerCase();
   var now=new Date();
-  var cnt=0;
+  var activeCnt=0, totalCnt=0;
   Object.keys(_allData).forEach(function(key){
     var d=_allData[key];
     if(!d||d.error)return;
@@ -980,34 +980,16 @@ function updateApvBadge(){
       if((f.Status||'').trim()!=='대기')return;
       if((f.ApproverEmail||'').toLowerCase()!==myEmail)return;
       if(wids.has(String(f.RequestID)))return;
+      totalCnt++;
       var rf=d.reqMap[String(f.RequestID)]||{};
-      var rd=new Date(rf.RequestDate||0);
-      if((now-rd)>7*24*60*60*1000)return;
-      cnt++;
+      if((now-new Date(rf.RequestDate||0))<=7*24*60*60*1000) activeCnt++;
     });
   });
-  // 7일 이내 건이 없으면 전체 대기 건 수 표시 (0 방지)
-  if(cnt===0){
-    Object.keys(_allData).forEach(function(key){
-      var d=_allData[key];
-      if(!d||d.error)return;
-      var wids=new Set(d.apprItems.filter(function(i){
-        var s=(i.fields.Status||'').trim();
-        return s==='철회(잠김)'||s==='철회';
-      }).map(function(i){return String(i.fields.RequestID);}));
-      d.apprItems.forEach(function(i){
-        var f=i.fields;
-        if((f.Status||'').trim()!=='대기')return;
-        if((f.ApproverEmail||'').toLowerCase()!==myEmail)return;
-        if(wids.has(String(f.RequestID)))return;
-        cnt++;
-      });
-    });
-  }
+  var displayCnt=activeCnt>0?activeCnt:totalCnt;
   var bell=document.getElementById('apv-bell-btn');
   var cntEl=document.getElementById('apv-bell-cnt');
   if(bell)bell.style.display='inline-flex';
-  if(cntEl)cntEl.textContent=cnt;
+  if(cntEl)cntEl.textContent=displayCnt;
 }
 // == 결재 팝업 끝 ==
 
