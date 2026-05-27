@@ -799,11 +799,20 @@ function renderAnnouncements(rows){
   rows.sort(function(a,b){return String(b[0]).localeCompare(String(a[0]));});
   window._annRows=rows;
   var total=rows.length;
+  // 배지: 오늘 포함 2일 이내(오늘+어제) 또는 미래 날짜인 것만 카운트
+  var now=new Date();
+  var todayStr=now.toISOString().slice(0,10).replace(/-/g,'.');
+  var yesterday=new Date(now-1*24*60*60*1000);
+  var yestStr=yesterday.toISOString().slice(0,10).replace(/-/g,'.');
+  var recentCnt=rows.filter(function(r){
+    var d=String(r[0]||'').trim();
+    return d>=yestStr; // 어제 이후(오늘,내일 등 미래 포함)
+  }).length;
   // bell button
   var bell=document.getElementById('ann-bell-btn');
   var cnt=document.getElementById('ann-bell-cnt');
   if(bell){bell.style.display='inline-flex';bell.style.alignItems='center';}
-  if(cnt)cnt.textContent=total;
+  if(cnt)cnt.textContent=recentCnt;
   // popup body
   var body=document.getElementById('ann-popup-body');
   if(body)body.innerHTML=rows.slice(0,4).map(annItemHtml).join('');
