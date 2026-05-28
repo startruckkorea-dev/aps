@@ -389,6 +389,8 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#f5f7f
       <select id="admin-filter-status" class="filter-select" onchange="renderAdminTable(true)">
         <option value="">전체 상태</option>
         <option value="진행중">진행중</option>
+        <option value="지연(3일+)">⚠️ 지연 3일+</option>
+        <option value="지연(7일+)">🔴 지연 7일+</option>
         <option value="대기">대기</option>
         <option value="승인완료">승인완료</option>
         <option value="반려">반려</option>
@@ -1368,6 +1370,7 @@ async function loadAdminPage() {
 }
 
 let _adminPage = 1;
+let _adminSort = {col:'reqId', dir:'desc'};
 const ADMIN_PAGE_SIZE = 20;
 
 function renderAdminTable(resetPage) {
@@ -1379,10 +1382,32 @@ function renderAdminTable(resetPage) {
   const rows = _adminData
     .filter(r =>
       (!fSys    || r.sysKey === fSys) &&
-      (!fStatus || r.reqStatus === fStatus) &&
+      (!fStatus || r.reqStatus === fStatus ||
+        (fStatus==='지연(3일+)' && r.reqStatus==='진행중' && r.requestDate && Math.floor((Date.now()-new Date(r.requestDate))/86400000)>=3) ||
+        (fStatus==='지연(7일+)' && r.reqStatus==='진행중' && r.requestDate && Math.floor((Date.now()-new Date(r.requestDate))/86400000)>=7)
+      ) &&
+      (fStatus!=='지연(3일+)' || (r.reqStatus==='진행중' && r.requestDate && Math.floor((Date.now()-new Date(r.requestDate))/86400000)>=3)) &&
+      (fStatus!=='지연(7일+)' || (r.reqStatus==='진행중' && r.requestDate && Math.floor((Date.now()-new Date(r.requestDate))/86400000)>=7)) &&
       (!fSearch || r.title.toLowerCase().includes(fSearch) || r.requester.toLowerCase().includes(fSearch))
     )
-    .sort((a, b) => (Number(b.reqId)||0) - (Number(a.reqId)||0));
+    .sort((a, b) => {
+      const {col, dir} = _adminSort;
+      let va, vb;
+      if(col==='reqId'){va=Number(a.reqId)||0;vb=Number(b.reqId)||0;}
+      else if(col==='requestDate'){va=a.requestDate||'';vb=b.requestDate||'';}
+      else if(col==='lastApprovalDate'){va=a.lastApprovalDate||'';vb=b.lastApprovalDate||'';}
+      else if(col==='reqStatus'){va=a.reqStatus||'';vb=b.reqStatus||'';}
+      else if(col==='doneCount'){va=a.doneCount||0;vb=b.doneCount||0;}
+      else if(col==='delayDays'){
+        const now=Date.now();
+        va=a.requestDate?Math.floor((now-new Date(a.requestDate))/86400000):0;
+        vb=b.requestDate?Math.floor((now-new Date(b.requestDate))/86400000):0;
+      }
+      else{va=a[col]||'';vb=b[col]||'';}
+      if(va<vb) return dir==='asc'?-1:1;
+      if(va>vb) return dir==='asc'?1:-1;
+      return 0;
+    });
 
   const totalPages = Math.max(1, Math.ceil(rows.length / ADMIN_PAGE_SIZE));
   if (_adminPage > totalPages) _adminPage = totalPages;
@@ -1414,6 +1439,13 @@ function renderAdminTable(resetPage) {
       <td style="padding:8px 10px;color:#374151;font-size:.78rem;">${r.nextApprover !== '-' ? r.nextApprover+'<br><span style="color:#94a3b8;font-size:.7rem;">'+r.nextRole+'</span>' : '<span style="color:#94a3b8;">-</span>'}</td>
       <td style="padding:8px 10px;color:#94a3b8;font-size:.75rem;">${r.requestDate?r.requestDate.slice(0,10):'-'}</td>
       <td style="padding:8px 10px;color:#94a3b8;font-size:.75rem;">${r.lastApprovalDate?r.lastApprovalDate.slice(0,16).replace('T',' '):'-'}</td>
+      ${(()=>{
+        if(r.reqStatus==='승인완료'||r.reqStatus==='반려') return '<td style="padding:8px 10px;text-align:center;color:#94a3b8;font-size:.75rem;">-</td>';
+        const days=r.requestDate?Math.floor((Date.now()-new Date(r.requestDate))/86400000):0;
+        const color=days>=7?'#b91c1c':days>=3?'#b45309':'#64748b';
+        const bg=days>=7?'#fee2e2':days>=3?'#fef3c7':'transparent';
+        return '<td style="padding:8px 10px;text-align:center;font-size:.75rem;font-weight:'+(days>=3?'700':'400')+';color:'+color+';background:'+bg+';">'+(days>=7?'🔴 ':days>=3?'🟡 ':'')+days+'일</td>';
+      })()}
     </tr>`).join('');
 
   const pgBtns = [];
@@ -1428,14 +1460,15 @@ function renderAdminTable(resetPage) {
       <table style="width:100%;border-collapse:collapse;background:#fff;">
         <thead><tr style="background:#1e3a5f;color:#fff;font-size:.78rem;">
           <th style="padding:10px;text-align:left;">시스템</th>
-          <th style="padding:10px;">신청번호</th>
+          ${adminThSort('reqId','신청번호','center')}
           <th style="padding:10px;text-align:left;">제목</th>
           <th style="padding:10px;text-align:left;">신청자</th>
-          <th style="padding:10px;">상태</th>
-          <th style="padding:10px;">결재진행</th>
+          ${adminThSort('reqStatus','상태','center')}
+          ${adminThSort('doneCount','결재진행','center')}
           <th style="padding:10px;text-align:left;">다음결재자</th>
-          <th style="padding:10px;">신청일</th>
-          <th style="padding:10px;">최근결재일</th>
+          ${adminThSort('requestDate','신청일','center')}
+          ${adminThSort('lastApprovalDate','최근결재일','center')}
+          ${adminThSort('delayDays','지연일수','center')}
         </tr></thead>
         <tbody>${trs}</tbody>
       </table>
@@ -1446,6 +1479,17 @@ function renderAdminTable(resetPage) {
     </div>`;
 }
 
+function adminThSort(col, label, align='left') {
+  const {col:sc, dir:sd} = _adminSort;
+  const arrow = sc===col ? (sd==='asc'?' ▲':' ▼') : ' ↕';
+  const style = 'padding:10px;text-align:'+align+';cursor:pointer;user-select:none;white-space:nowrap;';
+  return '<th style="'+style+'" onclick="adminSortBy(\''+col+'\')">'+label+'<span style="opacity:.7;font-size:.7em;">'+arrow+'</span></th>';
+}
+function adminSortBy(col) {
+  if(_adminSort.col===col) _adminSort.dir=_adminSort.dir==='asc'?'desc':'asc';
+  else { _adminSort.col=col; _adminSort.dir=col==='requestDate'||col==='delayDays'?'desc':'desc'; }
+  renderAdminTable(false);
+}
 function pgBtnStyle(active=false) {
   return active
     ? 'background:#0078d4;color:#fff;border:none;border-radius:4px;padding:4px 10px;font-size:.8rem;cursor:pointer;font-weight:600;'
