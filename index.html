@@ -1280,6 +1280,27 @@ async function showDetail(sysKey,reqId){
     }
     else if(sysKey==='GA_IDC'){
       info+=sec('신청 정보')+row('Issue Type',f.IssueType)+row('Cost Center',f.CostCenter)+row('Description',f.Description||'-');
+      // 첨부파일: AttachedFiles(신형) 또는 PhotoFileName(구형)
+      let _idcFiles='<div style="font-size:.82rem;color:#a19f9d">첨부파일 없음</div>';
+      if(f.AttachedFiles){
+        const _links=(f.AttachedFiles||'').split(';').filter(Boolean).map(item=>{
+          const parts=item.split('||ENC||');
+          const name=parts[0];
+          if(parts[1]){
+            try{
+              const dec=decodeURIComponent(escape(atob(parts[1])));
+              const si=dec.indexOf('###');
+              if(si>=0){const di=dec.substring(0,si),ii=dec.substring(si+3);
+                return`<div style="padding:3px 0;font-size:.82rem">📎 <a href="#" class="aps-file-dl" data-drive="${encodeURIComponent(di)}" data-id="${encodeURIComponent(ii)}" data-name="${encodeURIComponent(name)}" style="color:#0078d4;cursor:pointer">${name}</a></div>`;}
+            }catch(e){}
+          }
+          return`<div style="padding:3px 0;font-size:.82rem;color:#a19f9d">📎 ${name}</div>`;
+        }).join('');
+        if(_links)_idcFiles=_links;
+      } else if(f.PhotoFileName){
+        _idcFiles=`<div style="padding:3px 0;font-size:.82rem;color:#a19f9d">📎 ${f.PhotoFileName} <span style="font-size:.72rem">(GA 시스템에서 다운로드)</span></div>`;
+      }
+      info+=sec('첨부파일')+_idcFiles;
     }
 
     const apprHtml=sec('결재 이력')+'<div class="appr-history">'+
