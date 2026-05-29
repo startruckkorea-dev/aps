@@ -1440,7 +1440,7 @@ function renderAdminTable(resetPage) {
       </td>
       <td style="padding:8px 10px;text-align:center;color:#64748b;">${r.doneCount} / ${r.totalAprs}차</td>
       <td style="padding:8px 10px;color:#374151;font-size:.78rem;">${r.nextApprover !== '-' ? r.nextApprover+'<br><span style="color:#94a3b8;font-size:.7rem;">'+r.nextRole+'</span>' : '<span style="color:#94a3b8;">-</span>'}</td>
-      <td style="padding:8px 10px;color:#94a3b8;font-size:.75rem;">${r.requestDate?r.requestDate.slice(0,16).replace('T',' '):'-'}</td>
+      <td style="padding:8px 10px;color:#94a3b8;font-size:.75rem;">${fmt(r.requestDate)}</td>
       <td style="padding:8px 10px;color:#94a3b8;font-size:.75rem;">${r.lastApprovalDate?r.lastApprovalDate.slice(0,16).replace('T',' '):'-'}</td>
       ${(()=>{
         if(r.reqStatus==='승인완료'||r.reqStatus==='반려') return '<td style="padding:8px 10px;text-align:center;color:#94a3b8;font-size:.75rem;">-</td>';
