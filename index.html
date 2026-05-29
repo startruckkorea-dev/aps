@@ -943,7 +943,7 @@ function renderApvPopup(){
     var role=f.ApproverRole||'';
     var isSCC=sys.key==='SCC';
     var isBP=sys.key==='BP';
-    var isFAAccountant=(sys.key==='FA'&&(f.ApproverRole||'').includes('회계담당자'));
+    var isFAAccountant=(sys.key==='FA');
     var apprId=item.id, reqId=f.RequestID, sysKey=sys.key, apprOrder=f.ApprovalOrder||0;
     var itemCls='apv-item'+(isOld?' apv-old':'');
     var oldTag=isOld?'<span class="apv-old-label">7일 초과</span>':'';
@@ -1073,7 +1073,7 @@ function renderAll(){
         <div class="item-right" onclick="event.stopPropagation()">
           ${stBadge(f.Status)}
           ${isPending
-            ?(()=>{const _isFAacc=sys.key==='FA'&&(f.ApproverRole||'').includes('회계담당자');return _isFAacc?`<a href="${sys.url}" target="_self" style="font-size:.72rem;color:#0078d4;text-decoration:none;border:1px solid #bfdbfe;border-radius:4px;padding:3px 10px">FA에서 결재 →</a>`:`<button class="btn-approve" onclick="quickConfirm(${item.id},'승인',${f.RequestID},'${sys.key}','${(f.ApproverRole||'').replace(/'/g,'')}',${f.ApprovalOrder||0})">승인</button><button class="btn-reject" onclick="quickConfirm(${item.id},'반려',${f.RequestID},'${sys.key}','${(f.ApproverRole||'').replace(/'/g,'')}',${f.ApprovalOrder||0})">반려</button>`;})()
+            ?(()=>{const _isFAacc=sys.key==='FA';return _isFAacc?`<a href="${sys.url}" target="_self" style="font-size:.72rem;color:#0078d4;text-decoration:none;border:1px solid #bfdbfe;border-radius:4px;padding:3px 10px">FA에서 결재 →</a>`:`<button class="btn-approve" onclick="quickConfirm(${item.id},'승인',${f.RequestID},'${sys.key}','${(f.ApproverRole||'').replace(/'/g,'')}',${f.ApprovalOrder||0})">승인</button><button class="btn-reject" onclick="quickConfirm(${item.id},'반려',${f.RequestID},'${sys.key}','${(f.ApproverRole||'').replace(/'/g,'')}',${f.ApprovalOrder||0})">반려</button>`;})()
             :`<span class="done-label">완료</span>`}
         </div>
       </div>`;
@@ -1198,6 +1198,8 @@ async function showDetail(sysKey,reqId){
         if(rest.startsWith('ENC||')){try{const dec=decodeURIComponent(escape(atob(rest.substring(5))));const si=dec.indexOf('###');if(si>=0){const di=dec.substring(0,si),ii=dec.substring(si+3);return`<div style="padding:3px 0;font-size:.82rem">📎 <a href="#" class="aps-file-dl" data-drive="${encodeURIComponent(di)}" data-id="${encodeURIComponent(ii)}" data-name="${encodeURIComponent(name)}" style="color:#0078d4;cursor:pointer">${name}</a></div>`;}}catch(ex){}}
         // 일반 형식: name||driveId||itemId
         const parts=entry.split('||');if(parts.length>=3){const di=parts[1],ii=parts.slice(2).join('||');return`<div style="padding:3px 0;font-size:.82rem">📎 <a href="#" class="aps-file-dl" data-drive="${encodeURIComponent(di)}" data-id="${encodeURIComponent(ii)}" data-name="${encodeURIComponent(name)}" style="color:#0078d4;cursor:pointer">${name}</a></div>`;}
+        // FA 구형 형식: name|webUrl (파이프 1개)
+        if(entry.includes('|')){const sp=entry.indexOf('|');const n2=entry.substring(0,sp).trim();const url=entry.substring(sp+1).trim();if(url)return`<div style="padding:3px 0;font-size:.82rem">📎 <a href="${url}" target="_blank" style="color:#0078d4;cursor:pointer">${n2}</a></div>`;}
         return`<div style="padding:3px 0;font-size:.82rem;color:#a19f9d">📎 ${name}</div>`;
       }).filter(Boolean).join('');
     };
@@ -1336,7 +1338,7 @@ function showConfirm(apprId,action,reqId,sysKey,apprRole='',apprOrder=0){
   if(bpNotice) bpNotice.style.display = needBPCode ? '' : 'none';
 
   // FA: 회계담당자 역할은 FA Code 입력 필요 → 차단
-  const needFACode = sysKey==='FA' && !isReject && (apprRole||'').includes('회계담당자');
+  const needFACode = sysKey==='FA' && !isReject;
   const faNotice = document.getElementById('confirm-fa-notice');
   if(faNotice) faNotice.style.display = needFACode ? '' : 'none';
 
