@@ -1191,21 +1191,20 @@ async function showDetail(sysKey,reqId){
     const parseFiles=(raw)=>{
       if(!raw)return'<div style="font-size:.82rem;color:#a19f9d">첨부파일 없음</div>';
       let clean=raw.replace(/<[^>]*>/g,'').replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&nbsp;/g,' ').replace(/&#58;/g,':').replace(/\r\n/g,'\n').replace(/\r/g,'\n').trim();
-      const entries=clean.split(/[;\n]+/).filter(e=>e.trim()&&e.includes('||'));
+      const entries=clean.split(/[;\n]+/).filter(e=>e.trim()&&e.includes('|'));
       if(!entries.length)return'<div style="font-size:.82rem;color:#a19f9d">첨부파일 없음</div>';
       return entries.map(entry=>{
-        const fi=entry.indexOf('||');if(fi<0)return'';
-        const name=entry.substring(0,fi),rest=entry.substring(fi+2);
+        entry=entry.trim();
         // SCC 형식: name||CONTRACT_DOC||driveId||itemId
-        if(rest.startsWith('CONTRACT_DOC||')){const p2=rest.substring('CONTRACT_DOC||'.length).split('||');if(p2.length>=2){const di=p2[0],ii=p2.slice(1).join('||');return`<div style="padding:3px 0;font-size:.82rem">📎 <a href="#" class="aps-file-dl" data-drive="${encodeURIComponent(di)}" data-id="${encodeURIComponent(ii)}" data-name="${encodeURIComponent(name)}" style="color:#0078d4;cursor:pointer">${name} <span style="font-size:11px;color:#107c10;font-weight:600">[Contract Doc]</span></a></div>`;}}
+        if(entry.includes('||CONTRACT_DOC||')){const p=entry.split('||CONTRACT_DOC||');const name=p[0];const p2=p[1].split('||');if(p2.length>=2){const di=p2[0],ii=p2.slice(1).join('||');return`<div style="padding:3px 0;font-size:.82rem">📎 <a href="#" class="aps-file-dl" data-drive="${encodeURIComponent(di)}" data-id="${encodeURIComponent(ii)}" data-name="${encodeURIComponent(name)}" style="color:#0078d4;cursor:pointer">${name} <span style="font-size:11px;color:#107c10;font-weight:600">[Contract Doc]</span></a></div>`;}}
         // ENC 형식: name||ENC||base64
-        if(rest.startsWith('ENC||')){try{const dec=decodeURIComponent(escape(atob(rest.substring(5))));const si=dec.indexOf('###');if(si>=0){const di=dec.substring(0,si),ii=dec.substring(si+3);return`<div style="padding:3px 0;font-size:.82rem">📎 <a href="#" class="aps-file-dl" data-drive="${encodeURIComponent(di)}" data-id="${encodeURIComponent(ii)}" data-name="${encodeURIComponent(name)}" style="color:#0078d4;cursor:pointer">${name}</a></div>`;}}catch(ex){}}
-        // 일반 형식: name||driveId||itemId
-        const parts=entry.split('||');if(parts.length>=3){const di=parts[1],ii=parts.slice(2).join('||');return`<div style="padding:3px 0;font-size:.82rem">📎 <a href="#" class="aps-file-dl" data-drive="${encodeURIComponent(di)}" data-id="${encodeURIComponent(ii)}" data-name="${encodeURIComponent(name)}" style="color:#0078d4;cursor:pointer">${name}</a></div>`;}
+        if(entry.includes('||ENC||')){const fi=entry.indexOf('||ENC||');const name=entry.substring(0,fi);const b64=entry.substring(fi+7);try{const dec=decodeURIComponent(escape(atob(b64)));const si=dec.indexOf('###');if(si>=0){const di=dec.substring(0,si),ii=dec.substring(si+3);return`<div style="padding:3px 0;font-size:.82rem">📎 <a href="#" class="aps-file-dl" data-drive="${encodeURIComponent(di)}" data-id="${encodeURIComponent(ii)}" data-name="${encodeURIComponent(name)}" style="color:#0078d4;cursor:pointer">${name}</a></div>`;}}catch(ex){}}
+        // 신형 형식: name||driveId||itemId
+        if(entry.includes('||')){const fi=entry.indexOf('||');const name=entry.substring(0,fi),rest=entry.substring(fi+2);const parts=rest.split('||');if(parts.length>=2){const di=parts[0],ii=parts.slice(1).join('||');return`<div style="padding:3px 0;font-size:.82rem">📎 <a href="#" class="aps-file-dl" data-drive="${encodeURIComponent(di)}" data-id="${encodeURIComponent(ii)}" data-name="${encodeURIComponent(name)}" style="color:#0078d4;cursor:pointer">${name}</a></div>`;}}
         // FA 구형 형식: name|webUrl (파이프 1개)
-        if(entry.includes('|')){const sp=entry.indexOf('|');const n2=entry.substring(0,sp).trim();const url=entry.substring(sp+1).trim();if(url)return`<div style="padding:3px 0;font-size:.82rem">📎 <a href="${url}" target="_blank" style="color:#0078d4;cursor:pointer">${n2}</a></div>`;}
-        return`<div style="padding:3px 0;font-size:.82rem;color:#a19f9d">📎 ${name}</div>`;
-      }).filter(Boolean).join('');
+        if(entry.includes('|')){const sp=entry.indexOf('|');const name=entry.substring(0,sp).trim();const url=entry.substring(sp+1).trim();if(url)return`<div style="padding:3px 0;font-size:.82rem">📎 <a href="${url}" target="_blank" style="color:#0078d4;cursor:pointer">${name}</a></div>`;}
+        return'';
+      }).filter(Boolean).join('')||'<div style="font-size:.82rem;color:#a19f9d">첨부파일 없음</div>';
     };
     const rowFull=(l,v)=>`<div style="padding:7px 0;border-bottom:0.5px solid #edebe9;font-size:13px"><div style="font-size:11px;color:#605e5c;margin-bottom:3px">${l}</div><div style="white-space:pre-wrap;color:#323130">${v||'-'}</div></div>`;
 
