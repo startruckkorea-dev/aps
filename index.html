@@ -1178,7 +1178,11 @@ async function showDetail(sysKey,reqId){
   const sys=SYSTEMS.find(s=>s.key===sysKey);
   try{
     const [r,apprData]=await Promise.all([
-      api('/sites/'+siteId+'/lists/'+sys.req+'/items/'+reqId+'?$expand=fields'),
+      (()=>{
+        const _gaFields='Title,Company,CostCenter,ItemCount,TotalAmount,ItemsData,Status,RequesterEmail,RequestDate,NameEN,NameKO,Department,Email,Quantity,StickerQty,IssueType,Description,Address,AddressEng,MobileNumber,OrdName,OrdPhone,StnName,StnDept,PhotoFileName,AttachedFiles';
+        const _sel=(sysKey==='GA_STN'||sysKey==='GA_BC'||sysKey==='GA_IDC')?`?$expand=fields($select=${_gaFields})`:'?$expand=fields';
+        return api('/sites/'+siteId+'/lists/'+sys.req+'/items/'+reqId+_sel);
+      })(),
       apiAll('/sites/'+siteId+'/lists/'+sys.apr+'/items?$expand=fields'),
     ]);
     const f=r.fields;
