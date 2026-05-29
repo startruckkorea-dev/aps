@@ -1182,7 +1182,11 @@ async function showDetail(sysKey,reqId){
       return entries.map(entry=>{
         const fi=entry.indexOf('||');if(fi<0)return'';
         const name=entry.substring(0,fi),rest=entry.substring(fi+2);
+        // SCC 형식: name||CONTRACT_DOC||driveId||itemId
+        if(rest.startsWith('CONTRACT_DOC||')){const p2=rest.substring('CONTRACT_DOC||'.length).split('||');if(p2.length>=2){const di=p2[0],ii=p2.slice(1).join('||');return`<div style="padding:3px 0;font-size:.82rem">📎 <a href="#" class="aps-file-dl" data-drive="${encodeURIComponent(di)}" data-id="${encodeURIComponent(ii)}" data-name="${encodeURIComponent(name)}" style="color:#0078d4;cursor:pointer">${name} <span style="font-size:11px;color:#107c10;font-weight:600">[Contract Doc]</span></a></div>`;}}
+        // ENC 형식: name||ENC||base64
         if(rest.startsWith('ENC||')){try{const dec=decodeURIComponent(escape(atob(rest.substring(5))));const si=dec.indexOf('###');if(si>=0){const di=dec.substring(0,si),ii=dec.substring(si+3);return`<div style="padding:3px 0;font-size:.82rem">📎 <a href="#" class="aps-file-dl" data-drive="${encodeURIComponent(di)}" data-id="${encodeURIComponent(ii)}" data-name="${encodeURIComponent(name)}" style="color:#0078d4;cursor:pointer">${name}</a></div>`;}}catch(ex){}}
+        // 일반 형식: name||driveId||itemId
         const parts=entry.split('||');if(parts.length>=3){const di=parts[1],ii=parts.slice(2).join('||');return`<div style="padding:3px 0;font-size:.82rem">📎 <a href="#" class="aps-file-dl" data-drive="${encodeURIComponent(di)}" data-id="${encodeURIComponent(ii)}" data-name="${encodeURIComponent(name)}" style="color:#0078d4;cursor:pointer">${name}</a></div>`;}
         return`<div style="padding:3px 0;font-size:.82rem;color:#a19f9d">📎 ${name}</div>`;
       }).filter(Boolean).join('');
