@@ -895,6 +895,7 @@ function renderApvPopup(){
   var body=document.getElementById('apv-popup-body');
   if(!body)return;
   var myEmail=(user&&user.email||'').toLowerCase();
+  var myUPN=(user&&user.username||'').toLowerCase();
   var items=[];
   // Collect all pending items across systems (철회 제외)
   Object.keys(_allData).forEach(function(key){
@@ -910,7 +911,7 @@ function renderApvPopup(){
       var f=i.fields;
       var st=(f.Status||'').trim();
       if(st!=='대기')return;
-      if((f.ApproverEmail||'').toLowerCase()!==myEmail)return;
+      var _ae=(f.ApproverEmail||'').toLowerCase();if(_ae!==myEmail&&_ae!==myUPN)return;
       if(wids.has(String(f.RequestID)))return;
       var rf=d.reqMap[String(f.RequestID)]||{};
       items.push({sys:sys,item:i,f:f,rf:rf});
@@ -977,6 +978,7 @@ function apvToggleOld(){
 function updateApvBadge(){
   if(!user)return;
   var myEmail=(user.email||'').toLowerCase();
+  var myUPN=(user.username||'').toLowerCase();
   var now=new Date();
   var activeCnt=0, totalCnt=0;
   Object.keys(_allData).forEach(function(key){
@@ -989,7 +991,7 @@ function updateApvBadge(){
     d.apprItems.forEach(function(i){
       var f=i.fields;
       if((f.Status||'').trim()!=='대기')return;
-      if((f.ApproverEmail||'').toLowerCase()!==myEmail)return;
+      var _ae2=(f.ApproverEmail||'').toLowerCase();if(_ae2!==myEmail&&_ae2!==myUPN)return;
       if(wids.has(String(f.RequestID)))return;
       totalCnt++;
       var rf=d.reqMap[String(f.RequestID)]||{};
@@ -1011,7 +1013,8 @@ function updateApvBadge(){
 function renderAll(){
   const fSys=document.getElementById('filter-sys').value;
   const fSt=document.getElementById('filter-status').value;
-  const myEmail=(user.email||'').toLowerCase();
+  const myEmail=(user&&user.email||'').toLowerCase();
+  const myUPN=(user&&user.username||'').toLowerCase();
   let html='',total=0;
 
   for(const sys of SYSTEMS){
@@ -1029,7 +1032,7 @@ function renderAll(){
     );
     const _myAll = d.apprItems.filter(i=>{
       const st=(i.fields.Status||'').trim();
-      return (i.fields.ApproverEmail||'').toLowerCase()===myEmail
+      const _e=(i.fields.ApproverEmail||'').toLowerCase();return _e===myEmail||_e===myUPN
         && !_withdrawnIds.has(String(i.fields.RequestID));
     });
     const _reqIdMap = {};
