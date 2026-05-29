@@ -1447,7 +1447,7 @@ function renderAdminTable(resetPage) {
       <td style="padding:8px 10px;color:#94a3b8;font-size:.75rem;">${fmt(r.requestDate)}</td>
       <td style="padding:8px 10px;color:#94a3b8;font-size:.75rem;">${fmt(r.lastApprovalDate)}</td>
       ${(()=>{
-        if(r.reqStatus==='승인완료'||r.reqStatus==='반려') return '<td style="padding:8px 10px;text-align:center;color:#94a3b8;font-size:.75rem;">-</td>';
+        if(r.reqStatus==='승인완료'||r.reqStatus==='반려'||r.reqStatus==='철회'||r.reqStatus==='철회(잠김)') return '<td style="padding:8px 10px;text-align:center;color:#94a3b8;font-size:.75rem;">-</td>';
         const days=r.requestDate?Math.floor((Date.now()-new Date(r.requestDate))/86400000):0;
         const color=days>=7?'#b91c1c':days>=3?'#b45309':'#64748b';
         const bg=days>=7?'#fee2e2':days>=3?'#fef3c7':'transparent';
