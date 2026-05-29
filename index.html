@@ -1159,7 +1159,7 @@ async function showDetail(sysKey,reqId){
   const modal=document.getElementById('detail-modal');
   document.getElementById('detail-content').innerHTML='<div style="text-align:center;padding:32px;color:#718096"><div class="spinner" style="margin:0 auto 12px"></div>불러오는 중...</div>';
   document.getElementById('detail-sys-badge').innerHTML=`<span class="sys-badge sys-${sysKey}">${sysKey}</span>`;
-  document.getElementById('detail-title').textContent='신청 요약';
+  document.getElementById('detail-title').textContent='신청 상세 내용';
   modal.className='open';
   const sys=SYSTEMS.find(s=>s.key===sysKey);
   try{
@@ -1173,18 +1173,71 @@ async function showDetail(sysKey,reqId){
     const sec=t=>`<div class="modal-sec">${t}</div>`;
     const row=(l,v)=>`<div class="modal-row"><div class="modal-label">${l}</div><div class="modal-val">${v||'-'}</div></div>`;
 
+    // ── 첨부파일 공통 파서 ──
+    const parseFiles=(raw)=>{
+      if(!raw)return'<div style="font-size:.82rem;color:#a19f9d">첨부파일 없음</div>';
+      let clean=raw.replace(/<[^>]*>/g,'').replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&nbsp;/g,' ').replace(/&#58;/g,':').replace(/\r\n/g,'\n').replace(/\r/g,'\n').trim();
+      const entries=clean.split(/[;\n]+/).filter(e=>e.trim()&&e.includes('||'));
+      if(!entries.length)return'<div style="font-size:.82rem;color:#a19f9d">첨부파일 없음</div>';
+      return entries.map(entry=>{
+        const fi=entry.indexOf('||');if(fi<0)return'';
+        const name=entry.substring(0,fi),rest=entry.substring(fi+2);
+        if(rest.startsWith('ENC||')){try{const dec=decodeURIComponent(escape(atob(rest.substring(5))));const si=dec.indexOf('###');if(si>=0){const di=dec.substring(0,si),ii=dec.substring(si+3);return`<div style="padding:3px 0;font-size:.82rem">📎 <a href="#" class="aps-file-dl" data-drive="${encodeURIComponent(di)}" data-id="${encodeURIComponent(ii)}" data-name="${encodeURIComponent(name)}" style="color:#0078d4;cursor:pointer">${name}</a></div>`;}}catch(ex){}}
+        const parts=entry.split('||');if(parts.length>=3){const di=parts[1],ii=parts.slice(2).join('||');return`<div style="padding:3px 0;font-size:.82rem">📎 <a href="#" class="aps-file-dl" data-drive="${encodeURIComponent(di)}" data-id="${encodeURIComponent(ii)}" data-name="${encodeURIComponent(name)}" style="color:#0078d4;cursor:pointer">${name}</a></div>`;}
+        return`<div style="padding:3px 0;font-size:.82rem;color:#a19f9d">📎 ${name}</div>`;
+      }).filter(Boolean).join('');
+    };
+    const rowFull=(l,v)=>`<div style="padding:7px 0;border-bottom:0.5px solid #edebe9;font-size:13px"><div style="font-size:11px;color:#605e5c;margin-bottom:3px">${l}</div><div style="white-space:pre-wrap;color:#323130">${v||'-'}</div></div>`;
+
     let info=sec('기본 정보')+row('신청번호','#'+reqId)+row('신청자',f.RequesterEmail)+
       row('상태',stBadge(f.Status))+row('신청일',fmt(f.RequestDate));
-    if(sysKey==='GW')       info+=sec('신청 정보')+row('Source',f.Source)+row('Amount',(f.Amount||'').replace(/^(\d+)~$/, (m,n)=>Number(n).toLocaleString()+'~').replace(/^(\d+)~(\d+)$/, (m,a,b)=>Number(a).toLocaleString()+'~'+Number(b).toLocaleString()))+row('Type',f.GoodwillType)+row('Title',f.Title)+row('Description','<div style="white-space:pre-wrap">'+(f.Description||'-')+'</div>');
-    else if(sysKey==='BP')  info+=sec('신청 정보')+row('BP Type',f.BPType)+row('Sub Category',f.SubCategory)+row('BP Name',f.BPName);
-    else if(sysKey==='FA')  info+=sec('신청 정보')+row('FA Type',f.FAType)+row('Title',f.Title);
-    else if(sysKey==='SCC') info+=sec('신청 정보')+row('Type',f.ContractCompanyType)+row('Title',f.Title)+row('Partner',f.ContractPartner);
-    else if(sysKey==='IT')  info+=sec('신청 정보')+row('Type',f.TicketType)+row('Title',f.Title)+row('대상 시스템',f.Systems||'-');
-    else if(sysKey==='MC')  info+=sec('신청 정보')+row('Company',f.Company)+row('Department',f.Department)+row('Car Model',f.CarModel)+row('Period',f.Period)+row('Driver',f.DriverName);
-    else if(sysKey==='RR')  info+=sec('신청 정보')+row('Vehicle Model',f.VehicleModel)+row('Plate No.',f.PlateNumber)+row('Accident Type',f.AccidentType)+row('Date/Time',f.AccidentDateTime)+row('Location',f.Location)+row('Description','<div style="white-space:pre-wrap">'+(f.Description||'-')+'</div>');
-    else if(sysKey==='GA_STN') info+=sec('신청 정보')+row('Company',f.Company)+row('Cost Center',f.CostCenter)+row('Description',f.Description||'-');
-    else if(sysKey==='GA_BC')  info+=sec('신청 정보')+row('Name (EN)',f.NameEN)+row('Name (KO)',f.NameKO)+row('Department',f.Department)+row('Quantity',f.Quantity+'매')+row('Cost Center',f.CostCenter);
-    else if(sysKey==='GA_IDC') info+=sec('신청 정보')+row('Issue Type',f.IssueType)+row('Cost Center',f.CostCenter)+row('Description',f.Description||'-');
+
+    if(sysKey==='IT'){
+      info+=row('유형',f.TicketType||'-')+row('우선순위',f.Priority||'-')+row('제목',f.Title||'-')+row('대상 시스템',f.Systems||'-');
+      const t=f.TicketType;
+      if(t==='Incident'||t==='Problem') info+=sec('장애/이슈 상세')+rowFull('발생 일시',f.IncOccurredAt)+rowFull('증상 설명',f.Symptom)+row('영향 범위',f.Scope)+row('임시 해결책',f.Workaround);
+      else if(t==='Change') info+=sec('변경 요청 상세')+row('변경 유형',f.ChangeType)+row('예상 영향도',f.Impact)+rowFull('변경 내용',f.Detail)+rowFull('변경 이유',f.ChangeReason);
+      else if(t==='Request') info+=sec('서비스 요청 상세')+row('요청 유형',f.ReqType)+row('계정 생성 목적',f.AcctPurpose)+row('권한 환경',f.ReqEnv)+row('신청 기간',f.ReqFrom&&f.ReqTo?f.ReqFrom+' ~ '+f.ReqTo:'-')+rowFull('요청 내용',f.Detail);
+      info+=sec('첨부파일')+parseFiles(f.AttachedFiles);
+    }
+    else if(sysKey==='SCC'){
+      info+=sec('계약 정보')+row('제목',f.Title)+row('Title of Contract',f.ContractTitle||'(미입력)')+row('Type',f.ContractCompanyType)+row('Contract Type',f.ContractType)+row('Contract Partner',f.ContractPartner)+rowFull('Objective',f.Objective)+row('Contract Value',f.ContractValue?Number(f.ContractValue).toLocaleString()+' '+(f.Currency||''):'-')+row('Contract Period',(f.PeriodType||'')+(f.PeriodStart?' | '+f.PeriodStart+' ~ '+(f.PeriodEnd||'No end'):''))+row('Payment Term',f.PaymentDays?'Within '+f.PaymentDays+' days from invoice date':'-');
+      if(f.ContractTemplate){const ti=(f.ContractTemplate||'').replace(/<[^>]*>/g,'').replace(/&#58;/g,':').replace(/&amp;/g,'&').trim().split(';').map(s=>s.trim()).filter(s=>s&&s.length>1);info+=sec('3. Contract Template')+'<div style="padding:6px 0">'+(ti.map(i=>`<div style="padding:3px 0;font-size:13px"><span style="color:#107c10">✓</span> ${i}</div>`).join('')||'-')+'</div>';}
+      if(f.BizTermsReviewed||f.DDPerformed||f.PersonalInfo||f.SMRCompliance||f.FinalSignOff){const yn=v=>v?`<span style="font-weight:600;color:${v.toLowerCase()==='yes'?'#107c10':'#a4262c'}">${v.toUpperCase()}</span>`:'-';info+=sec('4. Compliance / Final Check')+row('Business terms reviewed',yn(f.BizTermsReviewed))+row('Due Diligence performed',yn(f.DDPerformed)+(f.DDId?` (DD ID: ${f.DDId})`:''))+row('Personal Info disclosed',yn(f.PersonalInfo))+row('SMR Compliance',yn(f.SMRCompliance))+(f.FinalSignOff?row('Final signing off',f.FinalSignOff):'');}
+      info+=sec('첨부파일')+parseFiles(f.AttachedFiles);
+    }
+    else if(sysKey==='GW'){
+      info+=sec('신청 정보')+row('Company',f.Company)+row('Source',f.Source)+row('Amount',(f.Amount||'').replace(/^(\d+)~$/,(m,n)=>Number(n).toLocaleString()+'~').replace(/^(\d+)~(\d+)$/,(m,a,b)=>Number(a).toLocaleString()+'~'+Number(b).toLocaleString()))+row('Type',f.GoodwillType)+row('Title',f.Title)+sec('상세 내용')+`<div class="det-row"><span style="font-size:.78rem;color:#605e5c;width:110px;flex-shrink:0">Description</span><span style="font-size:.82rem;white-space:pre-wrap">${f.Description||'-'}</span></div>`;
+      info+=sec('첨부파일')+parseFiles(f.AttachedFiles);
+    }
+    else if(sysKey==='BP'){
+      info+=sec('BP 신청 정보')+row('Type',f.BPType)+row('Sub Category',f.SubCategory)+row('BP Code',f.BPCode||'-')+row('BP Name',f.BPName||'-')+(f.Description?rowFull('Description',f.Description):'');
+      info+=sec('첨부파일')+parseFiles(f.AttachedFiles);
+    }
+    else if(sysKey==='FA'){
+      info+=row('FA 유형',`<span style="background:#e8f4ff;color:#0078d4;padding:2px 8px;border-radius:10px;font-size:12px">${f.FAType||''}</span>`)+row('제목',f.Title)+(f.FACode?row('FA Code',`<strong style="color:#107c10">${f.FACode}</strong>`):'');
+      if(f.FAType==='Registration') info+=sec('고정자산 정보')+row('자산명',f.Description)+row('Acquisition Date',f.AcquisitionDate)+row('CCTR',f.CCTR)+row('GL Account',f.GLAccount)+row('Asset Class',f.AssetClass)+row('Useful Life',f.UsefulLife)+row('Location',f.Location)+row('Asset Value',f.AssetValue?Number(f.AssetValue).toLocaleString()+' 원':'-')+row('Vendor Code/Name',f.VendorInfo)+row('Model/Serial No.',f.SerialNumber||'-')+sec('신청사유')+rowFull('Purpose',f.Purpose);
+      else if(f.FAType==='Disposal') info+=sec('처분 정보')+row('Disposal Date',f.DisposalDate)+row('Location',f.Location)+row('Type',f.DisposalType)+row('Disposal Method',f.DisposalMethod)+rowFull('Reason',f.Reason);
+      else if(f.FAType==='Transfer') info+=sec('이관 정보')+row('이동전 부서',f.FromDept)+row('이동전 담당자',f.FromManager)+row('이동후 부서',f.ToDept||'(없음)')+row('이동후 담당자',f.ToManager||'-')+rowFull('이관 사유',f.TransferReason);
+      info+=sec('첨부파일')+parseFiles(f.AttachedFiles);
+    }
+    else if(sysKey==='MC'){
+      info+=sec('차량 정보')+row('Company',f.Company)+row('Department',f.Department)+row('Car Model',f.CarModel)+row('Car Number',f.CarNumber)+sec('사용 정보')+row('사용 기간',f.Period)+row('Purpose',f.Purpose)+sec('운전자 정보')+row('Driver Name',f.DriverName)+row('Driver Dept',f.DriverDept);
+      info+=sec('첨부파일')+parseFiles(f.AttachedFiles);
+    }
+    else if(sysKey==='RR'){
+      info+=sec('차량/사고 정보')+row('Vehicle Model',f.VehicleModel)+row('Plate No.',f.PlateNumber)+row('Accident Type',f.AccidentType)+row('Date/Time',f.AccidentDateTime)+row('Location',f.Location)+rowFull('Description',f.Description);
+      info+=sec('첨부파일')+parseFiles(f.AttachedFiles);
+    }
+    else if(sysKey==='GA_STN'){
+      info+=sec('신청 정보')+row('Company',f.Company)+row('Cost Center',f.CostCenter)+row('주문자',f.OrdName||'-')+row('주문자 연락처',f.OrdPhone||'-')+(f.StnName?row('수령자',f.StnName):'')+row('항목 수',f.ItemCount+'건')+row('Total',f.TotalAmount?Number(f.TotalAmount).toLocaleString()+'원':'-');
+    }
+    else if(sysKey==='GA_BC'){
+      info+=sec('명함 정보')+row('Name (EN)',f.NameEN)+row('Name (KO)',f.NameKO)+row('Department',f.Department)+row('Email',f.Email)+row('Quantity',f.Quantity+'매')+row('Cost Center',f.CostCenter)+(f.Address?row('주소 (국문)',f.Address.replace(/\r\n|\n/g,'<br>')):'')+( f.AddressEng?row('Address (EN)',f.AddressEng.replace(/\r\n|\n/g,'<br>')):'')+( f.MobileNumber?row('Mobile Number',f.MobileNumber):'');
+    }
+    else if(sysKey==='GA_IDC'){
+      info+=sec('신청 정보')+row('Issue Type',f.IssueType)+row('Cost Center',f.CostCenter)+row('Description',f.Description||'-');
+    }
 
     const apprHtml=sec('결재 이력')+'<div class="appr-history">'+
       apprList.map(a=>{
@@ -1216,6 +1269,25 @@ async function showDetail(sysKey,reqId){
   }catch(e){document.getElementById('detail-content').innerHTML=`<p style="color:#e53e3e;padding:16px">오류: ${e.message}</p>`;}
 }
 function closeDetail(){document.getElementById('detail-modal').className='';}
+
+// ── APS 통합 첨부파일 다운로드 ──
+document.addEventListener('click', async function(e){
+  const a = e.target.closest('.aps-file-dl');
+  if(!a) return;
+  e.preventDefault();
+  try{
+    const t = await token();
+    const driveId = decodeURIComponent(a.dataset.drive);
+    const itemId  = decodeURIComponent(a.dataset.id);
+    const fname   = decodeURIComponent(a.dataset.name);
+    const res = await fetch('https://graph.microsoft.com/v1.0/drives/'+driveId+'/items/'+itemId+'?select=id,name,%40microsoft.graph.downloadUrl,webUrl',{headers:{Authorization:'Bearer '+t}});
+    const mj = await res.json();
+    const dlUrl = mj['@microsoft.graph.downloadUrl'];
+    if(dlUrl){const anchor=document.createElement('a');anchor.href=dlUrl;anchor.download=fname;anchor.style.display='none';document.body.appendChild(anchor);anchor.click();document.body.removeChild(anchor);}
+    else if(mj.webUrl){window.open(mj.webUrl,'_blank');}
+    else{alert('다운로드 URL을 가져올 수 없습니다.');}
+  }catch(e){alert('다운로드 오류: '+e.message);}
+});
 
 async function quickConfirm(apprId,action,reqId,sysKey,apprRole='',apprOrder=0){
   try{
