@@ -1230,7 +1230,7 @@ async function showDetail(sysKey,reqId){
       info+=sec('첨부파일')+parseFiles(f.AttachedFiles);
     }
     else if(sysKey==='GW'){
-      info+=sec('신청 정보')+row('Company',f.Company)+row('Source',f.Source)+row('Amount',(f.Amount||'').replace(/^(\d+)~$/,(m,n)=>Number(n).toLocaleString()+'~').replace(/^(\d+)~(\d+)$/,(m,a,b)=>Number(a).toLocaleString()+'~'+Number(b).toLocaleString()))+row('Type',f.GoodwillType)+row('Title',f.Title)+sec('상세 내용')+`<div class="det-row"><span style="font-size:.78rem;color:#605e5c;width:110px;flex-shrink:0">Description</span><span style="font-size:.82rem;white-space:pre-wrap">${f.Description||'-'}</span></div>`;
+      info+=sec('신청 정보')+row('Company',f.Company)+row('Source',f.Source)+row('Amount',(f.Amount||'').replace(/^(\d+)~$/,(m,n)=>Number(n).toLocaleString()+'~').replace(/^(\d+)~(\d+)$/,(m,a,b)=>Number(a).toLocaleString()+'~'+Number(b).toLocaleString()))+row('Type',f.GoodwillType)+row('Title',f.Title)+sec('상세 내용')+row('Description',`<span style="white-space:pre-wrap">${f.Description||'-'}</span>`);
       info+=sec('첨부파일')+parseFiles(f.AttachedFiles);
     }
     else if(sysKey==='BP'){
