@@ -1032,8 +1032,9 @@ function renderAll(){
     );
     const _myAll = d.apprItems.filter(i=>{
       const st=(i.fields.Status||'').trim();
-      const _e=(i.fields.ApproverEmail||'').toLowerCase();return _e===myEmail||_e===myUPN
-        && !_withdrawnIds.has(String(i.fields.RequestID));
+      if(st==='철회(잠김)')return false;
+      const _e=(i.fields.ApproverEmail||'').toLowerCase();
+      return (_e===myEmail||_e===myUPN) && !_withdrawnIds.has(String(i.fields.RequestID));
     });
     const _reqIdMap = {};
     _myAll.forEach(i=>{
