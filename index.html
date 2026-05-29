@@ -1249,7 +1249,7 @@ async function showDetail(sysKey,reqId){
         const _o=String(af.ApprovalOrder||'');
         const _r=af.ApproverRole||'';
         const _rc=_r.startsWith(_o+'차')?_r.slice(_o.length+1).trim():_r;
-        const _rp=_rc.replace(/^결재자\s*/,'');
+        const _rp=_rc.replace(/^결재자\s*/,'').replace(/^\((.+)\)$/,'$1').trim();
         const _dr=_rp?`<b>${_o}차</b> 결재자(${_rp})`:`<b>${_o}차</b> 결재자`;
         return`<div class="appr-item">
         <div style="display:flex;align-items:flex-start;flex:1">
