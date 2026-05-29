@@ -1298,7 +1298,7 @@ async function showDetail(sysKey,reqId){
         }).join('');
         if(_links)_idcFiles=_links;
       } else if(f.PhotoFileName){
-        _idcFiles=`<div style="padding:3px 0;font-size:.82rem;color:#a19f9d">📎 ${f.PhotoFileName} <span style="font-size:.72rem">(GA 시스템에서 다운로드)</span></div>`;
+        _idcFiles=`<div style="padding:3px 0;font-size:.82rem">📎 <a href="#" onclick="apsDownloadIDCPhoto('${f.PhotoFileName.replace(/'/g,"\\'")}',${reqId});return false;" style="color:#0078d4;cursor:pointer">${f.PhotoFileName}</a></div>`;
       }
       info+=sec('첨부파일')+_idcFiles;
     }
@@ -1333,6 +1333,22 @@ async function showDetail(sysKey,reqId){
   }catch(e){document.getElementById('detail-content').innerHTML=`<p style="color:#e53e3e;padding:16px">오류: ${e.message}</p>`;}
 }
 function closeDetail(){document.getElementById('detail-modal').className='';}
+
+async function apsDownloadIDCPhoto(fileName, reqId){
+  try{
+    const t=await token();
+    const drivesData=await api('/sites/'+siteId+'/drives');
+    const drive=drivesData.value.find(d=>d.name==='AttachedFiles')||drivesData.value[0];
+    if(!drive)throw new Error('AttachedFiles 드라이브를 찾을 수 없습니다.');
+    const res=await fetch('https://graph.microsoft.com/v1.0/drives/'+drive.id+'/root:/IDC_Requests_AttachedFiles/'+reqId+'/'+encodeURIComponent(fileName)+':/content',
+      {headers:{Authorization:'Bearer '+t}});
+    if(!res.ok)throw new Error('다운로드 실패 ('+res.status+')');
+    const blob=await res.blob();
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');a.href=url;a.download=fileName;a.click();
+    setTimeout(()=>URL.revokeObjectURL(url),1000);
+  }catch(e){alert('다운로드 오류: '+e.message);}
+}
 
 // ── APS 통합 첨부파일 다운로드 ──
 document.addEventListener('click', async function(e){
