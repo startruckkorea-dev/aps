@@ -634,7 +634,9 @@ async function boot(account){
   document.getElementById('app').style.display='block';
   try{const me=await api('/me?$select=mail,userPrincipalName');user.email=(me.mail||me.userPrincipalName||account.username||'').toLowerCase();}
   catch(e){user.email=(account.username||'').toLowerCase();}
-  document.getElementById('user-name').textContent=account.name||account.username;
+  const _fullName=account.name||account.username||'';
+  const _firstName=_fullName.split(' ')[0]||_fullName;
+  document.getElementById('user-name').textContent='STK '+_firstName;
   const initials=(account.name||'?').split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase();
   document.getElementById('user-avatar').textContent=initials;
 
