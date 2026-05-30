@@ -1586,7 +1586,7 @@ function renderAdminTable(resetPage) {
   const stBg  = {'대기':'#fef3c7','진행중':'#dbeafe','승인완료':'#dcfce7','반려':'#fee2e2'};
 
   const trs = pageRows.map(r => `
-    <tr style="border-bottom:1px solid #f1f5f9;font-size:.8rem;">
+    <tr style="border-bottom:1px solid #f1f5f9;font-size:.8rem;cursor:pointer" onclick="showDetail('${r.sysKey}',${r.reqId})" onmouseover="this.style.background='#f0f6ff'" onmouseout="this.style.background=''">
       <td style="padding:8px 10px;color:#0078d4;font-weight:600;">${r.sysLabel}</td>
       <td style="padding:8px 10px;text-align:center;color:#374151;font-weight:600;">${r.reqId}</td>
       <td style="padding:8px 10px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.title}</td>
