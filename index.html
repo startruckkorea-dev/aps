@@ -1666,9 +1666,9 @@ function exportAdminExcel() {
   const fApprover = (document.getElementById('admin-search-approver')?document.getElementById('admin-search-approver').value||'':'').toLowerCase();
   const rows = _adminData.filter(r =>
     (!fSys    || r.sysKey === fSys) &&
-    (!fStatus || r.status === fStatus) &&
+    (!fStatus || r.reqStatus === fStatus) &&
     (!fSearch || r.title.toLowerCase().includes(fSearch) || r.requester.toLowerCase().includes(fSearch)) &&
-      (!fApprover || (r.nextApprover||'').toLowerCase().includes(fApprover) || (r.nextApproverRole||'').toLowerCase().includes(fApprover))
+      (!fApprover || (r.nextApprover||'').toLowerCase().includes(fApprover) || (r.nextRole||'').toLowerCase().includes(fApprover))
   );
   const ws = XLSX.utils.json_to_sheet(rows.map(r => ({
     '시스템': r.sysLabel, '신청번호': r.reqId, '제목': r.title,
