@@ -1554,6 +1554,10 @@ async function loadMyApprovedPage() {
       aprData.value
         .filter(i => {
           const s = (i.fields.Status && i.fields.Status.Value ? i.fields.Status.Value : i.fields.Status || '').trim();
+          // DEBUG: log all statuses for this approver
+          if ((i.fields.ApproverEmail||'').toLowerCase() === myEmail) {
+            console.log('[MyApprovals DEBUG]', sys.key, 'ReqID:', i.fields.RequestID, 'Status raw:', JSON.stringify(i.fields.Status), '→ parsed:', s);
+          }
           return (i.fields.ApproverEmail||'').toLowerCase() === myEmail && (s === '승인' || s === '반려' || s === '철회' || s === '철회(잠김)');
         })
         .forEach(i => {
