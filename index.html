@@ -1554,11 +1554,12 @@ async function loadMyApprovedPage() {
       aprData.value
         .filter(i => {
           const s = (i.fields.Status && i.fields.Status.Value ? i.fields.Status.Value : i.fields.Status || '').trim();
-          return (i.fields.ApproverEmail||'').toLowerCase() === myEmail && (s === '승인' || s === '반려' || s === '철회');
+          return (i.fields.ApproverEmail||'').toLowerCase() === myEmail && (s === '승인' || s === '반려' || s === '철회' || s === '철회(잠김)');
         })
         .forEach(i => {
           const f = i.fields;
-          const s = (f.Status && f.Status.Value ? f.Status.Value : f.Status || '').trim();
+          const _s = (f.Status && f.Status.Value ? f.Status.Value : f.Status || '').trim();
+          const s = (_s === '철회(잠김)') ? '철회' : _s;  // 표시용 통일
           const rf = reqMap[String(f.RequestID)] || {};
           _myApprovedData.push({
             sysKey:      sys.key,
