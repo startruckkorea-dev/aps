@@ -91,6 +91,7 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#f5f7f
 .st-승인{background:#dcfce7;color:#166534}.st-승인::before{background:#16a34a}
 .st-반려{background:#fee2e2;color:#991b1b}.st-반려::before{background:#ef4444}
 .st-대기잠김{background:#f1f5f9;color:#64748b}.st-대기잠김::before{background:#94a3b8}
+.st-철회{background:#f1f5f9;color:#64748b}.st-철회::before{background:#94a3b8}
 
 /* ── Action buttons ── */
 .btn-approve{background:#16a34a;color:#fff;border:none;border-radius:20px;padding:5px 14px;font-size:.73rem;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s;white-space:nowrap}
@@ -688,7 +689,7 @@ function summary(sysKey,rf){
 }
 
 function stBadge(st){
-  const map={'대기':'st-대기','승인':'st-승인','반려':'st-반려','대기(잠김)':'st-대기잠김','승인완료':'st-승인'};
+  const map={'대기':'st-대기','승인':'st-승인','반려':'st-반려','대기(잠김)':'st-대기잠김','승인완료':'st-승인','철회':'st-철회','철회(잠김)':'st-철회'};
   return`<span class="st-pill ${map[st]||'st-대기잠김'}">${st||'대기'}</span>`;
 }
 
