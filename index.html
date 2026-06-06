@@ -451,6 +451,9 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#f5f7f
     </div>
 
     <!-- Filter -->
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+      <button onclick="switchApsTab('myapproved')" style="display:inline-flex;align-items:center;gap:6px;background:#fff;color:#374151;border:1px solid #d1d5db;border-radius:6px;padding:5px 14px;font-size:.8rem;font-weight:600;cursor:pointer;font-family:inherit;box-shadow:0 1px 3px rgba(0,0,0,.06);transition:all .15s" onmouseover="this.style.background='#f0f6ff';this.style.borderColor='#0078d4';this.style.color='#0078d4'" onmouseout="this.style.background='#fff';this.style.borderColor='#d1d5db';this.style.color='#374151'">📋 내 결재 기록</button>
+    </div>
     <div class="filter-row">
       <select class="filter-select" id="filter-sys" onchange="resetPages();renderAll()">
         <option value="">전체 시스템</option>
