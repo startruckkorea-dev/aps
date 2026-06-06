@@ -390,7 +390,6 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#f5f7f
         <option value="">전체</option>
         <option value="승인">승인</option>
         <option value="반려">반려</option>
-        <option value="철회">철회</option>
       </select>
       <input id="mya-search" class="filter-select" type="text" placeholder="신청자 / 제목 검색..." oninput="renderMyApprovedTable(true)" style="min-width:200px;">
     </div>
@@ -473,7 +472,6 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#f5f7f
         <option value="">전체</option>
         <option value="승인">승인</option>
         <option value="반려">반려</option>
-        <option value="철회">철회</option>
       </select>
     </div>
 
@@ -1554,16 +1552,11 @@ async function loadMyApprovedPage() {
       aprData.value
         .filter(i => {
           const s = (i.fields.Status && i.fields.Status.Value ? i.fields.Status.Value : i.fields.Status || '').trim();
-          // DEBUG: log all statuses for this approver
-          if ((i.fields.ApproverEmail||'').toLowerCase() === myEmail) {
-            console.log('[MyApprovals DEBUG]', sys.key, 'ReqID:', i.fields.RequestID, 'Status raw:', JSON.stringify(i.fields.Status), '→ parsed:', s);
-          }
-          return (i.fields.ApproverEmail||'').toLowerCase() === myEmail && (s === '승인' || s === '반려' || s === '철회' || s === '철회(잠김)');
+          return (i.fields.ApproverEmail||'').toLowerCase() === myEmail && (s === '승인' || s === '반려');
         })
         .forEach(i => {
           const f = i.fields;
-          const _s = (f.Status && f.Status.Value ? f.Status.Value : f.Status || '').trim();
-          const s = (_s === '철회(잠김)') ? '철회' : _s;  // 표시용 통일
+          const s = (f.Status && f.Status.Value ? f.Status.Value : f.Status || '').trim();
           const rf = reqMap[String(f.RequestID)] || {};
           _myApprovedData.push({
             sysKey:      sys.key,
@@ -1609,8 +1602,8 @@ function renderMyApprovedTable(resetPage) {
     return;
   }
 
-  const stColor = { '승인':'#15803d', '반려':'#b91c1c', '철회':'#64748b' };
-  const stBg    = { '승인':'#dcfce7', '반려':'#fee2e2', '철회':'#f1f5f9' };
+  const stColor = { '승인':'#15803d', '반려':'#b91c1c' };
+  const stBg    = { '승인':'#dcfce7', '반려':'#fee2e2' };
 
   function fmtDt(iso) {
     if (!iso) return '';
