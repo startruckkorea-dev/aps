@@ -345,7 +345,6 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#f5f7f
       </div>
       <button id="ann-bell-btn" onclick="toggleAnnPopup()" style="display:none;align-items:center;gap:5px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);color:#fff;border-radius:6px;padding:6px 9px;font-size:.82rem;cursor:pointer;font-family:inherit;transition:background .15s" onmouseover="this.style.background='rgba(255,255,255,.22)'" onmouseout="this.style.background='rgba(255,255,255,.12)'" style="line-height:1">📢 <span id="ann-bell-cnt" style="vertical-align:middle;background:#ef4444;color:#fff;border-radius:10px;padding:1px 6px;font-size:.62rem;font-weight:700;margin-left:3px;vertical-align:middle">0</span></button>
       <button id="apv-bell-btn" onclick="toggleApvPopup()" style="display:none;align-items:center;gap:5px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);color:#fff;border-radius:6px;padding:6px 9px;font-size:.82rem;cursor:pointer;font-family:inherit;transition:background .15s" onmouseover="this.style.background='rgba(255,255,255,.22)'" onmouseout="this.style.background='rgba(255,255,255,.12)'" style="line-height:1">✅ <span id="apv-bell-cnt" style="vertical-align:middle;background:#16a34a;color:#fff;border-radius:10px;padding:1px 6px;font-size:.62rem;font-weight:700;margin-left:3px;vertical-align:middle">0</span></button>
-      <button id="aps-myapproved-btn" onclick="switchApsTab('myapproved')" style="background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.2);border-radius:6px;padding:6px 14px;font-size:.8rem;font-weight:600;cursor:pointer;font-family:inherit;margin-right:6px;transition:background .15s" onmouseover="this.style.background='rgba(255,255,255,.22)'" onmouseout="this.style.background='rgba(255,255,255,.12)'" title="내 결재 기록">📋</button>
       <button id="aps-admin-btn" onclick="switchApsTab('admin')" style="display:none;background:#0078d4;color:#fff;border:none;border-radius:6px;padding:6px 14px;font-size:.8rem;font-weight:600;cursor:pointer;font-family:inherit;margin-right:8px;">⚙️ 관리자</button>
       <button class="btn-signout" onclick="signOut()">로그아웃</button>
     </div>
@@ -1506,7 +1505,6 @@ function switchApsTab(tab) {
   const adminPage      = document.getElementById('aps-admin-page');
   const myapprovedPage = document.getElementById('aps-myapproved-page');
   const adminBtn       = document.getElementById('aps-admin-btn');
-  const myaBtn         = document.getElementById('aps-myapproved-btn');
   const qlStrip        = document.querySelector('.ql-strip');
 
   // hide all pages first
@@ -1517,7 +1515,6 @@ function switchApsTab(tab) {
 
   // reset button highlights
   if(adminBtn) adminBtn.style.background = '#0078d4';
-  if(myaBtn)   { myaBtn.style.background = 'rgba(255,255,255,.12)'; myaBtn.style.border = '1px solid rgba(255,255,255,.2)'; }
 
   if (tab === 'admin') {
     if(adminPage) adminPage.style.display = 'block';
@@ -1525,7 +1522,6 @@ function switchApsTab(tab) {
     loadAdminPage();
   } else if (tab === 'myapproved') {
     if(myapprovedPage) myapprovedPage.style.display = 'block';
-    if(myaBtn) { myaBtn.style.background = 'rgba(255,255,255,.32)'; myaBtn.style.border = '1px solid rgba(255,255,255,.5)'; }
     loadMyApprovedPage();
   } else {
     if(mainPage)  mainPage.style.display  = 'block';
