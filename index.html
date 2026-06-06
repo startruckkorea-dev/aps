@@ -359,18 +359,19 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#f5f7f
     <a href="https://fa.startruckkorea.com/" target="_self" class="ql-btn"><div class="qi" style="background:#ec489918;color:#ec4899">🏷️</div><span class="ql">FA Registration</span></a>
     <a href="https://mc.startruckkorea.com/" target="_self" class="ql-btn"><div class="qi" style="background:#06b6d418;color:#06b6d4">🚗</div><span class="ql">Mobility Car</span></a>
     <a href="https://ga.startruckkorea.com/" target="_self" class="ql-btn"><div class="qi" style="background:#6366f118;color:#6366f1">📋</div><span class="ql">General Affairs</span></a>
+    <button onclick="switchApsTab('myapproved')" class="ql-btn" style="border-left:1px solid #e2e8f0;margin-left:4px;padding-left:4px;"><div class="qi" style="background:#0078d418;color:#0078d4">📋</div><span class="ql">My Approvals</span></button>
   </div>
 
   <div id="aps-myapproved-page" style="display:none;padding:12px 20px 0;">
     <div class="topbar">
       <span class="topbar-title"></span>
       <span class="topbar-cnt" id="myapproved-total-count"></span>
-      <div class="topbar-space"></div>
-      <button class="btn-refresh" onclick="loadMyApprovedPage()">
+      <button class="btn-refresh" onclick="loadMyApprovedPage()" style="margin-left:10px;">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
         새로고침
       </button>
-      <button onclick="switchApsTab('main')" style="background:#f1f5f9;color:#374151;border:1px solid #d1d5db;border-radius:6px;padding:6px 14px;font-size:.8rem;cursor:pointer;font-family:inherit;margin-left:8px;">← 결재함</button>
+      <button onclick="switchApsTab('main')" style="background:#f1f5f9;color:#374151;border:1px solid #d1d5db;border-radius:6px;padding:5px 13px;font-size:.8rem;cursor:pointer;font-family:inherit;margin-left:8px;">← 결재함</button>
+      <div class="topbar-space"></div>
     </div>
     <div class="filter-row" style="margin:8px 0 12px;">
       <select id="mya-filter-sys" class="filter-select" onchange="renderMyApprovedTable(true)">
@@ -442,12 +443,11 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#f5f7f
     <div class="topbar">
       <span class="topbar-title">Approval Hub</span>
       <span class="topbar-cnt" id="summary-count">총 0건</span>
-      <button class="btn-refresh" onclick="loadAll()" style="margin-left:10px;">
+      <div class="topbar-space"></div>
+      <button class="btn-refresh" onclick="loadAll()">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
         새로고침
       </button>
-      <button onclick="switchApsTab('myapproved')" style="display:inline-flex;align-items:center;gap:5px;background:#fff;color:#374151;border:1px solid #d1d5db;border-radius:6px;padding:5px 13px;font-size:.78rem;font-weight:600;cursor:pointer;font-family:inherit;margin-left:8px;box-shadow:0 1px 2px rgba(0,0,0,.06);transition:all .15s" onmouseover="this.style.background='#f0f6ff';this.style.borderColor='#0078d4';this.style.color='#0078d4'" onmouseout="this.style.background='#fff';this.style.borderColor='#d1d5db';this.style.color='#374151'">📋 My Approvals Record</button>
-      <div class="topbar-space"></div>
     </div>
 
     <!-- Filter -->
