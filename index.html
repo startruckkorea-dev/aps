@@ -854,6 +854,8 @@ function renderAnnouncements(rows){
   var bell=document.getElementById('ann-bell-btn');
   var cnt=document.getElementById('ann-bell-cnt');
   if(bell){bell.style.display='inline-flex';bell.style.alignItems='center';bell.style.gap='5px';}
+  var recBtn0=document.getElementById('my-record-btn');
+  if(recBtn0)recBtn0.style.display='inline-flex';
   if(cnt)cnt.textContent=recentCnt;
   // popup body — 2일 이내/미래만 표시, 이전 건은 접힘 섹션
   var now2=new Date();
@@ -1041,6 +1043,8 @@ function updateApvBadge(){
   var bell=document.getElementById('apv-bell-btn');
   var el=document.getElementById('apv-bell-cnt');
   if(bell){bell.style.display='inline-flex';bell.style.alignItems='center';bell.style.gap='5px';}
+  var recBtn2=document.getElementById('my-record-btn');
+  if(recBtn2)recBtn2.style.display='inline-flex';
   if(el)el.textContent=n;
   console.log('[APV badge] activeCnt='+activeCnt+' totalCnt='+totalCnt+' display='+n);
 }
