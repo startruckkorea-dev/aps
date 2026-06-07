@@ -651,7 +651,6 @@ function cfgVal(cfg, key, defaultObj) {
   return { ...defaultObj, name: v.name || defaultObj.name, email: v.email || defaultObj.email };
 }
 function openKriLink() {
-  // KRI_ADMIN_1만 직접 접근 허용 (KRI_ADMIN_2, 3 제외)
   const kriAdmin1 = (_sysConfig && _sysConfig['KRI_ADMIN_1'] ? _sysConfig['KRI_ADMIN_1'].email : '').toLowerCase();
   const ue = (user && user.email || '').toLowerCase();
   const uu = (user && user.username || '').toLowerCase();
@@ -659,7 +658,7 @@ function openKriLink() {
     window.open('https://kri.startruckkorea.com/', '_blank');
     return;
   }
-  showAlert('KRI Archive', 'KR Intranet Archive는\n2026년 6월 26일 오후 1시부터\n접근이 가능합니다.', '📁');
+  alert('📁 KRI Archive\n\nKR Intranet Archive는\n2026년 6월 26일 오후 1시부터\n접근이 가능합니다.');
 }
 
 function cfgEmails(cfg, keys) {
