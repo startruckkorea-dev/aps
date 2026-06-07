@@ -345,6 +345,7 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#f5f7f
       </div>
       <button id="ann-bell-btn" onclick="toggleAnnPopup()" style="display:none;align-items:center;gap:5px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);color:#fff;border-radius:6px;padding:6px 9px;font-size:.82rem;cursor:pointer;font-family:inherit;transition:background .15s" onmouseover="this.style.background='rgba(255,255,255,.22)'" onmouseout="this.style.background='rgba(255,255,255,.12)'" style="line-height:1">📢 <span id="ann-bell-cnt" style="vertical-align:middle;background:#ef4444;color:#fff;border-radius:10px;padding:1px 6px;font-size:.62rem;font-weight:700;margin-left:3px;vertical-align:middle">0</span></button>
       <button id="apv-bell-btn" onclick="toggleApvPopup()" style="display:none;align-items:center;gap:5px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);color:#fff;border-radius:6px;padding:6px 9px;font-size:.82rem;cursor:pointer;font-family:inherit;transition:background .15s" onmouseover="this.style.background='rgba(255,255,255,.22)'" onmouseout="this.style.background='rgba(255,255,255,.12)'" style="line-height:1">✅ <span id="apv-bell-cnt" style="vertical-align:middle;background:#16a34a;color:#fff;border-radius:10px;padding:1px 6px;font-size:.62rem;font-weight:700;margin-left:3px;vertical-align:middle">0</span></button>
+      <button id="my-record-btn" onclick="switchApsTab('myapproved')" title="My Approvals Record" style="display:none;align-items:center;gap:5px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);color:#fff;border-radius:6px;padding:6px 9px;font-size:.82rem;cursor:pointer;font-family:inherit;transition:background .15s" onmouseover="this.style.background='rgba(255,255,255,.22)'" onmouseout="this.style.background='rgba(255,255,255,.12)'">✍️</button>
       <button id="aps-admin-btn" onclick="switchApsTab('admin')" style="display:none;background:#0078d4;color:#fff;border:none;border-radius:6px;padding:6px 14px;font-size:.8rem;font-weight:600;cursor:pointer;font-family:inherit;margin-right:8px;">⚙️ 관리자</button>
       <button class="btn-signout" onclick="signOut()">로그아웃</button>
     </div>
@@ -450,9 +451,6 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#f5f7f
     </div>
 
     <!-- Filter -->
-    <div style="margin-bottom:12px;">
-      <button onclick="switchApsTab('myapproved')" style="display:inline-flex;align-items:center;gap:6px;background:#fff;color:#374151;border:1px solid #d1d5db;border-radius:20px;padding:5px 16px;font-size:.8rem;font-weight:600;cursor:pointer;font-family:inherit;box-shadow:0 1px 3px rgba(0,0,0,.06);transition:all .15s" onmouseover="this.style.background='#f0f6ff';this.style.borderColor='#0078d4';this.style.color='#0078d4'" onmouseout="this.style.background='#fff';this.style.borderColor='#d1d5db';this.style.color='#374151'">✍️ My Approvals Record</button>
-    </div>
     <div class="filter-row">
       <select class="filter-select" id="filter-sys" onchange="resetPages();renderAll()">
         <option value="">전체 시스템</option>
@@ -973,6 +971,8 @@ function renderApvPopup(){
   // sync bell button visibility
   var bellBtn=document.getElementById('apv-bell-btn');
   if(bellBtn)bellBtn.style.display='inline-flex';
+  var recBtn=document.getElementById('my-record-btn');
+  if(recBtn)recBtn.style.display='inline-flex';
   var html='';
   // active + old 합쳐서 렌더, old는 노란색 표시
   items.forEach(function(it){
