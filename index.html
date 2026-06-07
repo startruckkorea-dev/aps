@@ -360,6 +360,7 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#f5f7f
     <a href="https://fa.startruckkorea.com/" target="_self" class="ql-btn"><div class="qi" style="background:#ec489918;color:#ec4899">🏷️</div><span class="ql">FA Registration</span></a>
     <a href="https://mc.startruckkorea.com/" target="_self" class="ql-btn"><div class="qi" style="background:#06b6d418;color:#06b6d4">🚗</div><span class="ql">Mobility Car</span></a>
     <a href="https://ga.startruckkorea.com/" target="_self" class="ql-btn"><div class="qi" style="background:#6366f118;color:#6366f1">📋</div><span class="ql">General Affairs</span></a>
+    <button onclick="openKriLink()" class="ql-btn"><div class="qi" style="background:#5c6f7f18;color:#5c6f7f">🗄️</div><span class="ql">KRI Archive</span></button>
   </div>
 
   <div id="aps-myapproved-page" style="display:none;padding:12px 20px 0;">
@@ -649,7 +650,19 @@ function cfgVal(cfg, key, defaultObj) {
   const v = cfg[key];
   return { ...defaultObj, name: v.name || defaultObj.name, email: v.email || defaultObj.email };
 }
-function cfgEmails(cfg, keys) {
+function openKriLink() {
+  // KRI_ADMIN_1만 직접 접근 허용 (KRI_ADMIN_2, 3 제외)
+  const kriAdmin1 = (_sysConfig && _sysConfig['KRI_ADMIN_1'] ? _sysConfig['KRI_ADMIN_1'].email : '').toLowerCase();
+  const ue = (user && user.email || '').toLowerCase();
+  const uu = (user && user.username || '').toLowerCase();
+  if (kriAdmin1 && (ue === kriAdmin1 || uu === kriAdmin1)) {
+    window.open('https://kri.startruckkorea.com/', '_blank');
+    return;
+  }
+  // 일반 사용자 — 오픈 예정 팝업
+  showAlert('KRI Archive', 'KR Intranet Archive는\n2026년 6월 26일 오후 1시부터\n접근이 가능합니다.', '🗄️');
+}
+
   // _ADMIN_N 패턴 키는 cfg에 존재하는 모든 번호까지 자동 포함
   const expanded = [];
   keys.forEach(k => {
