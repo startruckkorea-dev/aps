@@ -1569,7 +1569,7 @@ function switchApsTab(tab) {
 // ── 내 결재 기록 ──
 let _myApprovedData = [];
 let _myApprovedPage = 1;
-const MYA_PAGE_SIZE = 20;
+const MYA_PAGE_SIZE = 15;
 
 async function loadMyApprovedPage() {
   const wrap = document.getElementById('myapproved-table-wrap');
@@ -1649,20 +1649,22 @@ function renderMyApprovedTable(resetPage) {
       ' '+String(d.getUTCHours()).padStart(2,'0')+':'+String(d.getUTCMinutes()).padStart(2,'0');
   }
 
-  const trs = pageRows.map(r => `
-    <tr style="border-bottom:1px solid #f1f5f9;font-size:.8rem;cursor:pointer"
+  const trs = pageRows.map((r, i) => {
+    const rowNum = rows.length - ((_myApprovedPage - 1) * MYA_PAGE_SIZE + i);
+    return `
+    <tr style="border-bottom:1px solid #f1f5f9;font-size:.78rem;cursor:pointer"
         onclick="showDetail('${r.sysKey}',${r.reqId})"
         onmouseover="this.style.background='#f0f6ff'" onmouseout="this.style.background=''">
-      <td style="padding:8px 10px;color:#0078d4;font-weight:600">${r.sysLabel}</td>
-      <td style="padding:8px 10px;text-align:center;color:#374151;font-weight:600">${r.reqId}</td>
-      <td style="padding:8px 10px;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.title}</td>
-      <td style="padding:8px 10px;color:#374151">${r.requester}</td>
-      <td style="padding:8px 10px;text-align:center">
-        <span style="background:${stBg[r.myStatus]||'#f1f5f9'};color:${stColor[r.myStatus]||'#374151'};border-radius:10px;padding:2px 10px;font-size:.75rem;font-weight:700">${r.myStatus}</span>
+      <td style="padding:6px 8px;color:#0078d4;font-weight:600;white-space:nowrap">${r.sysLabel}</td>
+      <td style="padding:6px 8px;text-align:center;color:#64748b;font-weight:600">${rowNum}</td>
+      <td style="padding:6px 8px;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.75rem">${r.title}</td>
+      <td style="padding:6px 8px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#374151;font-size:.75rem">${r.requester}</td>
+      <td style="padding:6px 8px;text-align:center">
+        <span style="background:${stBg[r.myStatus]||'#f1f5f9'};color:${stColor[r.myStatus]||'#374151'};border-radius:10px;padding:2px 8px;font-size:.72rem;font-weight:700">${r.myStatus}</span>
       </td>
-      <td style="padding:8px 10px;text-align:center;color:#64748b">${r.aprOrder}차</td>
-      <td style="padding:8px 10px;color:#64748b">${fmtDt(r.processedAt)}</td>
-    </tr>`).join('');
+      <td style="padding:6px 8px;text-align:center;color:#64748b;white-space:nowrap">${r.aprOrder}차</td>
+      <td style="padding:6px 8px;color:#64748b;white-space:nowrap;font-size:.75rem">${fmtDt(r.processedAt)}</td>
+    </tr>`;}).join('');
 
   // pagination
   let pgHtml = '';
