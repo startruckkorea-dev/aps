@@ -1234,14 +1234,16 @@ async function showDetail(sysKey,reqId){
   modal.className='open';
   const sys=SYSTEMS.find(s=>s.key===sysKey);
   try{
-    const [r,apprData]=await Promise.all([
+    const [r,apprData,clRaw]=await Promise.all([
       (()=>{
         const _gaFields='Title,Company,CostCenter,ItemCount,TotalAmount,ItemsData,Status,RequesterEmail,RequestDate,NameEN,NameKO,Department,Email,Quantity,StickerQty,IssueType,Description,Address,AddressEng,MobileNumber,OrdName,OrdPhone,StnName,StnDept,PhotoFileName,AttachedFiles';
         const _sel=(sysKey==='GA_STN'||sysKey==='GA_BC'||sysKey==='GA_IDC')?`?$expand=fields($select=${_gaFields})`:'?$expand=fields';
         return api('/sites/'+siteId+'/lists/'+sys.req+'/items/'+reqId+_sel);
       })(),
       apiAll('/sites/'+siteId+'/lists/'+sys.apr+'/items?$expand=fields'),
+      sysKey==='SCC' ? apiAll('/sites/'+siteId+'/lists/SCC_ChecklistResponses/items?$expand=fields').catch(()=>({value:[]})) : Promise.resolve({value:[]}),
     ]);
+    const clResponses = clRaw||{value:[]};
     const f=r.fields;
     const apprList=apprData.value.filter(i=>Number(i.fields.RequestID)===Number(reqId)).sort((a,b)=>a.fields.ApprovalOrder-b.fields.ApprovalOrder);
     const sc={'대기':'#b45309','승인':'#15803d','반려':'#b91c1c','대기(잠김)':'#718096','승인완료':'#15803d'};
@@ -1375,6 +1377,25 @@ async function showDetail(sysKey,reqId){
             <div class="appr-person">${af.ApproverName||''} · ${af.ApproverEmail||''}</div>
             ${af.ApprovalDate?`<div class="appr-date">${fmt(af.ApprovalDate)}</div>`:''}
             ${af.Comment?`<div class="appr-comment">💬 ${formatComment(af.Comment,sysKey)}</div>`:''}
+            ${(()=>{
+              if(sysKey!=='SCC') return '';
+              const apprIdStr=String(a.id||'');
+              const clResp=(clResponses.value||[]).find(r=>String(r.fields.ApprovalID)===apprIdStr);
+              if(!clResp||!clResp.fields.ChecklistSummary) return '';
+              const lines=clResp.fields.ChecklistSummary.replace('[체크리스트]','').trim().split('\n').filter(l=>l.trim());
+              const hasContent=lines.some(l=>l.includes('☑')||l.trim().startsWith('→')||l.trim().startsWith('Comment'));
+              if(!hasContent) return '';
+              return '<div style="margin-top:6px;background:#f0f6ff;border:1px solid #c7e0f4;border-radius:8px;overflow:hidden">'+
+                '<div style="background:#e8f0fe;padding:5px 10px;font-size:11px;font-weight:700;color:#1e40af">📋 체크리스트</div>'+
+                '<div style="padding:6px 10px;display:flex;flex-direction:column;gap:2px">'+
+                lines.map(l=>{
+                  const isRadio=l.trim().startsWith('→')||l.trim().startsWith('  →');
+                  const isComment=l.trim().startsWith('Comment:')||l.trim().startsWith('Tax risk');
+                  const color=isRadio?'#0078d4':isComment?'#605e5c':(l.includes('☑')?'#107c10':'#9ca3af');
+                  return '<div style="font-size:11px;color:'+color+';padding-left:'+(isRadio||isComment?'12px':'0')+'">'+l.trim()+'</div>';
+                }).join('')+
+                '</div></div>';
+            })()}
           </div>
         </div>
         <span style="color:${sc[af.Status]||'#4a5568'};font-weight:700;font-size:.78rem;white-space:nowrap;padding-left:8px">${af.Status||''}</span>
