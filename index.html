@@ -346,7 +346,7 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#f5f7f
       <button id="ann-bell-btn" onclick="toggleAnnPopup()" style="display:none;align-items:center;gap:5px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);color:#fff;border-radius:6px;padding:6px 9px;font-size:.82rem;cursor:pointer;font-family:inherit;transition:background .15s" onmouseover="this.style.background='rgba(255,255,255,.22)'" onmouseout="this.style.background='rgba(255,255,255,.12)'" style="line-height:1">📢 <span id="ann-bell-cnt" style="vertical-align:middle;background:#ef4444;color:#fff;border-radius:10px;padding:1px 6px;font-size:.62rem;font-weight:700;margin-left:3px;vertical-align:middle">0</span></button>
       <button id="apv-bell-btn" onclick="toggleApvPopup()" style="display:none;align-items:center;gap:5px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);color:#fff;border-radius:6px;padding:6px 9px;font-size:.82rem;cursor:pointer;font-family:inherit;transition:background .15s" onmouseover="this.style.background='rgba(255,255,255,.22)'" onmouseout="this.style.background='rgba(255,255,255,.12)'" style="line-height:1">✅ <span id="apv-bell-cnt" style="vertical-align:middle;background:#16a34a;color:#fff;border-radius:10px;padding:1px 6px;font-size:.62rem;font-weight:700;margin-left:3px;vertical-align:middle">0</span></button>
       <button id="my-record-btn" onclick="switchApsTab('myapproved')" title="My Approvals Record" style="display:none;align-items:center;gap:5px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);color:#fff;border-radius:6px;padding:6px 9px;font-size:.82rem;cursor:pointer;font-family:inherit;transition:background .15s" onmouseover="this.style.background='rgba(255,255,255,.22)'" onmouseout="this.style.background='rgba(255,255,255,.12)'">✍️</button>
-      <button id="aps-admin-btn" onclick="switchApsTab('admin')" style="display:none;background:#0078d4;color:#fff;border:none;border-radius:6px;padding:6px 14px;font-size:.8rem;font-weight:600;cursor:pointer;font-family:inherit;margin-right:8px;">⚙️ 관리자</button>
+      <button id="aps-admin-btn" onclick="switchApsTab('admin')" style="display:none;background:#0078d4;color:#fff;border:none;border-radius:6px;padding:6px 14px;font-size:.8rem;font-weight:600;cursor:pointer;font-family:inherit;margin-right:8px;">⚙️</button>
       <button class="btn-signout" onclick="signOut()">로그아웃</button>
     </div>
   </div>
@@ -1805,10 +1805,10 @@ function renderAdminTable(resetPage) {
   const stMap = {'대기':'#b45309','진행중':'#1d4ed8','승인완료':'#15803d','반려':'#b91c1c'};
   const stBg  = {'대기':'#fef3c7','진행중':'#dbeafe','승인완료':'#dcfce7','반려':'#fee2e2'};
 
-  const trs = pageRows.map(r => `
+  const trs = pageRows.map((r, i) => { const rowNum = rows.length - ((_adminPage - 1) * ADMIN_PAGE_SIZE + i); return `
     <tr style="border-bottom:1px solid #f1f5f9;font-size:.8rem;cursor:pointer" onclick="showDetail('${r.sysKey}',${r.reqId})" onmouseover="this.style.background='#f0f6ff'" onmouseout="this.style.background=''">
       <td style="padding:8px 10px;color:#0078d4;font-weight:600;">${r.sysLabel}</td>
-      <td style="padding:8px 10px;text-align:center;color:#374151;font-weight:600;">${r.reqId}</td>
+      <td style="padding:8px 10px;text-align:center;color:#64748b;font-weight:600;">${rowNum}</td>
       <td style="padding:8px 10px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.title}</td>
       <td style="padding:8px 10px;color:#374151;">${r.requester}</td>
       <td style="padding:8px 10px;text-align:center;">
@@ -1825,7 +1825,7 @@ function renderAdminTable(resetPage) {
         const bg=days>=7?'#fee2e2':days>=3?'#fef3c7':'transparent';
         return '<td style="padding:8px 10px;text-align:center;font-size:.75rem;font-weight:'+(days>=3?'700':'400')+';color:'+color+';background:'+bg+';">'+(days>=7?'🔴 ':days>=3?'🟡 ':'')+days+'일</td>';
       })()}
-    </tr>`).join('');
+    </tr>`;}).join('');
 
   const pgBtns = [];
   if (_adminPage > 1) pgBtns.push(`<button onclick="adminGoPage(1)" style="${pgBtnStyle()}">«</button><button onclick="adminGoPage(${_adminPage-1})" style="${pgBtnStyle()}">‹</button>`);
@@ -1839,7 +1839,7 @@ function renderAdminTable(resetPage) {
       <table style="width:100%;border-collapse:collapse;background:#fff;">
         <thead><tr style="background:#1e3a5f;color:#fff;font-size:.78rem;">
           <th style="padding:10px;text-align:left;">시스템</th>
-          ${adminThSort('reqId','신청번호','center')}
+          ${adminThSort('reqId','번호','center')}
           <th style="padding:10px;text-align:left;">제목</th>
           <th style="padding:10px;text-align:left;">신청자</th>
           ${adminThSort('reqStatus','상태','center')}
