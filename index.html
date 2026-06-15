@@ -362,7 +362,7 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#f5f7f
     <a href="https://mc.startruckkorea.com/" target="_self" class="ql-btn"><div class="qi" style="background:#06b6d418;color:#06b6d4">🚗</div><span class="ql">Mobility Car</span></a>
     <a href="https://ga.startruckkorea.com/" target="_self" class="ql-btn"><div class="qi" style="background:#6366f118;color:#6366f1">📋</div><span class="ql">General Affairs</span></a>
     <div class="ql-divider"></div>
-    <a href="https://startruckkorea-dev.github.io/shared-sc/" target="_self" class="ql-btn"><div class="qi" style="background:#0ea5e918;color:#0ea5e9">📂</div><span class="ql">SSC</span></a>
+    <button onclick="openSscLink()" class="ql-btn"><div class="qi" style="background:#0ea5e918;color:#0ea5e9">📂</div><span class="ql">SSC</span></button>
     <button onclick="openKriLink()" class="ql-btn"><div class="qi" style="background:#5c6f7f18;color:#5c6f7f">📁</div><span class="ql">KRI Archive</span></button>
   </div>
 
@@ -662,6 +662,23 @@ function openKriLink() {
     return;
   }
   alert('📁 KRI Archive\n\nKR Intranet Archive는\n2026년 6월 26일 오후 1시부터\n접근이 가능합니다.');
+}
+
+function openSscLink() {
+  const cfg = _sysConfig;
+  const ue = (user && user.email || '').toLowerCase();
+  const uu = (user && user.username || '').toLowerCase();
+  const allowedKeys = [
+    'SHARED-SC_CONTACT_AR','SHARED-SC_CONTACT_AP','SHARED-SC_CONTACT_GL',
+    'SHARED-SC_ADMIN_1','SHARED-SC_ADMIN_2','SHARED-SC_ADMIN_3','SHARED-SC_ADMIN_4','SHARED-SC_ADMIN_5',
+    'SHARED-SC_2nd_1','SHARED-SC_2nd_2','SHARED-SC_2nd_3'
+  ];
+  const allowed = cfgEmails(cfg, allowedKeys).map(e=>e.toLowerCase());
+  if (allowed.length && (allowed.includes(ue) || allowed.includes(uu))) {
+    window.open('https://startruckkorea-dev.github.io/shared-sc/', '_self');
+    return;
+  }
+  alert('📂 SSC\n\nShared Service Center는\n접근 권한이 없습니다.\n\n권한 신청: itsm-ticket.startruckkorea.com');
 }
 
 function cfgEmails(cfg, keys) {
