@@ -377,7 +377,11 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#f5f7f
       </button>
       <button onclick="switchApsTab('main')" style="background:#fff;color:#374151;border:1px solid #d1d5db;border-radius:6px;padding:5px 13px;font-size:.8rem;cursor:pointer;font-family:inherit;margin-left:8px;box-shadow:0 1px 2px rgba(0,0,0,.06);">← 결재함</button>
     </div>
-    <div class="filter-row" style="margin:8px 0 12px;">
+    <div style="display:flex;align-items:center;gap:8px;margin:10px 0 6px">
+      <span style="font-size:15px;font-weight:700;color:#1e2761">✍️ My Approvals Record</span>
+      <span style="font-size:12px;color:#94a3b8" id="mya-record-count"></span>
+    </div>
+    <div class="filter-row" style="margin:6px 0 12px;">
       <select id="mya-filter-sys" class="filter-select" onchange="renderMyApprovedTable(true)">
         <option value="">전체 시스템</option>
         <option value="IT">IT Ticket</option>
