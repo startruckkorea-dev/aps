@@ -1654,8 +1654,10 @@ function renderMyApprovedTable(resetPage) {
   const start = (_myApprovedPage - 1) * MYA_PAGE_SIZE;
   const pageRows = rows.slice(start, start + MYA_PAGE_SIZE);
 
-  document.getElementById('myapproved-total-count').textContent =
-    '필터 ' + rows.length + '건 / 전체 ' + _myApprovedData.length + '건';
+  const _cntTxt = '필터 ' + rows.length + '건 / 전체 ' + _myApprovedData.length + '건';
+  document.getElementById('myapproved-total-count').textContent = _cntTxt;
+  const _rcEl = document.getElementById('mya-record-count');
+  if (_rcEl) _rcEl.textContent = _cntTxt;
 
   const wrap = document.getElementById('myapproved-table-wrap');
   if (!rows.length) {
