@@ -1258,7 +1258,7 @@ async function showDetail(sysKey,reqId){
   try{
     const [r,apprData,clRaw]=await Promise.all([
       (()=>{
-        const _gaFields='Title,Company,CostCenter,ItemCount,TotalAmount,ItemsData,Status,RequesterEmail,RequestDate,NameEN,NameKO,Department,Email,Quantity,StickerQty,IssueType,Description,Address,AddressEng,MobileNumber,OrdName,OrdPhone,StnName,StnDept,PhotoFileName,AttachedFiles';
+        const _gaFields='Title,Company,CostCenter,ItemCount,TotalAmount,ItemsData,Status,RequesterEmail,RequestDate,NameEN,NameKO,JobTitle,JobPosition,Department,Email,Quantity,StickerQty,IssueType,Description,Address,AddressEng,MobileNumber,OrdName,OrdPhone,StnName,StnDept,PhotoFileName,AttachedFiles';
         const _sel=(sysKey==='GA_STN'||sysKey==='GA_BC'||sysKey==='GA_IDC')?`?$expand=fields($select=${_gaFields})`:'?$expand=fields';
         return api('/sites/'+siteId+'/lists/'+sys.req+'/items/'+reqId+_sel);
       })(),
@@ -1357,7 +1357,7 @@ async function showDetail(sysKey,reqId){
       }
     }
     else if(sysKey==='GA_BC'){
-      info+=sec('명함 정보')+row('Name (EN)',f.NameEN)+row('Name (KO)',f.NameKO)+row('Department',f.Department)+row('Email',f.Email)+row('Quantity',f.Quantity+'매')+(f.StickerQty?row('Sticker Qty',f.StickerQty+'매'):'')+row('Cost Center',f.CostCenter)+(f.Description?row('Description',f.Description):'')+(f.Address?row('주소 (국문)',f.Address.replace(/\r\n|\n/g,'<br>')):'')+( f.AddressEng?row('Address (EN)',f.AddressEng.replace(/\r\n|\n/g,'<br>')):'')+( f.MobileNumber?row('Mobile Number',f.MobileNumber):'');
+      info+=sec('명함 정보')+row('Name (EN)',f.NameEN)+row('Name (KO)',f.NameKO)+(f.JobTitle?row('Job Title',f.JobTitle):'')+(f.JobPosition?row('Job Position',f.JobPosition):'')+row('Department',f.Department)+row('Email',f.Email)+row('Quantity',f.Quantity+'매')+(f.StickerQty?row('Sticker Qty',f.StickerQty+'매'):'')+row('Cost Center',f.CostCenter)+(f.Description?row('Description',f.Description):'')+(f.Address?row('주소 (국문)',f.Address.replace(/\r\n|\n/g,'<br>')):'')+( f.AddressEng?row('Address (EN)',f.AddressEng.replace(/\r\n|\n/g,'<br>')):'')+( f.MobileNumber?row('Mobile Number',f.MobileNumber):'');
     }
     else if(sysKey==='GA_IDC'){
       info+=sec('신청 정보')+row('Issue Type',f.IssueType)+row('Cost Center',f.CostCenter)+row('Description',f.Description||'-');
