@@ -675,12 +675,7 @@ function openSscLink() {
     'SHARED-SC_ADMIN_1','SHARED-SC_ADMIN_2','SHARED-SC_ADMIN_3','SHARED-SC_ADMIN_4','SHARED-SC_ADMIN_5',
     'SHARED-SC_2nd_1','SHARED-SC_2nd_2','SHARED-SC_2nd_3'
   ];
-  const allowed = cfgEmails(cfg, allowedKeys).map(e=>e.toLowerCase());
-  if (allowed.length && (allowed.includes(ue) || allowed.includes(uu))) {
-    window.open('https://startruckkorea-dev.github.io/shared-sc/', '_self');
-    return;
-  }
-  alert('📒 SSC — Shared Service Center\n\nSSC는 Accounting 부서 담당자만 접근 가능합니다.\n\n권한 신청은 아래 시스템을 이용해 주세요.\nitsm-ticket.startruckkorea.com');
+  window.open('https://ssc.startruckkorea.com/', '_self');
 }
 
 function cfgEmails(cfg, keys) {
