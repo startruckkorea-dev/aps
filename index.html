@@ -1310,7 +1310,7 @@ async function showDetail(sysKey,reqId){
       info+=sec('첨부파일')+parseFiles(f.AttachedFiles);
     }
     else if(sysKey==='BP'){
-      info+=sec('BP 신청 정보')+row('Type',f.BPType)+row('Sub Category',f.SubCategory)+row('BP Code',f.BPCode||'-')+row('BP Name',f.BPName||'-')+(f.Description?rowFull('Description',f.Description):'');
+      info+=sec('BP 신청 정보')+row('Title',f.Title||'-')+row('Type',f.BPType)+row('Sub Category',f.SubCategory)+row('BP Code',f.BPCode||'-')+row('BP Name',f.BPName||'-')+(f.Description?rowFull('Description',f.Description):'');
       info+=sec('첨부파일')+parseFiles(f.AttachedFiles);
     }
     else if(sysKey==='FA'){
