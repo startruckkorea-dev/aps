@@ -1288,7 +1288,7 @@ async function showDetail(sysKey,reqId){
     };
     const rowFull=(l,v)=>`<div style="padding:7px 0;border-bottom:0.5px solid #edebe9;font-size:13px"><div style="font-size:11px;color:#605e5c;margin-bottom:3px">${l}</div><div style="white-space:pre-wrap;color:#323130">${v||'-'}</div></div>`;
 
-    let info=sec('기본 정보')+row('Title',(['GW','IT','SCC','BP'].includes(sys.key)?f.Title:('#'+reqId))||'-')+row('신청자',f.RequesterEmail)+
+    let info=sec('기본 정보')+row('Title',(['GW','IT','SCC','BP','FA'].includes(sys.key)?f.Title:('#'+reqId))||'-')+row('신청자',f.RequesterEmail)+
       row('상태',stBadge(f.Status))+row('신청일',fmt(f.RequestDate));
 
     if(sysKey==='IT'){
@@ -1314,7 +1314,7 @@ async function showDetail(sysKey,reqId){
       info+=sec('첨부파일')+parseFiles(f.AttachedFiles);
     }
     else if(sysKey==='FA'){
-      info+=row('FA 유형',`<span style="background:#e8f4ff;color:#0078d4;padding:2px 8px;border-radius:10px;font-size:12px">${f.FAType||''}</span>`)+row('제목',f.Title)+(f.FACode?row('FA Code',`<strong style="color:#107c10">${f.FACode}</strong>`):'');
+      info+=row('FA 유형',`<span style="background:#e8f4ff;color:#0078d4;padding:2px 8px;border-radius:10px;font-size:12px">${f.FAType||''}</span>`)+(f.FACode?row('FA Code',`<strong style="color:#107c10">${f.FACode}</strong>`):'');
       if(f.FAType==='Registration') info+=sec('고정자산 정보')+row('자산명',f.Description)+row('Acquisition Date',f.AcquisitionDate)+row('CCTR',f.CCTR)+row('GL Account',f.GLAccount)+row('Asset Class',f.AssetClass)+row('Useful Life',f.UsefulLife)+row('Location',f.Location)+row('Asset Value',f.AssetValue?Number(f.AssetValue).toLocaleString()+' 원':'-')+row('Vendor Code/Name',f.VendorInfo)+row('Model/Serial No.',f.SerialNumber||'-')+sec('신청사유')+rowFull('Purpose',f.Purpose);
       else if(f.FAType==='Disposal') info+=sec('처분 정보')+row('Disposal Date',f.DisposalDate)+row('Location',f.Location)+row('Type',f.DisposalType)+row('Disposal Method',f.DisposalMethod)+rowFull('Reason',f.Reason);
       else if(f.FAType==='Transfer') info+=sec('이관 정보')+row('이동전 부서',f.FromDept)+row('이동전 담당자',f.FromManager)+row('이동후 부서',f.ToDept||'(없음)')+row('이동후 담당자',f.ToManager||'-')+rowFull('이관 사유',f.TransferReason);
