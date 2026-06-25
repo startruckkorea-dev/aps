@@ -1139,7 +1139,7 @@ function renderAll(){
       const sumText=summary(sys.key,rf)||'-';
       const dateStr=fmt(rf.RequestDate);
       rows+=`<div class="item-row" onclick="showDetail('${sys.key}',${f.RequestID})">
-        <span class="item-no">·&nbsp;${f.RequestID}</span>
+        <span class="item-no">·</span>
         <div class="item-body">
           <div class="item-summary">${sumText}</div>
           <div class="item-meta">${email} · ${dateStr}</div>
