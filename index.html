@@ -999,7 +999,7 @@ function renderApvPopup(){
   if(recBtn)recBtn.style.display='inline-flex';
   var html='';
   // active + old 합쳐서 렌더, old는 노란색 표시
-  items.forEach(function(it){
+  items.forEach(function(it, _idx){
     var isOld=(now7-new Date(it.rf.RequestDate||0))>1*24*60*60*1000;
     var sys=it.sys,f=it.f,rf=it.rf,item=it.item;
     var sumText=summary(sys.key,rf)||'-';
@@ -1019,7 +1019,7 @@ function renderApvPopup(){
     html+='<div class="'+itemCls+'" onclick="closeApvPopup();showDetail(\''+sysKey+'\',' +reqId+')" style="cursor:pointer">'
       +'<div class="apv-item-top">'
       +'<span class="apv-item-sys">'+sys.name+'</span>'
-      +'<span class="apv-item-id">#'+reqId+'</span>'
+      +'<span class="apv-item-id">'+(items.length-_idx)+'</span>'
       +(role?'<span class="apv-item-role">'+role+'</span>':'')
       +'<span class="apv-item-summary" title="'+sumText+'">'+sumText+'</span>'
       +'</div>'
