@@ -1288,7 +1288,7 @@ async function showDetail(sysKey,reqId){
     };
     const rowFull=(l,v)=>`<div style="padding:7px 0;border-bottom:0.5px solid #edebe9;font-size:13px"><div style="font-size:11px;color:#605e5c;margin-bottom:3px">${l}</div><div style="white-space:pre-wrap;color:#323130">${v||'-'}</div></div>`;
 
-    let info=sec('기본 정보')+row('Title',(['GW','IT','SCC','BP','FA'].includes(sys.key)?f.Title:('#'+reqId))||'-')+row('신청자',f.RequesterEmail)+
+    let info=sec('기본 정보')+row('Title',(['GW','IT','SCC','BP','FA','MC','RR'].includes(sys.key)?f.Title:('#'+reqId))||'-')+row('신청자',f.RequesterEmail)+
       row('상태',stBadge(f.Status))+row('신청일',fmt(f.RequestDate));
 
     if(sysKey==='IT'){
