@@ -150,6 +150,14 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#f5f7f
 /* ── quick-links bar ── */
 .ql-strip{background:#fff;border-bottom:1px solid #e2e8f0;padding:0 16px;display:flex;align-items:stretch;gap:0;overflow-x:auto;scrollbar-width:none}
 .ql-strip::-webkit-scrollbar{display:none}
+.ql-strip-wrap{position:relative;background:#fff;border-bottom:1px solid #e2e8f0}
+.ql-scroll-btn{position:absolute;top:50%;transform:translateY(-50%);z-index:10;background:rgba(255,255,255,.92);border:1px solid #e2e8f0;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:12px;color:#475569;box-shadow:0 2px 6px rgba(0,0,0,.1);transition:opacity .2s}
+.ql-scroll-btn:hover{background:#f0f4ff;color:#3b82f6}
+.ql-scroll-left{left:4px}
+.ql-scroll-right{right:4px}
+.ql-strip-inner{display:flex;align-items:stretch;gap:0;overflow-x:auto;scrollbar-width:none;padding:0 16px;cursor:grab}
+.ql-strip-inner::-webkit-scrollbar{display:none}
+.ql-strip-inner.dragging{cursor:grabbing;user-select:none}
 .ql-btn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;padding:10px 8px;cursor:pointer;text-decoration:none;transition:background .15s;flex:1 1 0;min-width:80px;max-width:120px;border:none;background:transparent;font-family:inherit;border-bottom:2px solid transparent;}
 .ql-btn:hover{background:#f8faff;border-bottom-color:#3b82f6}
 .ql-btn .qi{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.1rem}
@@ -353,7 +361,9 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#f5f7f
   </div>
 
   <!-- Quick Links Strip -->
-  <div class="ql-strip">
+  <div class="ql-strip-wrap">
+    <button class="ql-scroll-btn ql-scroll-left" id="ql-left" onclick="qlScroll(-160)">‹</button>
+    <div class="ql-strip-inner" id="ql-strip-inner">
     <a href="https://itsm-ticket.startruckkorea.com/" target="_self" class="ql-btn"><div class="qi" style="background:#3b82f618;color:#3b82f6">🖥️</div><span class="ql">IT Ticket</span></a>
     <a href="https://scc.startruckkorea.com/" target="_self" class="ql-btn"><div class="qi" style="background:#10b98118;color:#10b981">📄</div><span class="ql">STK Contract</span></a>
     <a href="https://gw.startruckkorea.com/" target="_self" class="ql-btn"><div class="qi" style="background:#f59e0b18;color:#f59e0b">🤝</div><span class="ql">Goodwill</span></a>
@@ -366,6 +376,8 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#f5f7f
     <button onclick="openSscLink()" class="ql-btn"><div class="qi" style="background:#0ea5e918;color:#0ea5e9">📋</div><span class="ql">SSC</span></button>
     <button onclick="openKriLink()" class="ql-btn"><div class="qi" style="background:#5c6f7f18;color:#5c6f7f">📁</div><span class="ql">KRI Archive</span></button>
     <button onclick="window.open('https://guest-wifi.startruckkorea.com/','_blank')" class="ql-btn"><div class="qi" style="background:#0078d418;color:#0078d4">🛜</div><span class="ql">Guest WiFi</span></button>
+  </div>
+    <button class="ql-scroll-btn ql-scroll-right" id="ql-right" onclick="qlScroll(160)">›</button>
   </div>
 
   <div id="aps-myapproved-page" style="display:none;padding:10px 20px 0;">
@@ -1557,7 +1569,30 @@ function switchApsTab(tab) {
   const adminPage      = document.getElementById('aps-admin-page');
   const myapprovedPage = document.getElementById('aps-myapproved-page');
   const adminBtn       = document.getElementById('aps-admin-btn');
-  const qlStrip        = document.querySelector('.ql-strip');
+  const qlStrip        = document.getElementById('ql-strip-inner');
+
+  // ── 아이콘 바 드래그 스크롤 ──
+  function qlScroll(delta) {
+    const el = document.getElementById('ql-strip-inner');
+    if(el) el.scrollBy({left: delta, behavior: 'smooth'});
+  }
+  (() => {
+    const el = document.getElementById('ql-strip-inner');
+    if(!el) return;
+    let isDown=false, startX=0, scrollLeft=0;
+    el.addEventListener('mousedown', e=>{ isDown=true; el.classList.add('dragging'); startX=e.pageX-el.offsetLeft; scrollLeft=el.scrollLeft; });
+    el.addEventListener('mouseleave', ()=>{ isDown=false; el.classList.remove('dragging'); });
+    el.addEventListener('mouseup', ()=>{ isDown=false; el.classList.remove('dragging'); });
+    el.addEventListener('mousemove', e=>{ if(!isDown) return; e.preventDefault(); const x=e.pageX-el.offsetLeft; el.scrollLeft=scrollLeft-(x-startX); });
+    // 버튼 표시 제어
+    const updateBtns = () => {
+      const l=document.getElementById('ql-left'), r=document.getElementById('ql-right');
+      if(l) l.style.opacity = el.scrollLeft>0 ? '1' : '0';
+      if(r) r.style.opacity = el.scrollLeft<el.scrollWidth-el.clientWidth-4 ? '1' : '0';
+    };
+    el.addEventListener('scroll', updateBtns);
+    setTimeout(updateBtns, 300);
+  })();
 
   // hide all pages first
   if(mainPage)       mainPage.style.display       = 'none';
