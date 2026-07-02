@@ -562,6 +562,10 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#f5f7f
 </div>
 
 <script>
+function qlScroll(delta) {
+  const el = document.getElementById('ql-strip-inner');
+  if(el) el.scrollBy({left: delta, behavior: 'smooth'});
+}
 const CLIENT_ID='432976c2-b43a-492e-8213-ece505fa1f51';
 const TENANT_ID='19cab1f5-21f4-44df-8ac6-96d6ca595203';
 const SITE_PATH='startruckkorea.sharepoint.com:/sites/STK-DB:';
@@ -1571,11 +1575,7 @@ function switchApsTab(tab) {
   const adminBtn       = document.getElementById('aps-admin-btn');
   const qlStrip        = document.getElementById('ql-strip-inner');
 
-  // ── 아이콘 바 스크롤 (전역 함수 — HTML onclick에서 호출)
-  window.qlScroll = function(delta) {
-    const el = document.getElementById('ql-strip-inner');
-    if(el) el.scrollBy({left: delta, behavior: 'smooth'});
-  };
+  // ── 아이콘 바 드래그 스크롤 ──
   (() => {
     const el = document.getElementById('ql-strip-inner');
     if(!el) return;
