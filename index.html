@@ -64,7 +64,7 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#f5f7f
 .sys-card-header{padding:14px 18px 12px;display:flex;align-items:center;justify-content:space-between}
 .sys-card-left{display:flex;align-items:center;gap:8px}
 .sys-dot{width:8px;height:8px;border-radius:50%;background:#1a5fb4}
-.sys-IT .sys-dot,.sys-SCC .sys-dot,.sys-GW .sys-dot,.sys-BP .sys-dot,.sys-FA .sys-dot,.sys-MC .sys-dot,.sys-RR .sys-dot,.sys-GA_STN .sys-dot,.sys-GA_BC .sys-dot,.sys-GA_IDC .sys-dot{background:#1a5fb4}
+.sys-IT .sys-dot,.sys-SCC .sys-dot,.sys-GW .sys-dot,.sys-BP .sys-dot,.sys-FA .sys-dot,.sys-MC .sys-dot,.sys-RR .sys-dot,.sys-GA_STN .sys-dot,.sys-GA_BC .sys-dot,.sys-GA_IDC .sys-dot,.sys-LTR .sys-dot{background:#1a5fb4}
 .sys-name{font-size:.88rem;font-weight:700;color:#1e293b}
 .sys-cnt-pill{background:#ef4444;color:#fff;border-radius:20px;padding:1px 8px;font-size:.65rem;font-weight:700;margin-left:2px}.sys-cnt-gray{background:#94a3b8!important}
 .sys-link{font-size:.72rem;color:#64748b;text-decoration:none;padding:4px 12px;border:1px solid #e2e8f0;border-radius:20px;transition:all .15s;font-weight:500}
@@ -393,6 +393,7 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#f5f7f
         <option value="GA_STN">GA Stationery</option>
         <option value="GA_BC">GA Business Card</option>
         <option value="GA_IDC">GA ID Card</option>
+        <option value="LTR">Local Travel (PC)</option>
       </select>
       <select id="mya-filter-status" class="filter-select" onchange="renderMyApprovedTable(true)">
         <option value="">전체</option>
@@ -429,6 +430,7 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#f5f7f
         <option value="GA_STN">GA Stationery</option>
         <option value="GA_BC">GA Business Card</option>
         <option value="GA_IDC">GA ID Card</option>
+        <option value="LTR">Local Travel (PC)</option>
       </select>
       <select id="admin-filter-status" class="filter-select" onchange="renderAdminTable(true)">
         <option value="">전체 상태</option>
@@ -471,6 +473,7 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#f5f7f
         <option value="GA_STN">GA Stationery</option>
         <option value="GA_BC">GA Business Card</option>
         <option value="GA_IDC">GA ID Card</option>
+        <option value="LTR">Local Travel (PC)</option>
       </select>
       <select class="filter-select" id="filter-status" onchange="resetPages();renderAll()">
         <option value="대기">대기 중</option>
