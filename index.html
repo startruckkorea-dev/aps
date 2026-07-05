@@ -1247,7 +1247,7 @@ async function showDetail(sysKey,reqId){
   if(_noticeEl&&_noticeTxt){
     if(sysKey==='SCC'){
       _noticeEl.style.display='';
-      _noticeTxt.innerHTML='SCC 결재는 계약서 전문 검토 · 체크리스트 작성 · PDF 암호화가 포함되어 있어 <b>반드시 SCC 시스템에서 직접 진행</b>해주세요.&nbsp;<a href="'+_sysUrl+'" target="_blank" style="color:#b45309;font-weight:700;text-decoration:underline">→ SCC 바로가기</a>';
+      _noticeTxt.innerHTML='SCC 결재는 계약서 전문 검토 · 체크리스트 작성 · 암호화된 정보가 포함되어 있어 <b>반드시 SCC 시스템에서 직접 진행</b>해주세요.&nbsp;<a href="'+_sysUrl+'" target="_blank" style="color:#b45309;font-weight:700;text-decoration:underline">→ SCC 바로가기</a>';
     } else if(sysKey==='BP'){
       _noticeEl.style.display='';
       _noticeTxt.innerHTML='BP Master Data 결재는 추가 Code 검증, 입력 등의 작업으로 반드시 해당 시스템에서 직접 확인 후 승인해주세요.&nbsp;<a href="'+_sysUrl+'" target="_blank" style="color:#b45309;font-weight:700;text-decoration:underline">→ BP Master 바로가기</a>';
