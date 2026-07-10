@@ -448,8 +448,10 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#f5f7f
       <select id="admin-filter-status" class="filter-select" onchange="renderAdminTable(true)">
         <option value="">전체 상태</option>
         <option value="진행중">진행중</option>
-        <option value="지연(3일+)">⚠️ 지연 3일+</option>
-        <option value="지연(7일+)">🔴 지연 7일+</option>
+        <option value="지연(3일+)">⚠️ 지연 3일+ (신청일 기준)</option>
+        <option value="지연(7일+)">🔴 지연 7일+ (신청일 기준)</option>
+        <option value="정체(3일+)">⚠️ 정체 3일+ (최근결재일 기준)</option>
+        <option value="정체(7일+)">🔴 정체 7일+ (최근결재일 기준)</option>
         <option value="대기">대기</option>
         <option value="승인완료">승인완료</option>
         <option value="반려">반려</option>
@@ -1810,17 +1812,26 @@ function renderAdminTable(resetPage) {
   const fApprover = (document.getElementById('admin-search-approver')?document.getElementById('admin-search-approver').value||'':'').toLowerCase();
 
   const rows = _adminData
-    .filter(r =>
-      (!fSys    || r.sysKey === fSys) &&
+    .filter(r => {
+      const now = Date.now();
+      const requestDays = r.requestDate ? Math.floor((now-new Date(r.requestDate))/86400000) : 0;
+      // 정체일수: 최근결재일이 있으면 그 시점부터, 없으면(아직 1건도 결재 안 됨) 신청일부터 계산
+      const stagnantRef = r.lastApprovalDate || r.requestDate;
+      const stagnantDays = stagnantRef ? Math.floor((now-new Date(stagnantRef))/86400000) : 0;
+      return (!fSys    || r.sysKey === fSys) &&
       (!fStatus || r.reqStatus === fStatus ||
-        (fStatus==='지연(3일+)' && r.reqStatus==='진행중' && r.requestDate && Math.floor((Date.now()-new Date(r.requestDate))/86400000)>=3) ||
-        (fStatus==='지연(7일+)' && r.reqStatus==='진행중' && r.requestDate && Math.floor((Date.now()-new Date(r.requestDate))/86400000)>=7)
+        (fStatus==='지연(3일+)' && r.reqStatus==='진행중' && r.requestDate && requestDays>=3) ||
+        (fStatus==='지연(7일+)' && r.reqStatus==='진행중' && r.requestDate && requestDays>=7) ||
+        (fStatus==='정체(3일+)' && r.reqStatus==='진행중' && stagnantRef && stagnantDays>=3) ||
+        (fStatus==='정체(7일+)' && r.reqStatus==='진행중' && stagnantRef && stagnantDays>=7)
       ) &&
-      (fStatus!=='지연(3일+)' || (r.reqStatus==='진행중' && r.requestDate && Math.floor((Date.now()-new Date(r.requestDate))/86400000)>=3)) &&
-      (fStatus!=='지연(7일+)' || (r.reqStatus==='진행중' && r.requestDate && Math.floor((Date.now()-new Date(r.requestDate))/86400000)>=7)) &&
+      (fStatus!=='지연(3일+)' || (r.reqStatus==='진행중' && r.requestDate && requestDays>=3)) &&
+      (fStatus!=='지연(7일+)' || (r.reqStatus==='진행중' && r.requestDate && requestDays>=7)) &&
+      (fStatus!=='정체(3일+)' || (r.reqStatus==='진행중' && stagnantRef && stagnantDays>=3)) &&
+      (fStatus!=='정체(7일+)' || (r.reqStatus==='진행중' && stagnantRef && stagnantDays>=7)) &&
       (!fSearch || r.title.toLowerCase().includes(fSearch) || r.requester.toLowerCase().includes(fSearch)) &&
-      (!fApprover || (r.nextApprover||'').toLowerCase().includes(fApprover) || (r.nextApproverRole||'').toLowerCase().includes(fApprover))
-    )
+      (!fApprover || (r.nextApprover||'').toLowerCase().includes(fApprover) || (r.nextApproverRole||'').toLowerCase().includes(fApprover));
+    })
     .sort((a, b) => {
       const {col, dir} = _adminSort;
       let va, vb;
@@ -1833,6 +1844,12 @@ function renderAdminTable(resetPage) {
         const now=Date.now();
         va=a.requestDate?Math.floor((now-new Date(a.requestDate))/86400000):0;
         vb=b.requestDate?Math.floor((now-new Date(b.requestDate))/86400000):0;
+      }
+      else if(col==='stagnantDays'){
+        const now=Date.now();
+        const aRef=a.lastApprovalDate||a.requestDate, bRef=b.lastApprovalDate||b.requestDate;
+        va=aRef?Math.floor((now-new Date(aRef))/86400000):0;
+        vb=bRef?Math.floor((now-new Date(bRef))/86400000):0;
       }
       else{va=a[col]||'';vb=b[col]||'';}
       if(va<vb) return dir==='asc'?-1:1;
@@ -1877,6 +1894,14 @@ function renderAdminTable(resetPage) {
         const bg=days>=7?'#fee2e2':days>=3?'#fef3c7':'transparent';
         return '<td style="padding:8px 10px;text-align:center;font-size:.75rem;font-weight:'+(days>=3?'700':'400')+';color:'+color+';background:'+bg+';">'+(days>=7?'🔴 ':days>=3?'🟡 ':'')+days+'일</td>';
       })()}
+      ${(()=>{
+        if(r.reqStatus==='승인완료'||r.reqStatus==='반려'||r.reqStatus==='철회'||r.reqStatus==='철회(잠김)') return '<td style="padding:8px 10px;text-align:center;color:#94a3b8;font-size:.75rem;">-</td>';
+        const ref=r.lastApprovalDate||r.requestDate;
+        const days=ref?Math.floor((Date.now()-new Date(ref))/86400000):0;
+        const color=days>=7?'#b91c1c':days>=3?'#b45309':'#64748b';
+        const bg=days>=7?'#fee2e2':days>=3?'#fef3c7':'transparent';
+        return '<td style="padding:8px 10px;text-align:center;font-size:.75rem;font-weight:'+(days>=3?'700':'400')+';color:'+color+';background:'+bg+';">'+(days>=7?'🔴 ':days>=3?'🟡 ':'')+days+'일</td>';
+      })()}
     </tr>`;}).join('');
 
   const pgBtns = [];
@@ -1899,7 +1924,8 @@ function renderAdminTable(resetPage) {
           <th style="padding:10px;text-align:left;">다음결재자</th>
           ${adminThSort('requestDate','신청일','center')}
           ${adminThSort('lastApprovalDate','최근결재일','center')}
-          ${adminThSort('delayDays','지연일수','center')}
+          ${adminThSort('delayDays','지연일수<br><span style="font-weight:400;font-size:.65rem;opacity:.8">(신청일 기준)</span>','center')}
+          ${adminThSort('stagnantDays','정체일수<br><span style="font-weight:400;font-size:.65rem;opacity:.8">(최근결재 기준)</span>','center')}
         </tr></thead>
         <tbody>${trs}</tbody>
       </table>
@@ -1934,19 +1960,40 @@ function exportAdminExcel() {
   const fStatus = document.getElementById('admin-filter-status').value;
   const fSearch   = (document.getElementById('admin-search').value||'').toLowerCase();
   const fApprover = (document.getElementById('admin-search-approver')?document.getElementById('admin-search-approver').value||'':'').toLowerCase();
-  const rows = _adminData.filter(r =>
-    (!fSys    || r.sysKey === fSys) &&
-    (!fStatus || r.reqStatus === fStatus) &&
+  const rows = _adminData.filter(r => {
+    const now = Date.now();
+    const requestDays = r.requestDate ? Math.floor((now-new Date(r.requestDate))/86400000) : 0;
+    const stagnantRef = r.lastApprovalDate || r.requestDate;
+    const stagnantDays = stagnantRef ? Math.floor((now-new Date(stagnantRef))/86400000) : 0;
+    return (!fSys    || r.sysKey === fSys) &&
+    (!fStatus || r.reqStatus === fStatus ||
+      (fStatus==='지연(3일+)' && r.reqStatus==='진행중' && r.requestDate && requestDays>=3) ||
+      (fStatus==='지연(7일+)' && r.reqStatus==='진행중' && r.requestDate && requestDays>=7) ||
+      (fStatus==='정체(3일+)' && r.reqStatus==='진행중' && stagnantRef && stagnantDays>=3) ||
+      (fStatus==='정체(7일+)' && r.reqStatus==='진행중' && stagnantRef && stagnantDays>=7)
+    ) &&
+    (fStatus!=='지연(3일+)' || (r.reqStatus==='진행중' && r.requestDate && requestDays>=3)) &&
+    (fStatus!=='지연(7일+)' || (r.reqStatus==='진행중' && r.requestDate && requestDays>=7)) &&
+    (fStatus!=='정체(3일+)' || (r.reqStatus==='진행중' && stagnantRef && stagnantDays>=3)) &&
+    (fStatus!=='정체(7일+)' || (r.reqStatus==='진행중' && stagnantRef && stagnantDays>=7)) &&
     (!fSearch || r.title.toLowerCase().includes(fSearch) || r.requester.toLowerCase().includes(fSearch)) &&
-      (!fApprover || (r.nextApprover||'').toLowerCase().includes(fApprover) || (r.nextRole||'').toLowerCase().includes(fApprover))
-  );
-  const ws = XLSX.utils.json_to_sheet(rows.map(r => ({
+      (!fApprover || (r.nextApprover||'').toLowerCase().includes(fApprover) || (r.nextRole||'').toLowerCase().includes(fApprover));
+  });
+  const ws = XLSX.utils.json_to_sheet(rows.map(r => {
+    const now = Date.now();
+    const inProgress = r.reqStatus==='진행중';
+    const delayDays = inProgress && r.requestDate ? Math.floor((now-new Date(r.requestDate))/86400000) : '';
+    const stagRef = r.lastApprovalDate || r.requestDate;
+    const stagnantDays = inProgress && stagRef ? Math.floor((now-new Date(stagRef))/86400000) : '';
+    return {
     '시스템': r.sysLabel, '신청번호': r.reqId, '제목': r.title,
     '신청자': r.requester, '상태': r.reqStatus,
     '결재진행': r.doneCount+'/'+r.totalAprs+'차',
     '다음결재자': r.nextApprover, '다음결재역할': r.nextRole,
     '신청일': r.requestDate, '최근결재일': r.lastApprovalDate,
-  })));
+    '지연일수(신청일 기준)': delayDays, '정체일수(최근결재 기준)': stagnantDays,
+    };
+  }));
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'APS 전체결재');
   XLSX.writeFile(wb, 'APS_전체결재_'+new Date().toISOString().slice(0,10)+'.xlsx');
