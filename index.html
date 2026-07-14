@@ -64,7 +64,7 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#f5f7f
 .sys-card-header{padding:14px 18px 12px;display:flex;align-items:center;justify-content:space-between}
 .sys-card-left{display:flex;align-items:center;gap:8px}
 .sys-dot{width:8px;height:8px;border-radius:50%;background:#1a5fb4}
-.sys-IT .sys-dot,.sys-SCC .sys-dot,.sys-GW .sys-dot,.sys-BP .sys-dot,.sys-FA .sys-dot,.sys-MC .sys-dot,.sys-RR .sys-dot,.sys-GA_STN .sys-dot,.sys-GA_BC .sys-dot,.sys-GA_IDC .sys-dot,.sys-LTR .sys-dot{background:#1a5fb4}
+.sys-IT .sys-dot,.sys-SCC .sys-dot,.sys-GW .sys-dot,.sys-BP .sys-dot,.sys-FA .sys-dot,.sys-MC .sys-dot,.sys-RR .sys-dot,.sys-GA_STN .sys-dot,.sys-GA_BC .sys-dot,.sys-GA_IDC .sys-dot,.sys-LTR .sys-dot,.sys-CTR_PR .sys-dot{background:#1a5fb4}
 .sys-name{font-size:.88rem;font-weight:700;color:#1e293b}
 .sys-cnt-pill{background:#ef4444;color:#fff;border-radius:20px;padding:1px 8px;font-size:.65rem;font-weight:700;margin-left:2px}.sys-cnt-gray{background:#94a3b8!important}
 .sys-link{font-size:.72rem;color:#64748b;text-decoration:none;padding:4px 12px;border:1px solid #e2e8f0;border-radius:20px;transition:all .15s;font-weight:500}
@@ -372,6 +372,7 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#f5f7f
     <a href="https://mc.startruckkorea.com/" target="_self" class="ql-btn"><div class="qi" style="background:#06b6d418;color:#06b6d4">🚗</div><span class="ql">Mobility Car</span></a>
     <a href="https://ga.startruckkorea.com/" target="_self" class="ql-btn"><div class="qi" style="background:#6366f118;color:#6366f1">🪪</div><span class="ql">General Affairs</span></a>
     <a href="https://ltr-pc.startruckkorea.com/" target="_self" class="ql-btn"><div class="qi" style="background:#f5950018;color:#f59500">⛽</div><span class="ql">LTR-PC</span></a>
+    <a href="https://ctr-pr.startruckkorea.com/" target="_self" class="ql-btn"><div class="qi" style="background:#a855f718;color:#a855f7">📑</div><span class="ql">Purchase Requisition</span></a>
     <div class="ql-divider"></div>
     <button onclick="openSscLink()" class="ql-btn"><div class="qi" style="background:#0ea5e918;color:#0ea5e9">📋</div><span class="ql">SSC</span></button>
     <button onclick="openKriLink()" class="ql-btn"><div class="qi" style="background:#5c6f7f18;color:#5c6f7f">📁</div><span class="ql">KRI Archive</span></button>
@@ -407,6 +408,7 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#f5f7f
         <option value="GA_BC">GA Business Card</option>
         <option value="GA_IDC">GA ID Card</option>
         <option value="LTR">Local Travel (PC)</option>
+        <option value="CTR_PR">Purchase Requisition (CTR_PR)</option>
       </select>
       <select id="mya-filter-status" class="filter-select" onchange="renderMyApprovedTable(true)">
         <option value="">전체</option>
@@ -444,6 +446,7 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#f5f7f
         <option value="GA_BC">GA Business Card</option>
         <option value="GA_IDC">GA ID Card</option>
         <option value="LTR">Local Travel (PC)</option>
+        <option value="CTR_PR">Purchase Requisition (CTR_PR)</option>
       </select>
       <select id="admin-filter-status" class="filter-select" onchange="renderAdminTable(true)">
         <option value="">전체 상태</option>
@@ -489,6 +492,7 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#f5f7f
         <option value="GA_BC">GA Business Card</option>
         <option value="GA_IDC">GA ID Card</option>
         <option value="LTR">Local Travel (PC)</option>
+        <option value="CTR_PR">Purchase Requisition (CTR_PR)</option>
       </select>
       <select class="filter-select" id="filter-status" onchange="resetPages();renderAll()">
         <option value="대기">대기 중</option>
@@ -587,6 +591,7 @@ const SYSTEMS=[
   {key:'GA_BC',  name:'GA Business Card', apr:'BC_Approvals',     req:'BC_Requests',    url:'https://ga.startruckkorea.com/',        historyList:'BC_Approvals'},
   {key:'GA_IDC', name:'GA ID Card',       apr:'IDC_Approvals',    req:'IDC_Requests',   url:'https://ga.startruckkorea.com/',        historyList:'IDC_Approvals'},
   {key:'LTR',    name:'Local Travel (PC)', apr:'LTR_Approvals',   req:'LTR_Requests',   url:'https://ltr-pc.startruckkorea.com/',    historyList:'LTR_Approvals'},
+  {key:'CTR_PR', name:'Purchase Requisition', apr:'CTR_PR_Approvals', req:'CTR_PR_Requests', url:'https://ctr-pr.startruckkorea.com/', historyList:'CTR_PR_Approvals'},
 ];
 
 let msalApp=null,user=null,siteId=null,_allData={},_pending=null,_currentApprList=[];
@@ -758,7 +763,7 @@ async function loadAll(){
         apiAll('/sites/'+siteId+'/lists/'+sys.apr+'/items?$expand=fields'),
         api('/sites/'+siteId+'/lists/'+sys.req+'/items?$expand=fields&$top=500'),
       ]);
-      const reqMap={};reqData.value.forEach(r=>{reqMap[r.id]=r.fields;});
+      const reqMap={};reqData.value.forEach(r=>{const rf=r.fields; if(!rf.RequestDate && rf.SubmittedDate) rf.RequestDate=rf.SubmittedDate; reqMap[r.id]=rf;});
       _allData[sys.key]={apprItems:apprData.value,reqMap};
     }catch(e){_allData[sys.key]={apprItems:[],reqMap:{},error:e.message};}
   }));
@@ -1279,6 +1284,7 @@ async function showDetail(sysKey,reqId){
     ]);
     const clResponses = clRaw||{value:[]};
     const f=r.fields;
+    if(!f.RequestDate && f.SubmittedDate) f.RequestDate = f.SubmittedDate;
     const apprList=apprData.value.filter(i=>Number(i.fields.RequestID)===Number(reqId)).sort((a,b)=>a.fields.ApprovalOrder-b.fields.ApprovalOrder);
     const sc={'대기':'#b45309','승인':'#15803d','반려':'#b91c1c','대기(잠김)':'#718096','승인완료':'#15803d'};
     const sec=t=>`<div class="modal-sec">${t}</div>`;
@@ -1305,7 +1311,7 @@ async function showDetail(sysKey,reqId){
     };
     const rowFull=(l,v)=>`<div style="padding:7px 0;border-bottom:0.5px solid #edebe9;font-size:13px"><div style="font-size:11px;color:#605e5c;margin-bottom:3px">${l}</div><div style="white-space:pre-wrap;color:#323130">${v||'-'}</div></div>`;
 
-    let info=sec('기본 정보')+row('Title',(['GW','IT','SCC','BP','FA','MC','RR','GA_STN','GA_BC','GA_IDC'].includes(sys.key)?f.Title:('#'+reqId))||'-')+row('신청자',f.RequesterEmail)+
+    let info=sec('기본 정보')+row('Title',(['GW','IT','SCC','BP','FA','MC','RR','GA_STN','GA_BC','GA_IDC','CTR_PR'].includes(sys.key)?f.Title:('#'+reqId))||'-')+row('신청자',f.RequesterEmail)+
       row('상태',stBadge(f.Status))+row('신청일',fmt(f.RequestDate));
 
     if(sysKey==='IT'){
@@ -1636,7 +1642,7 @@ async function loadMyApprovedPage() {
         apiAll('/sites/'+siteId+'/lists/'+sys.req+'/items?$expand=fields'),
       ]);
       const reqMap = {};
-      reqData.value.forEach(r => { reqMap[String(r.id)] = r.fields; });
+      reqData.value.forEach(r => { const rf=r.fields; if(!rf.RequestDate && rf.SubmittedDate) rf.RequestDate=rf.SubmittedDate; reqMap[String(r.id)] = rf; });
       // 요청건별 전체 결재차수 집계 (N차 중 몇차인지 표시용)
       const totalMap = {};
       aprData.value.forEach(i => {
@@ -1787,6 +1793,7 @@ async function loadAdminPage() {
       });
       reqData.value.forEach(r => {
         const rf = r.fields;
+        if (!rf.RequestDate && rf.SubmittedDate) rf.RequestDate = rf.SubmittedDate;
         const rid = String(r.id);
         const aprs = aprMap[rid] || [];
         const aprStatuses = aprs.map(a => (a.Status && a.Status.Value ? a.Status.Value : a.Status || '').trim());
