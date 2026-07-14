@@ -158,10 +158,14 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#f5f7f
 .ql-strip-inner{display:flex;align-items:stretch;gap:0;overflow-x:auto;scrollbar-width:none;padding:0 16px;cursor:grab}
 .ql-strip-inner::-webkit-scrollbar{display:none}
 .ql-strip-inner.dragging{cursor:grabbing;user-select:none}
-.ql-btn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;padding:10px 8px;cursor:pointer;text-decoration:none;transition:background .15s;flex:1 1 0;min-width:80px;max-width:120px;border:none;background:transparent;font-family:inherit;border-bottom:2px solid transparent;}
+.ql-btn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;padding:8px 8px 9px;cursor:pointer;text-decoration:none;transition:background .15s;flex:1 1 0;min-width:80px;max-width:120px;border:none;background:transparent;font-family:inherit;border-bottom:2px solid transparent;border-radius:8px}
 .ql-btn:hover{background:#f8faff;border-bottom-color:#3b82f6}
 .ql-btn .qi{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.1rem}
 .ql-btn .ql{font-size:.65rem;color:#475569;font-weight:600;white-space:nowrap;text-align:center}
+.ql-group{display:flex;flex-direction:column;flex-shrink:0}
+.ql-group-label{font-size:.6rem;font-weight:700;color:#94a3b8;letter-spacing:.05em;text-transform:uppercase;padding:8px 10px 4px;white-space:nowrap}
+.ql-group-row{display:flex;align-items:stretch;gap:2px}
+.ql-group-sep{width:1px;background:linear-gradient(180deg,transparent,#e2e8f0 20%,#e2e8f0 80%,transparent);flex-shrink:0;margin:6px 10px;align-self:stretch}
 .ql-divider{width:1px;height:48px;background:#e2e8f0;flex-shrink:0;margin:0 8px;align-self:center}
 /* shortcut grid */
 .sc-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
@@ -364,20 +368,30 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#f5f7f
   <div class="ql-strip-wrap">
     <button class="ql-scroll-btn ql-scroll-left" id="ql-left" onclick="qlScroll(-160)">‹</button>
     <div class="ql-strip-inner" id="ql-strip-inner">
-    <a href="https://itsm-ticket.startruckkorea.com/" target="_self" class="ql-btn"><div class="qi" style="background:#3b82f618;color:#3b82f6">🖥️</div><span class="ql">IT Ticket</span></a>
-    <a href="https://scc.startruckkorea.com/" target="_self" class="ql-btn"><div class="qi" style="background:#10b98118;color:#10b981">📄</div><span class="ql">STK Contract</span></a>
-    <a href="https://gw.startruckkorea.com/" target="_self" class="ql-btn"><div class="qi" style="background:#f59e0b18;color:#f59e0b">🤝</div><span class="ql">Goodwill</span></a>
-    <a href="https://bp-master.startruckkorea.com/" target="_self" class="ql-btn"><div class="qi" style="background:#8b5cf618;color:#8b5cf6">🏢</div><span class="ql">BP Master Data</span></a>
-    <a href="https://fa.startruckkorea.com/" target="_self" class="ql-btn"><div class="qi" style="background:#ec489918;color:#ec4899">🏷️</div><span class="ql">FA Registration</span></a>
-    <a href="https://mc.startruckkorea.com/" target="_self" class="ql-btn"><div class="qi" style="background:#06b6d418;color:#06b6d4">🚗</div><span class="ql">Mobility Car</span></a>
-    <a href="https://ga.startruckkorea.com/" target="_self" class="ql-btn"><div class="qi" style="background:#6366f118;color:#6366f1">🪪</div><span class="ql">General Affairs</span></a>
-    <a href="https://ltr-pc.startruckkorea.com/" target="_self" class="ql-btn"><div class="qi" style="background:#f5950018;color:#f59500">⛽</div><span class="ql">LTR-PC</span></a>
-    <a href="https://ctr-pr.startruckkorea.com/" target="_self" class="ql-btn"><div class="qi" style="background:#a855f718;color:#a855f7">📑</div><span class="ql">CTR PR</span></a>
-    <div class="ql-divider"></div>
-    <button onclick="openSscLink()" class="ql-btn"><div class="qi" style="background:#0ea5e918;color:#0ea5e9">📋</div><span class="ql">SSC</span></button>
-    <button onclick="openKriLink()" class="ql-btn"><div class="qi" style="background:#5c6f7f18;color:#5c6f7f">📁</div><span class="ql">KRI Archive</span></button>
-    <button onclick="window.open('https://guest-wifi.startruckkorea.com/','_blank')" class="ql-btn"><div class="qi" style="background:#0078d418;color:#0078d4">🛜</div><span class="ql">Guest WiFi</span></button>
-    <a href="https://consent.startruckkorea.com/" target="_self" class="ql-btn"><div class="qi" style="background:#f4433618;color:#f44336">🖊️</div><span class="ql">Consent</span></a>
+    <div class="ql-group">
+      <div class="ql-group-label">APS 연동 시스템</div>
+      <div class="ql-group-row">
+        <a href="https://itsm-ticket.startruckkorea.com/" target="_self" class="ql-btn"><div class="qi" style="background:#3b82f618;color:#3b82f6">🖥️</div><span class="ql">IT Ticket</span></a>
+        <a href="https://scc.startruckkorea.com/" target="_self" class="ql-btn"><div class="qi" style="background:#10b98118;color:#10b981">📄</div><span class="ql">STK Contract</span></a>
+        <a href="https://gw.startruckkorea.com/" target="_self" class="ql-btn"><div class="qi" style="background:#f59e0b18;color:#f59e0b">🤝</div><span class="ql">Goodwill</span></a>
+        <a href="https://bp-master.startruckkorea.com/" target="_self" class="ql-btn"><div class="qi" style="background:#8b5cf618;color:#8b5cf6">🏢</div><span class="ql">BP Master Data</span></a>
+        <a href="https://fa.startruckkorea.com/" target="_self" class="ql-btn"><div class="qi" style="background:#ec489918;color:#ec4899">🏷️</div><span class="ql">FA Registration</span></a>
+        <a href="https://mc.startruckkorea.com/" target="_self" class="ql-btn"><div class="qi" style="background:#06b6d418;color:#06b6d4">🚗</div><span class="ql">Mobility Car</span></a>
+        <a href="https://ga.startruckkorea.com/" target="_self" class="ql-btn"><div class="qi" style="background:#6366f118;color:#6366f1">🪪</div><span class="ql">General Affairs</span></a>
+        <a href="https://ltr-pc.startruckkorea.com/" target="_self" class="ql-btn"><div class="qi" style="background:#f5950018;color:#f59500">⛽</div><span class="ql">LTR-PC</span></a>
+        <a href="https://ctr-pr.startruckkorea.com/" target="_self" class="ql-btn"><div class="qi" style="background:#a855f718;color:#a855f7">📑</div><span class="ql">CTR PR</span></a>
+      </div>
+    </div>
+    <div class="ql-group-sep"></div>
+    <div class="ql-group">
+      <div class="ql-group-label">바로가기</div>
+      <div class="ql-group-row">
+        <button onclick="openSscLink()" class="ql-btn"><div class="qi" style="background:#0ea5e918;color:#0ea5e9">📋</div><span class="ql">SSC</span></button>
+        <button onclick="openKriLink()" class="ql-btn"><div class="qi" style="background:#5c6f7f18;color:#5c6f7f">📁</div><span class="ql">KRI Archive</span></button>
+        <button onclick="window.open('https://guest-wifi.startruckkorea.com/','_blank')" class="ql-btn"><div class="qi" style="background:#0078d418;color:#0078d4">🛜</div><span class="ql">Guest WiFi</span></button>
+        <a href="https://consent.startruckkorea.com/" target="_self" class="ql-btn"><div class="qi" style="background:#f4433618;color:#f44336">🖊️</div><span class="ql">Consent</span></a>
+      </div>
+    </div>
   </div>
     <button class="ql-scroll-btn ql-scroll-right" id="ql-right" onclick="qlScroll(160)">›</button>
   </div>
