@@ -775,7 +775,7 @@ async function loadAll(){
     try{
       const [apprData,reqData]=await Promise.all([
         apiAll('/sites/'+siteId+'/lists/'+sys.apr+'/items?$expand=fields'),
-        api('/sites/'+siteId+'/lists/'+sys.req+'/items?$expand=fields&$top=500'),
+        apiAll('/sites/'+siteId+'/lists/'+sys.req+'/items?$expand=fields'),
       ]);
       const reqMap={};reqData.value.forEach(r=>{const rf=r.fields; if(!rf.RequestDate && rf.SubmittedDate) rf.RequestDate=rf.SubmittedDate; reqMap[r.id]=rf;});
       _allData[sys.key]={apprItems:apprData.value,reqMap};
