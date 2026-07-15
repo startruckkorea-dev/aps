@@ -402,7 +402,7 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#f5f7f
       <span id="myapproved-total-count" style="display:none"></span>
       <span id="mya-record-count" style="font-size:.78rem;color:#64748b;margin-left:8px;font-weight:400"></span>
       <div class="topbar-space"></div>
-      <button class="btn-refresh" onclick="loadMyApprovedPage()">
+      <button class="btn-refresh" onclick="loadMyApprovedPage(true)">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
         새로고침
       </button>
@@ -439,7 +439,7 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#f5f7f
       <span class="topbar-title">⚙️ APS 전체 결재 관리</span>
       <span class="topbar-cnt" id="admin-total-count"></span>
       <div class="topbar-space"></div>
-      <button class="btn-refresh" onclick="loadAdminPage()">
+      <button class="btn-refresh" onclick="loadAdminPage(true)">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
         새로고침
       </button>
@@ -485,7 +485,7 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#f5f7f
       <span class="topbar-title">Approval Hub</span>
       <span class="topbar-cnt" id="summary-count">총 0건</span>
       <div class="topbar-space"></div>
-      <button class="btn-refresh" onclick="loadAll()">
+      <button class="btn-refresh" onclick="loadAll(true)">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
         새로고침
       </button>
@@ -609,6 +609,8 @@ const SYSTEMS=[
 ];
 
 let msalApp=null,user=null,siteId=null,_allData={},_pending=null,_currentApprList=[];
+const CACHE_TTL_MS = 90000; // 탭 재진입 시 90초 이내면 재조회하지 않고 캐시 사용 (새로고침 버튼은 항상 강제 재조회)
+let _allDataTime=0, _adminDataTime=0, _myApprovedDataTime=0;
 const PAGE_SIZE=5;
 let _pages={};
 
@@ -641,6 +643,8 @@ async function token(){
 
 // ── 페이지네이션 전체 조회 헬퍼 ──
 async function apiAll(path) {
+  // SharePoint 기본 페이지 크기(200건)보다 크게 요청해서 왕복 횟수를 줄임 (데이터 누락 없이 전량은 그대로 다 읽음)
+  if (!/[?&]\$top=/.test(path)) path += (path.includes('?') ? '&' : '?') + '$top=999';
   let items = [], url = path;
   while(url) {
     const d = await api(url);
@@ -768,7 +772,8 @@ async function boot(account){
   loadAnnouncements();
 }
 
-async function loadAll(){
+async function loadAll(force=false){
+  if (!force && _allDataTime && (Date.now()-_allDataTime) < CACHE_TTL_MS) { renderAll(); return; }
   loading(true,'전체 결재 데이터 불러오는 중...');
   _allData={};
   await Promise.all(SYSTEMS.map(async sys=>{
@@ -781,6 +786,7 @@ async function loadAll(){
       _allData[sys.key]={apprItems:apprData.value,reqMap};
     }catch(e){_allData[sys.key]={apprItems:[],reqMap:{},error:e.message};}
   }));
+  _allDataTime = Date.now();
   loading(false);
   renderAll();
 }
@@ -1573,7 +1579,7 @@ async function doApproval(){
     if(_cur.fields.Status!=='대기'){
       loading(false);
       alert('이미 처리된 결재 항목입니다.\n다른 창에서 처리되었거나 이미 완료된 항목입니다.');
-      await loadAll(); return;
+      await loadAll(true); return;
     }
     await api('/sites/'+siteId+'/lists/'+sys.apr+'/items/'+apprId,'PATCH',{fields:{Status:action==='승인'?'승인':action,ApprovalDate:new Date().toISOString(),Comment:comment}});
     if(action==='반려'){
@@ -1585,7 +1591,8 @@ async function doApproval(){
       else await api('/sites/'+siteId+'/lists/'+sys.req+'/items/'+reqId,'PATCH',{fields:{Status:'승인완료'}});
     }
     closeDetail();
-    await loadAll();
+    _adminDataTime = 0; _myApprovedDataTime = 0; // 다른 탭 캐시도 무효화 (전환 시 최신 상태 보장)
+    await loadAll(true);
   }catch(e){alert('오류: '+e.message);}
   finally{loading(false);}
 }
@@ -1643,7 +1650,8 @@ let _myApprovedData = [];
 let _myApprovedPage = 1;
 const MYA_PAGE_SIZE = 15;
 
-async function loadMyApprovedPage() {
+async function loadMyApprovedPage(force=false) {
+  if (!force && _myApprovedDataTime && (Date.now()-_myApprovedDataTime) < CACHE_TTL_MS) { renderMyApprovedTable(true); return; }
   const wrap = document.getElementById('myapproved-table-wrap');
   wrap.innerHTML = '<div style="padding:40px;text-align:center;color:#94a3b8;">결재 기록 불러오는 중...</div>';
   _myApprovedData = [];
@@ -1692,6 +1700,7 @@ async function loadMyApprovedPage() {
   }));
 
   _myApprovedData.sort((a,b) => (b.processedAt > a.processedAt ? 1 : -1));
+  _myApprovedDataTime = Date.now();
   renderMyApprovedTable(true);
 }
 
@@ -1790,7 +1799,12 @@ function renderMyApprovedTable(resetPage) {
 
 let _adminData = [];
 
-async function loadAdminPage() {
+async function loadAdminPage(force=false) {
+  if (!force && _adminDataTime && (Date.now()-_adminDataTime) < CACHE_TTL_MS) {
+    document.getElementById('admin-total-count').textContent = '총 '+_adminData.length+'건';
+    renderAdminTable();
+    return;
+  }
   document.getElementById('admin-table-wrap').innerHTML = '<div style="padding:40px;text-align:center;color:#94a3b8;">전체 데이터 로딩 중...</div>';
   _adminData = [];
   await Promise.all(SYSTEMS.map(async sys => {
@@ -1834,6 +1848,7 @@ async function loadAdminPage() {
     } catch(e) {}
   }));
   document.getElementById('admin-total-count').textContent = '총 '+_adminData.length+'건';
+  _adminDataTime = Date.now();
   renderAdminTable();
 }
 
