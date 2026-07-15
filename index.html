@@ -1671,6 +1671,22 @@ async function loadMyApprovedPage(force=false) {
         const rid = String(i.fields.RequestID);
         totalMap[rid] = (totalMap[rid]||0) + 1;
       });
+      // 티켓별 현재 전체 상태 계산 (내 결재와 별개로, 다른 결재자들 상태까지 종합해서 진행중/승인완료/반려/대기 판단)
+      const aprByReq = {};
+      aprData.value.forEach(i => {
+        const rid = String(i.fields.RequestID);
+        (aprByReq[rid] = aprByReq[rid]||[]).push(i.fields);
+      });
+      const ticketStatusMap = {};
+      Object.keys(aprByReq).forEach(rid => {
+        const aprStatuses = aprByReq[rid].map(a => (a.Status && a.Status.Value ? a.Status.Value : a.Status || '').trim());
+        const rf = reqMap[rid] || {};
+        let st = rf.Status || '대기';
+        if (aprStatuses.some(s => s === '반려')) st = '반려';
+        else if (aprStatuses.length && aprStatuses.every(s => s === '승인')) st = '승인완료';
+        else if (aprStatuses.some(s => s === '대기')) st = '진행중';
+        ticketStatusMap[rid] = st;
+      });
 
       aprData.value
         .filter(i => {
@@ -1694,6 +1710,7 @@ async function loadMyApprovedPage(force=false) {
             aprOrder:    f.ApprovalOrder || '',
             totalAprs:   totalMap[String(f.RequestID)] || '',
             processedAt: f.Modified || '',
+            ticketStatus: ticketStatusMap[String(f.RequestID)] || '-',
           });
         });
     } catch(e) { console.warn('myapproved load error', sys.key, e); }
@@ -1734,6 +1751,9 @@ function renderMyApprovedTable(resetPage) {
 
   const stColor = { '승인':'#15803d', '반려':'#b91c1c' };
   const stBg    = { '승인':'#dcfce7', '반려':'#fee2e2' };
+  // 티켓 현재 상태(진행중/승인완료/반려/대기) 배지 색상 — 전체 결재관리 테이블과 동일 팔레트
+  const tsColor = {'대기':'#b45309','진행중':'#1d4ed8','승인완료':'#15803d','반려':'#b91c1c'};
+  const tsBg    = {'대기':'#fef3c7','진행중':'#dbeafe','승인완료':'#dcfce7','반려':'#fee2e2'};
 
   function fmtDt(iso) {
     if (!iso) return '';
@@ -1761,6 +1781,9 @@ function renderMyApprovedTable(resetPage) {
       </td>
       <td style="padding:6px 8px;color:#94a3b8;white-space:nowrap;font-size:.75rem">${fmtDt(r.requestDate)}</td>
       <td style="padding:6px 8px;color:#64748b;white-space:nowrap;font-size:.75rem">${fmtDt(r.processedAt)}</td>
+      <td style="padding:6px 8px;text-align:center">
+        <span style="background:${tsBg[r.ticketStatus]||'#f1f5f9'};color:${tsColor[r.ticketStatus]||'#374151'};border-radius:10px;padding:2px 8px;font-size:.72rem;font-weight:700">${r.ticketStatus}</span>
+      </td>
     </tr>`;}).join('');
 
   // pagination
@@ -1787,9 +1810,10 @@ function renderMyApprovedTable(resetPage) {
             <th style="padding:10px 10px;text-align:left;font-weight:600">신청자</th>
             <th style="padding:10px 10px;text-align:left;font-weight:600">처리자</th>
             <th style="padding:10px 10px;text-align:center;font-weight:600">결재차수</th>
-            <th style="padding:10px 10px;text-align:center;font-weight:600">결재결과</th>
+            <th style="padding:10px 10px;text-align:center;font-weight:600">내 결재 결과</th>
             <th style="padding:10px 10px;text-align:left;font-weight:600">신청일시</th>
             <th style="padding:10px 10px;text-align:left;font-weight:600">처리일시</th>
+            <th style="padding:10px 10px;text-align:center;font-weight:600">티켓 현재 상태</th>
           </tr>
         </thead>
         <tbody>${trs}</tbody>
