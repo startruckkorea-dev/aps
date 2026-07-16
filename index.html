@@ -402,6 +402,7 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#f5f7f
       <span id="myapproved-total-count" style="display:none"></span>
       <span id="mya-record-count" style="font-size:.78rem;color:#64748b;margin-left:8px;font-weight:400"></span>
       <div class="topbar-space"></div>
+      <button onclick="exportMyApprovedExcel()" style="background:#1d6f42;color:#fff;border:none;border-radius:6px;padding:6px 14px;font-size:.8rem;font-weight:600;cursor:pointer;font-family:inherit;margin-left:8px;">📊 Excel</button>
       <button class="btn-refresh" onclick="loadMyApprovedPage(true)">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
         새로고침
@@ -1819,6 +1820,30 @@ function renderMyApprovedTable(resetPage) {
         <tbody>${trs}</tbody>
       </table>
     </div>${pgHtml}`;
+}
+
+function exportMyApprovedExcel() {
+  if (!_myApprovedData.length) { alert('먼저 데이터를 로드해주세요.'); return; }
+  const fSys    = (document.getElementById('mya-filter-sys')||{}).value || '';
+  const fStatus = (document.getElementById('mya-filter-status')||{}).value || '';
+  const fSearch = ((document.getElementById('mya-search')||{}).value||'').toLowerCase();
+  const rows = _myApprovedData.filter(r =>
+    (!fSys    || r.sysKey === fSys) &&
+    (!fStatus || r.myStatus === fStatus) &&
+    (!fSearch || r.title.toLowerCase().includes(fSearch) || r.requester.toLowerCase().includes(fSearch))
+  );
+  const ws = XLSX.utils.json_to_sheet(rows.map((r,i) => ({
+    '번호': rows.length - i,
+    '결재시스템': r.sysLabel, '제목': r.title, '신청자': r.requester,
+    '처리자': r.approver, '처리자 이메일': r.approverEmail,
+    '결재차수': r.aprOrder + (r.totalAprs ? '/'+r.totalAprs : '') + '차',
+    '내 결재 결과': r.myStatus,
+    '신청일시': fmt(r.requestDate), '처리일시': fmt(r.processedAt),
+    '티켓 현재 상태': r.ticketStatus,
+  })));
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'My Approvals Record');
+  XLSX.writeFile(wb, 'My_Approvals_Record_'+new Date().toISOString().slice(0,10)+'.xlsx');
 }
 
 let _adminData = [];
