@@ -1813,7 +1813,7 @@ function renderMyApprovedTable(resetPage) {
             <th style="padding:10px 10px;text-align:center;font-weight:600">결재차수</th>
             <th style="padding:10px 10px;text-align:center;font-weight:600">내 결재 결과</th>
             <th style="padding:10px 10px;text-align:left;font-weight:600">신청일시</th>
-            <th style="padding:10px 10px;text-align:left;font-weight:600">처리일시</th>
+            <th style="padding:10px 10px;text-align:left;font-weight:600">내 처리일시</th>
             <th style="padding:10px 10px;text-align:center;font-weight:600">티켓 현재 상태</th>
           </tr>
         </thead>
@@ -1838,7 +1838,7 @@ function exportMyApprovedExcel() {
     '처리자': r.approver, '처리자 이메일': r.approverEmail,
     '결재차수': r.aprOrder + (r.totalAprs ? '/'+r.totalAprs : '') + '차',
     '내 결재 결과': r.myStatus,
-    '신청일시': fmt(r.requestDate), '처리일시': fmt(r.processedAt),
+    '신청일시': fmt(r.requestDate), '내 처리일시': fmt(r.processedAt),
     '티켓 현재 상태': r.ticketStatus,
   })));
   const wb = XLSX.utils.book_new();
