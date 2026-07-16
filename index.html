@@ -2066,7 +2066,7 @@ function exportAdminExcel() {
     '신청자': r.requester, '상태': r.reqStatus,
     '결재진행': r.doneCount+'/'+r.totalAprs+'차',
     '다음결재자': r.nextApprover, '다음결재역할': r.nextRole,
-    '신청일': r.requestDate, '최근결재일': r.lastApprovalDate,
+    '신청일': fmt(r.requestDate), '최근결재일': fmt(r.lastApprovalDate),
     '지연일수(신청일 기준)': delayDays, '정체일수(최근결재 기준)': stagnantDays,
     };
   }));
