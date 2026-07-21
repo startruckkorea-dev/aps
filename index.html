@@ -671,6 +671,74 @@ function fmt(s){if(!s)return'-';const d=new Date(new Date(s).getTime()+9*3600*10
 
 // ── System Config from SharePoint (system_config_final.xlsx) ──
 let _sysConfig = null;
+let _logDriveId = null;
+async function _getLogDriveId() {
+  if (_logDriveId) return _logDriveId;
+  try {
+    const drivesRes = await api('/sites/' + siteId + '/drives');
+    let docDrive = (drivesRes.value || []).find(d => ['Documents','문서','Shared Documents'].includes(d.name));
+    if (!docDrive && drivesRes.value && drivesRes.value.length) docDrive = drivesRes.value[0];
+    _logDriveId = docDrive ? docDrive.id : null;
+  } catch(e) { console.warn('[Log] drive 조회 실패:', e.message); }
+  return _logDriveId;
+}
+// 폴더 존재를 보장(없으면 생성). Graph의 경로기반 업로드가 중간 폴더를 항상 자동생성해준다고 단정할 수 없어
+// 명시적으로 한 단계씩 생성 시도 — 이미 있으면 409(Conflict)를 받는데 이는 정상 상황이라 무시.
+// 세션 내 확인된 경로는 캐싱해서, 같은 날/같은 시스템의 이후 로그 호출에서는 이 과정을 반복하지 않음.
+const _ensuredLogFolders = new Set();
+async function _ensureLogFolder(driveId, folderPath, t) {
+  if (_ensuredLogFolders.has(folderPath)) return true;
+  const parts = folderPath.split('/').filter(Boolean);
+  let cur = '';
+  try {
+    for (const part of parts) {
+      const parentUrl = cur ? `${GRAPH}/drives/${driveId}/root:/${cur}:/children` : `${GRAPH}/drives/${driveId}/root/children`;
+      const res = await fetch(parentUrl, {
+        method: 'POST',
+        headers: { Authorization: 'Bearer ' + t, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: part, folder: {}, '@microsoft.graph.conflictBehavior': 'fail' })
+      });
+      if (!res.ok && res.status !== 409) { console.warn('[Log] 폴더 생성 실패:', cur+'/'+part, res.status); return false; }
+      cur = cur ? cur + '/' + part : part;
+    }
+    _ensuredLogFolders.add(folderPath);
+    return true;
+  } catch(e) { console.warn('[Log] 폴더 생성 오류:', e.message); return false; }
+}
+// 범용 로깅 유틸 — 감사 목적 이벤트(예: Excel 내보내기)를 STK-DB "Logging_data" 폴더에 개별 JSON 파일로 기록.
+// 설계 원칙: (1) fire-and-forget — 호출부(예: Excel 내보내기 버튼)를 절대 블로킹하지 않고, 실패해도 원 기능은 항상 정상 동작
+//           (2) 매번 새 파일만 생성 — 기존 파일을 읽어서 고치는 과정이 없어 동시 기록 충돌(race condition) 자체가 불가능
+//           (3) 시스템/날짜별 하위폴더로 분산 — 폴더 하나가 무한정 커지는 것을 방지, 특정 날짜/시스템만 찾아보기도 쉬움
+//           (4) 파일 하나 크기가 1KB 미만이라 SharePoint 용량/성능에 주는 부담이 사실상 없음
+function logAction(systemName, action, detail) {
+  (async () => {
+    try {
+      const driveId = await _getLogDriveId();
+      if (!driveId) return;
+      const t = await token();
+      const now = new Date(new Date().getTime() + 9*3600*1000); // KST
+      const p = n => String(n).padStart(2,'0');
+      const dateStr = `${now.getUTCFullYear()}-${p(now.getUTCMonth()+1)}-${p(now.getUTCDate())}`;
+      const timeStr = `${p(now.getUTCHours())}${p(now.getUTCMinutes())}${p(now.getUTCSeconds())}`;
+      const rawUser = (user && (user.email || user.username)) || 'unknown';
+      const userTag = rawUser.split('@')[0].replace(/[^a-zA-Z0-9._-]/g, '_');
+      const rand = Math.random().toString(36).slice(2, 6); // 같은 초에 여러 로그가 생겨도 파일명 충돌 방지
+      const folderPath = `Logging_data/${systemName}/${dateStr}`;
+      const folderOk = await _ensureLogFolder(driveId, folderPath, t);
+      if (!folderOk) return;
+      const path = `/${folderPath}/${timeStr}_${userTag}_${rand}.json`;
+      const body = JSON.stringify({
+        timestampKST: `${dateStr} ${p(now.getUTCHours())}:${p(now.getUTCMinutes())}:${p(now.getUTCSeconds())}`,
+        user: rawUser, system: systemName, action, detail: detail || {}
+      });
+      await fetch(GRAPH + '/drives/' + driveId + '/root:' + path + ':/content', {
+        method: 'PUT',
+        headers: { Authorization: 'Bearer ' + t, 'Content-Type': 'application/json' },
+        body
+      });
+    } catch(e) { console.warn('[Log] 기록 실패(무시됨, 원 기능엔 영향 없음):', e.message); }
+  })();
+}
 async function loadSystemConfig() {
   if (_sysConfig) return _sysConfig;
   try {
@@ -1832,6 +1900,7 @@ function exportMyApprovedExcel() {
     (!fStatus || r.myStatus === fStatus) &&
     (!fSearch || r.title.toLowerCase().includes(fSearch) || r.requester.toLowerCase().includes(fSearch))
   );
+  logAction('APS', 'Excel 내보내기', { 화면: 'My Approvals Record', 건수: rows.length, 필터: { 시스템: fSys||'전체', 결과: fStatus||'전체', 검색어: fSearch||'' } });
   const ws = XLSX.utils.json_to_sheet(rows.map((r,i) => ({
     '번호': rows.length - i,
     '결재시스템': r.sysLabel, '제목': r.title, '신청자': r.requester,
@@ -2080,6 +2149,7 @@ function exportAdminExcel() {
     (!fSearch || r.title.toLowerCase().includes(fSearch) || r.requester.toLowerCase().includes(fSearch)) &&
       (!fApprover || (r.nextApprover||'').toLowerCase().includes(fApprover) || (r.nextRole||'').toLowerCase().includes(fApprover));
   });
+  logAction('APS', 'Excel 내보내기', { 화면: '전체 결재관리', 건수: rows.length, 필터: { 시스템: fSys||'전체', 상태: fStatus||'전체', 검색어: fSearch||'', 결재자검색: fApprover||'' } });
   const ws = XLSX.utils.json_to_sheet(rows.map(r => {
     const now = Date.now();
     const inProgress = r.reqStatus==='진행중';
