@@ -64,7 +64,7 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#f5f7f
 .sys-card-header{padding:14px 18px 12px;display:flex;align-items:center;justify-content:space-between}
 .sys-card-left{display:flex;align-items:center;gap:8px}
 .sys-dot{width:8px;height:8px;border-radius:50%;background:#1a5fb4}
-.sys-IT .sys-dot,.sys-SCC .sys-dot,.sys-GW .sys-dot,.sys-BP .sys-dot,.sys-FA .sys-dot,.sys-MC .sys-dot,.sys-RR .sys-dot,.sys-GA_STN .sys-dot,.sys-GA_BC .sys-dot,.sys-GA_IDC .sys-dot,.sys-LTR .sys-dot,.sys-CTR_PR .sys-dot{background:#1a5fb4}
+.sys-IT .sys-dot,.sys-SCC .sys-dot,.sys-GW .sys-dot,.sys-BP .sys-dot,.sys-FA .sys-dot,.sys-MC .sys-dot,.sys-RR .sys-dot,.sys-GA_STN .sys-dot,.sys-GA_BC .sys-dot,.sys-GA_IDC .sys-dot,.sys-LTR .sys-dot,.sys-CTR_PR .sys-dot,.sys-ACC .sys-dot{background:#1a5fb4}
 .sys-name{font-size:.88rem;font-weight:700;color:#1e293b}
 .sys-cnt-pill{background:#ef4444;color:#fff;border-radius:20px;padding:1px 8px;font-size:.65rem;font-weight:700;margin-left:2px}.sys-cnt-gray{background:#94a3b8!important}
 .sys-link{font-size:.72rem;color:#64748b;text-decoration:none;padding:4px 12px;border:1px solid #e2e8f0;border-radius:20px;transition:all .15s;font-weight:500}
@@ -380,6 +380,7 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#f5f7f
         <a href="https://ga.startruckkorea.com/" target="_self" class="ql-btn"><div class="qi" style="background:#6366f118;color:#6366f1"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="11" r="2"/><line x1="6.5" y1="16" x2="11.5" y2="16"/><line x1="14" y1="9" x2="18" y2="9"/><line x1="14" y1="13" x2="18" y2="13"/></svg></div><span class="ql">General Affairs</span></a>
         <a href="https://ltr-pc.startruckkorea.com/" target="_self" class="ql-btn"><div class="qi" style="background:#f5950018;color:#f59500"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.5s5.8 6.8 5.8 10.7a5.8 5.8 0 0 1-11.6 0C6.2 9.3 12 2.5 12 2.5z"/></svg></div><span class="ql">LTR-PC</span></a>
         <a href="https://ctr-pr.startruckkorea.com/" target="_self" class="ql-btn"><div class="qi" style="background:#a855f718;color:#a855f7"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3" width="14" height="18" rx="2"/><rect x="9" y="1.3" width="6" height="3" rx="1"/><line x1="8" y1="10.5" x2="16" y2="10.5"/><line x1="8" y1="14.2" x2="16" y2="14.2"/><line x1="8" y1="17.9" x2="13" y2="17.9"/></svg></div><span class="ql">CTR PR</span></a>
+        <a id="ql-acc" href="https://acc-voucher.startruckkorea.com/" target="_self" class="ql-btn"><div class="qi" style="background:#05966918;color:#059669"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"/><line x1="8" y1="8" x2="16" y2="8"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="8" y1="16" x2="12" y2="16"/></svg></div><span class="ql">ACC Voucher</span></a>
       </div>
     </div>
     <div class="ql-group-sep"></div>
@@ -424,6 +425,7 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#f5f7f
         <option value="GA_IDC">GA ID Card</option>
         <option value="LTR">Local Travel (PC)</option>
         <option value="CTR_PR">CTR PR</option>
+        <option value="ACC" class="acc-filter-opt">ACC Voucher</option>
       </select>
       <select id="mya-filter-status" class="filter-select" onchange="renderMyApprovedTable(true)">
         <option value="">전체</option>
@@ -462,6 +464,7 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#f5f7f
         <option value="GA_IDC">GA ID Card</option>
         <option value="LTR">Local Travel (PC)</option>
         <option value="CTR_PR">CTR PR</option>
+        <option value="ACC" class="acc-filter-opt">ACC Voucher</option>
       </select>
       <select id="admin-filter-status" class="filter-select" onchange="renderAdminTable(true)">
         <option value="">전체 상태</option>
@@ -508,6 +511,7 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#f5f7f
         <option value="GA_IDC">GA ID Card</option>
         <option value="LTR">Local Travel (PC)</option>
         <option value="CTR_PR">CTR PR</option>
+        <option value="ACC" class="acc-filter-opt">ACC Voucher</option>
       </select>
       <select class="filter-select" id="filter-status" onchange="resetPages();renderAll()">
         <option value="대기">대기 중</option>
@@ -607,7 +611,37 @@ const SYSTEMS=[
   {key:'GA_IDC', name:'GA ID Card',       apr:'IDC_Approvals',    req:'IDC_Requests',   url:'https://ga.startruckkorea.com/',        historyList:'IDC_Approvals'},
   {key:'LTR',    name:'Local Travel (PC)', apr:'LTR_Approvals',   req:'LTR_Requests',   url:'https://ltr-pc.startruckkorea.com/',    historyList:'LTR_Approvals'},
   {key:'CTR_PR', name:'CTR PR', apr:'CTR_PR_Approvals', req:'CTR_PR_Requests', url:'https://ctr-pr.startruckkorea.com/', historyList:'CTR_PR_Approvals'},
+  {key:'ACC', name:'ACC Voucher', apr:'bf0412d9-6556-46d9-a165-149461a4f286', req:'060b5c19-b1ed-40a3-9dbd-fae9a6648a57', url:'https://acc-voucher.startruckkorea.com/', historyList:'bf0412d9-6556-46d9-a165-149461a4f286', restricted:true},
 ];
+
+// ── ACC Voucher 전용: Approvals가 여러 "세대"로 나뉠 수 있어(acc_voucher_volumes.json) 다른 시스템과 다르게
+// 등록된 모든 세대를 동시에 조회해서 합쳐야 함. Requests는 고정이라 일반 로직 그대로 사용 가능.
+let _accVolConfig = null;
+async function loadAccVolumeConfig() {
+  if (_accVolConfig) return _accVolConfig;
+  try {
+    const drivesRes = await api('/sites/' + siteId + '/drives');
+    const docDrive = (drivesRes.value||[]).find(d=>['Documents','문서','Shared Documents'].includes(d.name)) || (drivesRes.value||[])[0];
+    const t = await token();
+    const res = await fetch(GRAPH+'/drives/'+docDrive.id+'/root:/acc_voucher_volumes.json:/content', {headers:{Authorization:'Bearer '+t}});
+    if (res.ok) { _accVolConfig = await res.json(); }
+    else { _accVolConfig = { aprVolumes: [{code:'APR01', id:'bf0412d9-6556-46d9-a165-149461a4f286'}] }; }
+  } catch(e) {
+    console.warn('[ACC] 세대 설정 로드 실패, 기본 세대만 사용:', e.message);
+    _accVolConfig = { aprVolumes: [{code:'APR01', id:'bf0412d9-6556-46d9-a165-149461a4f286'}] };
+  }
+  return _accVolConfig;
+}
+// ACC Voucher의 등록된 모든 Approvals 세대를 병렬로 조회해서 apiAll()과 동일한 {value:[...]} 형태로 합쳐서 반환
+async function fetchAllAccApprovals() {
+  const cfg = await loadAccVolumeConfig();
+  const results = await Promise.all((cfg.aprVolumes||[]).map(vol =>
+    apiAll('/sites/'+siteId+'/lists/'+vol.id+'/items?$expand=fields')
+      .then(r=>{ (r.value||[]).forEach(item=>{ item._accVolId = vol.id; }); return r; })
+      .catch(()=>({value:[]}))
+  ));
+  return { value: results.flatMap(r=>r.value||[]) };
+}
 
 let msalApp=null,user=null,siteId=null,_allData={},_pending=null,_currentApprList=[];
 const CACHE_TTL_MS = 90000; // 탭 재진입 시 90초 이내면 재조회하지 않고 캐시 사용 (새로고침 버튼은 항상 강제 재조회)
@@ -775,6 +809,28 @@ function cfgVal(cfg, key, defaultObj) {
   const v = cfg[key];
   return { ...defaultObj, name: v.name || defaultObj.name, email: v.email || defaultObj.email };
 }
+// ACC Voucher는 회계 데이터라 접근을 제한함 — system_config_final.xlsx에서 "ACC-Voucher_"로 시작하는 모든 키의 이메일을 화이트리스트로 자동 구성
+// (config 시트에 사람이 추가/제거되면 여기도 자동으로 반영됨, 하드코딩 없음)
+function getAccAllowedEmails() {
+  if (!_sysConfig) return [];
+  return Object.keys(_sysConfig)
+    .filter(k => k.startsWith('ACC-Voucher_'))
+    .map(k => (_sysConfig[k].email||'').toLowerCase())
+    .filter(Boolean);
+}
+function isAccAllowed() {
+  const list = getAccAllowedEmails();
+  const ue = (user && (user.email||'')).toLowerCase();
+  const uu = (user && (user.username||'')).toLowerCase();
+  return list.includes(ue) || list.includes(uu);
+}
+function showAccRestrictedPopup() {
+  alert('🔒 접근 권한이 없습니다\n\nACC Voucher(회계 전표) 데이터는 관련 담당자만 조회할 수 있습니다.\n권한이 필요하시면 IT팀에 문의해주세요.');
+}
+// 데이터 조회 시 사용할 시스템 목록 — ACC Voucher는 권한 없는 사용자에겐 아예 제외해서 데이터 자체를 안 불러옴
+function visibleSystems() {
+  return isAccAllowed() ? SYSTEMS : SYSTEMS.filter(s => s.key !== 'ACC');
+}
 function openKriLink() {
   window.open('https://kri.startruckkorea.com/', '_blank');
 }
@@ -829,6 +885,12 @@ async function boot(account){
     if(_navEl && _contact.email) _navEl.textContent = '문의: ' + _contact.email;
   }
   loading(false);
+  // ACC Voucher 접근 권한 없으면 퀵링크·필터 옵션에서 아예 제거 (데이터 자체도 아래 loadAll 등에서 안 불러옴)
+  if (!isAccAllowed()) {
+    const qlAcc = document.getElementById('ql-acc');
+    if (qlAcc) qlAcc.remove();
+    document.querySelectorAll('.acc-filter-opt').forEach(el => el.remove());
+  }
   // ADMIN_SP 체크 → 관리자 탭 표시
   if (_cfg) {
     const _ue = (user.email||'').toLowerCase();
@@ -849,10 +911,10 @@ async function loadAll(force=false){
   if (!force && _allDataTime && (Date.now()-_allDataTime) < CACHE_TTL_MS) { renderAll(); return; }
   loading(true,'전체 결재 데이터 불러오는 중...');
   _allData={};
-  await Promise.all(SYSTEMS.map(async sys=>{
+  await Promise.all(visibleSystems().map(async sys=>{
     try{
       const [apprData,reqData]=await Promise.all([
-        apiAll('/sites/'+siteId+'/lists/'+sys.apr+'/items?$expand=fields'),
+        sys.key==='ACC' ? fetchAllAccApprovals() : apiAll('/sites/'+siteId+'/lists/'+sys.apr+'/items?$expand=fields'),
         apiAll('/sites/'+siteId+'/lists/'+sys.req+'/items?$expand=fields'),
       ]);
       const reqMap={};reqData.value.forEach(r=>{const rf=r.fields; if(!rf.RequestDate && rf.SubmittedDate) rf.RequestDate=rf.SubmittedDate; reqMap[r.id]=rf;});
@@ -1340,6 +1402,7 @@ function escHtml(str){return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt
 // ──────────────────────────────────────────────────────────────
 
 async function showDetail(sysKey,reqId){
+  if(sysKey==='ACC' && !isAccAllowed()){ showAccRestrictedPopup(); return; }
   // 유의사항: BP/FA/SCC만 표시
   var _noticeEl=document.getElementById('detail-notice');
   var _noticeTxt=document.getElementById('detail-notice-text');
@@ -1372,8 +1435,7 @@ async function showDetail(sysKey,reqId){
         const _sel=(sysKey==='GA_STN'||sysKey==='GA_BC'||sysKey==='GA_IDC')?`?$expand=fields($select=${_gaFields})`:'?$expand=fields';
         return api('/sites/'+siteId+'/lists/'+sys.req+'/items/'+reqId+_sel);
       })(),
-      apiAll('/sites/'+siteId+'/lists/'+sys.apr+'/items?$expand=fields'),
-      sysKey==='SCC' ? apiAll('/sites/'+siteId+'/lists/SCC_ChecklistResponses/items?$expand=fields').catch(()=>({value:[]})) : Promise.resolve({value:[]}),
+      sysKey==='ACC' ? fetchAllAccApprovals() : apiAll('/sites/'+siteId+'/lists/'+sys.apr+'/items?$expand=fields'),
     ]);
     const clResponses = clRaw||{value:[]};
     const f=r.fields;
@@ -1404,7 +1466,7 @@ async function showDetail(sysKey,reqId){
     };
     const rowFull=(l,v)=>`<div style="padding:7px 0;border-bottom:0.5px solid #edebe9;font-size:13px"><div style="font-size:11px;color:#605e5c;margin-bottom:3px">${l}</div><div style="white-space:pre-wrap;color:#323130">${v||'-'}</div></div>`;
 
-    let info=sec('기본 정보')+row('Title',(['GW','IT','SCC','BP','FA','MC','RR','GA_STN','GA_BC','GA_IDC','CTR_PR'].includes(sys.key)?f.Title:('#'+reqId))||'-')+row('신청자',f.RequesterEmail)+
+    let info=sec('기본 정보')+row('Title',(['GW','IT','SCC','BP','FA','MC','RR','GA_STN','GA_BC','GA_IDC','CTR_PR','ACC'].includes(sys.key)?f.Title:('#'+reqId))||'-')+row('신청자',f.RequesterEmail)+
       row('상태',stBadge(f.Status))+row('신청일',fmt(f.RequestDate));
 
     if(sysKey==='IT'){
@@ -1494,6 +1556,10 @@ async function showDetail(sysKey,reqId){
       }
       info+=sec('첨부파일')+_idcFiles;
     }
+    else if(sysKey==='ACC'){
+      info+=sec('전표 정보')+row('유형',f.VoucherType||'-')+row('BP명',f.BPName||'-')+row('DR 합계(KRW)',f.TotalDR_KRW?Number(f.TotalDR_KRW).toLocaleString()+'원':'-')+row('CR 합계(KRW)',f.TotalCR_KRW?Number(f.TotalCR_KRW).toLocaleString()+'원':'-')+rowFull('Purpose',f.Purpose);
+      info+=`<div style="font-size:11px;color:#605e5c;padding:6px 0">※ 회계 라인(계정과목/차대변) 상세는 ACC Voucher에서 직접 확인해주세요 — <a href="${_sysUrl}" target="_blank" style="color:#0078d4;font-weight:700;text-decoration:underline">→ ACC Voucher 바로가기</a></div>`;
+    }
 
     const apprHtml=sec('결재 이력')+'<div class="appr-history">'+
       apprList.map(a=>{
@@ -1581,9 +1647,10 @@ document.addEventListener('click', async function(e){
 });
 
 async function quickConfirm(apprId,action,reqId,sysKey,apprRole='',apprOrder=0){
+  if(sysKey==='ACC' && !isAccAllowed()){ showAccRestrictedPopup(); return; }
   try{
     const sys=SYSTEMS.find(s=>s.key===sysKey);
-    const data=await apiAll('/sites/'+siteId+'/lists/'+sys.apr+'/items?$expand=fields');
+    const data = sysKey==='ACC' ? await fetchAllAccApprovals() : await apiAll('/sites/'+siteId+'/lists/'+sys.apr+'/items?$expand=fields');
     _currentApprList=data.value.filter(i=>Number(i.fields.RequestID)===Number(reqId))
       .sort((a,b)=>a.fields.ApprovalOrder-b.fields.ApprovalOrder);
   }catch(e){ _currentApprList=[]; }
@@ -1645,22 +1712,24 @@ async function doApproval(){
   if(action==='반려'&&!comment){alert('반려 사유를 입력해주세요.');return;}
   closeConfirm();
   const sys=SYSTEMS.find(s=>s.key===sysKey);
+  // ACC Voucher는 결재이력이 여러 세대(리스트)에 나뉘어 있을 수 있어, 이 apprId가 실제로 속한 리스트를 _currentApprList에서 찾아 사용
+  const aprListId = (sysKey==='ACC' && _currentApprList.find(i=>Number(i.id)===Number(apprId))?._accVolId) || sys.apr;
   loading(true,action==='승인'?'승인 처리 중...':'반려 처리 중...');
   try{
     // 이중 결재 방지: PATCH 전 현재 Status 확인
-    const _cur=await api('/sites/'+siteId+'/lists/'+sys.apr+'/items/'+apprId+'?$expand=fields');
+    const _cur=await api('/sites/'+siteId+'/lists/'+aprListId+'/items/'+apprId+'?$expand=fields');
     if(_cur.fields.Status!=='대기'){
       loading(false);
       alert('이미 처리된 결재 항목입니다.\n다른 창에서 처리되었거나 이미 완료된 항목입니다.');
       await loadAll(true); return;
     }
-    await api('/sites/'+siteId+'/lists/'+sys.apr+'/items/'+apprId,'PATCH',{fields:{Status:action==='승인'?'승인':action,ApprovalDate:new Date().toISOString(),Comment:comment}});
+    await api('/sites/'+siteId+'/lists/'+aprListId+'/items/'+apprId,'PATCH',{fields:{Status:action==='승인'?'승인':action,ApprovalDate:new Date().toISOString(),Comment:comment}});
     if(action==='반려'){
       await api('/sites/'+siteId+'/lists/'+sys.req+'/items/'+reqId,'PATCH',{fields:{Status:'반려'}});
     }else{
-      const all=await apiAll('/sites/'+siteId+'/lists/'+sys.apr+'/items?$expand=fields');
+      const all = sysKey==='ACC' ? await fetchAllAccApprovals() : await apiAll('/sites/'+siteId+'/lists/'+sys.apr+'/items?$expand=fields');
       const next=all.value.filter(i=>Number(i.fields.RequestID)===Number(reqId)&&(i.fields.Status||'').trim()==='대기(잠김)').sort((a,b)=>a.fields.ApprovalOrder-b.fields.ApprovalOrder);
-      if(next.length)await api('/sites/'+siteId+'/lists/'+sys.apr+'/items/'+next[0].id,'PATCH',{fields:{Status:'대기'}});
+      if(next.length)await api('/sites/'+siteId+'/lists/'+(next[0]._accVolId||sys.apr)+'/items/'+next[0].id,'PATCH',{fields:{Status:'대기'}});
       else await api('/sites/'+siteId+'/lists/'+sys.req+'/items/'+reqId,'PATCH',{fields:{Status:'승인완료'}});
     }
     closeDetail();
@@ -1730,10 +1799,10 @@ async function loadMyApprovedPage(force=false) {
   _myApprovedData = [];
   const myEmail = (user.email || user.username || '').toLowerCase();
 
-  await Promise.all(SYSTEMS.map(async sys => {
+  await Promise.all(visibleSystems().map(async sys => {
     try {
       const [aprData, reqData] = await Promise.all([
-        apiAll('/sites/'+siteId+'/lists/'+sys.apr+'/items?$expand=fields'),
+        sys.key==='ACC' ? fetchAllAccApprovals() : apiAll('/sites/'+siteId+'/lists/'+sys.apr+'/items?$expand=fields'),
         apiAll('/sites/'+siteId+'/lists/'+sys.req+'/items?$expand=fields'),
       ]);
       const reqMap = {};
@@ -1929,10 +1998,10 @@ async function loadAdminPage(force=false) {
   }
   document.getElementById('admin-table-wrap').innerHTML = '<div style="padding:40px;text-align:center;color:#94a3b8;">전체 데이터 로딩 중...</div>';
   _adminData = [];
-  await Promise.all(SYSTEMS.map(async sys => {
+  await Promise.all(visibleSystems().map(async sys => {
     try {
       const [aprData, reqData] = await Promise.all([
-        apiAll('/sites/'+siteId+'/lists/'+sys.apr+'/items?$expand=fields'),
+        sys.key==='ACC' ? fetchAllAccApprovals() : apiAll('/sites/'+siteId+'/lists/'+sys.apr+'/items?$expand=fields'),
         apiAll('/sites/'+siteId+'/lists/'+sys.req+'/items?$expand=fields'),
       ]);
       const aprMap = {};
