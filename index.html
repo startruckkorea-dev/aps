@@ -411,7 +411,7 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#f5f7f
       <button onclick="switchApsTab('main')" style="background:#fff;color:#374151;border:1px solid #d1d5db;border-radius:6px;padding:5px 13px;font-size:.8rem;cursor:pointer;font-family:inherit;margin-left:8px;box-shadow:0 1px 2px rgba(0,0,0,.06);">← 결재함</button>
     </div>
     <div class="filter-row" style="margin:6px 0 12px;">
-      <select id="mya-filter-sys" class="filter-select" onchange="renderMyApprovedTable(true)">
+      <select id="mya-filter-sys" class="filter-select" onchange="if(guardAccFilter(this))renderMyApprovedTable(true)">
         <option value="">전체 시스템</option>
         <option value="IT">IT Ticket</option>
         <option value="SCC">STK Contract</option>
@@ -450,7 +450,7 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#f5f7f
       <button onclick="switchApsTab('main')" style="background:#fff;color:#374151;border:1px solid #d1d5db;border-radius:6px;padding:6px 14px;font-size:.8rem;cursor:pointer;font-family:inherit;margin-left:8px;box-shadow:0 1px 2px rgba(0,0,0,.06);">← 결재함</button>
     </div>
     <div class="filter-row" style="margin:8px 0 12px;">
-      <select id="admin-filter-sys" class="filter-select" onchange="renderAdminTable(true)">
+      <select id="admin-filter-sys" class="filter-select" onchange="if(guardAccFilter(this))renderAdminTable(true)">
         <option value="">전체 시스템</option>
         <option value="IT">IT Ticket</option>
         <option value="SCC">STK Contract</option>
@@ -497,7 +497,7 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#f5f7f
 
     <!-- Filter -->
     <div class="filter-row">
-      <select class="filter-select" id="filter-sys" onchange="resetPages();renderAll()">
+      <select class="filter-select" id="filter-sys" onchange="if(guardAccFilter(this)){resetPages();renderAll();}">
         <option value="">전체 시스템</option>
         <option value="IT">IT Ticket</option>
         <option value="SCC">STK Contract</option>
@@ -827,6 +827,15 @@ function isAccAllowed() {
 function showAccRestrictedPopup() {
   alert('🔒 접근 권한이 없습니다\n\nACC Voucher(회계 전표) 데이터는 관련 담당자만 조회할 수 있습니다.\n권한이 필요하시면 IT팀에 문의해주세요.');
 }
+// 시스템 필터에서 "ACC Voucher"를 선택했을 때 권한 체크 - 없으면 팝업 띄우고 필터를 원래대로 되돌림
+function guardAccFilter(sel) {
+  if (sel.value === 'ACC' && !isAccAllowed()) {
+    showAccRestrictedPopup();
+    sel.value = '';
+    return false;
+  }
+  return true;
+}
 // 데이터 조회 시 사용할 시스템 목록 — ACC Voucher는 권한 없는 사용자에겐 아예 제외해서 데이터 자체를 안 불러옴
 function visibleSystems() {
   return isAccAllowed() ? SYSTEMS : SYSTEMS.filter(s => s.key !== 'ACC');
@@ -885,12 +894,6 @@ async function boot(account){
     if(_navEl && _contact.email) _navEl.textContent = '문의: ' + _contact.email;
   }
   loading(false);
-  // ACC Voucher 접근 권한 없으면 퀵링크·필터 옵션에서 아예 제거 (데이터 자체도 아래 loadAll 등에서 안 불러옴)
-  if (!isAccAllowed()) {
-    const qlAcc = document.getElementById('ql-acc');
-    if (qlAcc) qlAcc.remove();
-    document.querySelectorAll('.acc-filter-opt').forEach(el => el.remove());
-  }
   // ADMIN_SP 체크 → 관리자 탭 표시
   if (_cfg) {
     const _ue = (user.email||'').toLowerCase();
@@ -1424,7 +1427,7 @@ async function showDetail(sysKey,reqId){
   }
   const modal=document.getElementById('detail-modal');
   document.getElementById('detail-content').innerHTML='<div style="text-align:center;padding:32px;color:#718096"><div class="spinner" style="margin:0 auto 12px"></div>불러오는 중...</div>';
-  document.getElementById('detail-sys-badge').innerHTML=`<span class="sys-badge sys-${sysKey}">${sysKey}</span>`;
+  document.getElementById('detail-sys-badge').innerHTML=`<span class="sys-badge sys-${sysKey}">${sysKey==='ACC'?'ACC Voucher':sysKey}</span>`;
   document.getElementById('detail-title').textContent='신청 상세 내용';
   modal.className='open';
   const sys=SYSTEMS.find(s=>s.key===sysKey);
@@ -1557,7 +1560,9 @@ async function showDetail(sysKey,reqId){
       info+=sec('첨부파일')+_idcFiles;
     }
     else if(sysKey==='ACC'){
-      info+=sec('전표 정보')+row('유형',f.VoucherType||'-')+row('BP명',f.BPName||'-')+row('DR 합계(KRW)',f.TotalDR_KRW?Number(f.TotalDR_KRW).toLocaleString()+'원':'-')+row('CR 합계(KRW)',f.TotalCR_KRW?Number(f.TotalCR_KRW).toLocaleString()+'원':'-')+rowFull('Purpose',f.Purpose);
+      const _exRate=(f.ExchangeRate||'').split(',').filter(s=>{const v=parseFloat(s.split(':')[1]);return v>0;}).map(s=>{const[c,v]=s.split(':');return c+' '+Number(v).toLocaleString();}).join(' · ')||'KRW (환율 미해당)';
+      info+=sec('전표 정보')+row('유형',f.VoucherType||'-')+row('원가부서(CCTR)',f.RequesterCCTR||'-')+row('BP 코드',f.BPCode||'-')+row('BP명',f.BPName||'-')+row('사업자등록번호',f.BPBizNo||'-')+row('Invoice Date',f.InvoiceDate||'-')+row('참고 환율',_exRate)+row('DR 합계(KRW)',f.TotalDR_KRW?Number(f.TotalDR_KRW).toLocaleString()+'원':'-')+row('CR 합계(KRW)',f.TotalCR_KRW?Number(f.TotalCR_KRW).toLocaleString()+'원':'-')+rowFull('Purpose',f.Purpose);
+      info+=sec('첨부파일')+parseFiles(f.AttachmentRef);
       info+=`<div style="font-size:11px;color:#605e5c;padding:6px 0">※ 회계 라인(계정과목/차대변) 상세는 ACC Voucher에서 직접 확인해주세요 — <a href="${_sysUrl}" target="_blank" style="color:#0078d4;font-weight:700;text-decoration:underline">→ ACC Voucher 바로가기</a></div>`;
     }
 
