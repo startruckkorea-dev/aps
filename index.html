@@ -2242,15 +2242,15 @@ const _REPORT_T = {
 };
 
 function _svgHBarChart(data, esc) {
-  const labelW = 92, chartW = 320, barH = 18, gap = 8;
+  const labelW = 100, chartW = 320, barH = 22, gap = 10;
   const maxVal = Math.max(1, ...data.map(d=>d.value));
   const h = data.length * (barH+gap);
   const bars = data.map((d,i) => {
     const y = i*(barH+gap);
     const bw = Math.max(2, Math.round((d.value/maxVal)*chartW));
-    return `<text x="0" y="${y+barH*0.72}" font-size="10.5" fill="#374151">${esc(d.label)}</text>
+    return `<text x="0" y="${y+barH*0.68}" font-size="13" font-weight="600" fill="#374151">${esc(d.label)}</text>
       <rect x="${labelW}" y="${y}" width="${bw}" height="${barH}" fill="${d.color||'#1a5fb4'}" rx="3"/>
-      <text x="${labelW+bw+6}" y="${y+barH*0.72}" font-size="10.5" fill="#1f2937" font-weight="700">${d.value}</text>`;
+      <text x="${labelW+bw+8}" y="${y+barH*0.68}" font-size="13" fill="#1f2937" font-weight="700">${d.value}</text>`;
   }).join('');
   return `<svg viewBox="0 0 ${labelW+chartW+40} ${h+6}" width="100%" style="max-width:440px">${bars}</svg>`;
 }
@@ -2268,7 +2268,7 @@ function _svgDonutChart(data, esc) {
     const x2 = cx + r*Math.cos(a2*Math.PI/180), y2 = cy + r*Math.sin(a2*Math.PI/180);
     paths += `<path d="M${cx},${cy} L${x1},${y1} A${r},${r} 0 ${large} 1 ${x2},${y2} Z" fill="${d.color}"/>`;
   });
-  const legend = data.map(d=>`<div style="display:flex;align-items:center;gap:6px;font-size:11px;margin-bottom:5px"><span style="width:10px;height:10px;background:${d.color};display:inline-block;border-radius:2px;flex-shrink:0"></span>${esc(d.label)}: <b>${d.value}</b> (${Math.round(d.value/total*100)}%)</div>`).join('');
+  const legend = data.map(d=>`<div style="display:flex;align-items:center;gap:7px;font-size:12.5px;margin-bottom:7px"><span style="width:11px;height:11px;background:${d.color};display:inline-block;border-radius:2px;flex-shrink:0"></span>${esc(d.label)}: <b>${d.value}</b> (${Math.round(d.value/total*100)}%)</div>`).join('');
   return `<div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap">
     <svg viewBox="0 0 ${size} ${size}" width="${size}" height="${size}">${paths}<circle cx="${cx}" cy="${cy}" r="${cr}" fill="#fff"/></svg>
     <div>${legend}</div>
@@ -2334,10 +2334,10 @@ async function generateExecReport(lang) {
 
   const esc = s => String(s==null?'':s).replace(/</g,'&lt;').replace(/>/g,'&gt;');
 
-  // ── 차트 데이터 ──
-  const sysChartData = Object.entries(bySys).filter(([,s])=>s.pending>0).sort((a,b)=>b[1].pending-a[1].pending).slice(0,10)
+  // ── 차트 데이터 (전체 시스템 표시 — 개수 제한 없음, APS 연동 시스템이 아직 20개 미만이라 다 보여줘도 안 복잡함) ──
+  const sysChartData = Object.entries(bySys).filter(([,s])=>s.pending>0).sort((a,b)=>b[1].pending-a[1].pending)
     .map(([name,s])=>({label:name, value:s.pending, color:'#1a5fb4'}));
-  const totalVolChartData = Object.entries(bySys).sort((a,b)=>b[1].total-a[1].total).slice(0,10)
+  const totalVolChartData = Object.entries(bySys).sort((a,b)=>b[1].total-a[1].total)
     .map(([name,s])=>({label:name, value:s.total, color:'#5c2d91'}));
   const statusChartData = [
     { label:T.statusLabels.approved, value:totalApproved, color:'#15803d' },
@@ -2448,8 +2448,13 @@ async function generateExecReport(lang) {
   </div>
 
   <h2>${T.totalVolTitle}</h2>
-  <table><thead><tr><th>${T.totalVolCols[0]}</th><th>${T.totalVolCols[1]}</th></tr></thead>
-  <tbody>${Object.entries(bySys).sort((a,b)=>b[1].total-a[1].total).map(([name,s])=>`<tr><td>${esc(name)}</td><td style="text-align:center;font-weight:600">${s.total}</td></tr>`).join('')}</tbody></table>
+  <div style="display:flex;flex-wrap:wrap;gap:9px;margin-bottom:30px">
+    ${Object.entries(bySys).sort((a,b)=>b[1].total-a[1].total).map(([name,s])=>`
+    <div style="display:flex;align-items:center;gap:7px;background:#f8fafc;border:1px solid #e6e9ef;border-radius:7px;padding:7px 13px;font-size:12.5px;box-shadow:0 1px 2px rgba(15,39,68,.04)">
+      <span style="color:#374151;font-weight:600">${esc(name)}</span>
+      <span style="color:#5c2d91;font-weight:800;font-size:13.5px">${s.total}</span>
+    </div>`).join('')}
+  </div>
 
   <h2>${T.bottleneckSection}</h2>
   <table><thead><tr><th>${T.bottleneckCols[0]}</th><th>${T.bottleneckCols[1]}</th><th>${T.bottleneckCols[2]}</th></tr></thead>
