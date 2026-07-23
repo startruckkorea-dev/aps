@@ -665,7 +665,7 @@ window.addEventListener('load',async()=>{
   }catch(e){btn.disabled=false;btn.innerHTML='<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg><span>Hyosung M365 계정으로 로그인</span>';document.getElementById('login-err').textContent='오류: '+e.message;document.getElementById('login-err').style.display='block';}
 });
 async function signIn(){
-  try{if(window!==window.top){window.open(window.location.href,'_blank');return;}const r=await msalApp.loginPopup({scopes:SCOPES});msalApp.setActiveAccount(r.account);await boot(r.account);}
+  try{if(window!==window.top){window.open(window.location.href,'_blank');return;}await msalApp.loginRedirect({scopes:SCOPES});}
   catch(e){document.getElementById('login-err').textContent=e.message;document.getElementById('login-err').style.display='block';}
 }
 document.getElementById('btn-login').onclick=signIn;
