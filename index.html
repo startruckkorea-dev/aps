@@ -2215,7 +2215,7 @@ const _REPORT_T = {
     stag3:'정체 3일 이상<br>(최근결재 기준)', stag7:'정체 7일 이상<br>(최근결재 기준)',
     chartSection:'현황 시각화', chartSysTitle:d=>`시스템별 진행중 건수 (${d} 기준)`, chartStatusTitle:'전체 상태 분포', chartDelayTitle:'지연 구간별 분포(건)', chartTotalTitle:'시스템별 전체 처리 건수(누적)',
     totalVolTitle:'시스템별 신청 처리 건수 (전체 누적)', totalVolCols:['시스템','총 건수'],
-    bottleneckSection:'결재자별 대기 병목 Top 10', bottleneckCols:['결재자','역할','대기 건수'],
+    bottleneckSection:'결재 대기 상위 결재자 Top 10', bottleneckCols:['결재자','역할','시스템별 대기 건수','합계'],
     sysSection:'시스템별 현황', sysCols:['시스템','총건수','진행중','지연 3일+','지연 7일+','정체 3일+','정체 7일+'],
     delaySection:(n,total)=>`지연 상세 (지연일수 순, 상위 ${n}건 / 전체 ${total}건)`,
     delayCols:['시스템','제목','신청자','다음 결재자','신청일','지연일수<br><span style="font-weight:400;font-size:10px">(신청일 기준)</span>','정체일수<br><span style="font-weight:400;font-size:10px">(최근결재 기준)</span>'],
@@ -2231,7 +2231,7 @@ const _REPORT_T = {
     stag3:'Stalled 3+ days<br>(from last action)', stag7:'Stalled 7+ days<br>(from last action)',
     chartSection:'Visual Overview', chartSysTitle:d=>`In-Progress Count by System (as of ${d})`, chartStatusTitle:'Overall Status Distribution', chartDelayTitle:'Delay Severity Distribution (items)', chartTotalTitle:'Total Processed by System (cumulative)',
     totalVolTitle:'Total Requests Processed by System (cumulative)', totalVolCols:['System','Total'],
-    bottleneckSection:'Top 10 Approver Bottlenecks', bottleneckCols:['Approver','Role','Pending Count'],
+    bottleneckSection:'Top 10 Approvers by Pending Items', bottleneckCols:['Approver','Role','Pending by System','Total'],
     sysSection:'Status by System', sysCols:['System','Total','In Progress','Delay 3+d','Delay 7+d','Stall 3+d','Stall 7+d'],
     delaySection:(n,total)=>`Delay Details (sorted by delay, top ${n} of ${total})`,
     delayCols:['System','Title','Requester','Next Approver','Request Date','Delay<br><span style="font-weight:400;font-size:10px">(from request)</span>','Stall<br><span style="font-weight:400;font-size:10px">(from last action)</span>'],
@@ -2307,8 +2307,9 @@ async function generateExecReport(lang) {
     target.pending++;
     if (r.nextApprover && r.nextApprover !== '-') {
       const key = r.nextApprover;
-      if (!approverCounts[key]) approverCounts[key] = { count:0, role:r.nextRole };
+      if (!approverCounts[key]) approverCounts[key] = { count:0, role:r.nextRole, bySys:{} };
       approverCounts[key].count++;
+      approverCounts[key].bySys[sysName] = (approverCounts[key].bySys[sysName]||0) + 1;
     }
     const delayDays = r.requestDate ? Math.floor((now-new Date(r.requestDate))/86400000) : 0;
     const stagRef = r.lastApprovalDate || r.requestDate;
@@ -2362,8 +2363,10 @@ async function generateExecReport(lang) {
       <td style="text-align:center;color:${s.stag7?'#c67c1e':'#333'}">${s.stag7}</td>
     </tr>`).join('');
 
-  const approverRows = topApprovers.map(([name,d])=>`
-    <tr><td>${esc(name)}</td><td>${esc(d.role||'-')}</td><td style="text-align:center;font-weight:700;color:#c67c1e">${d.count}</td></tr>`).join('');
+  const approverRows = topApprovers.map(([name,d])=>{
+    const sysBreakdown = Object.entries(d.bySys).sort((a,b)=>b[1]-a[1]).map(([sys,cnt])=>`${esc(sys)} ${cnt}`).join(', ');
+    return `<tr><td>${esc(name)}</td><td>${esc(d.role||'-')}</td><td style="font-size:11.5px;color:#4b5563">${sysBreakdown}</td><td style="text-align:center;font-weight:700;color:#c67c1e">${d.count}</td></tr>`;
+  }).join('');
 
   const delayRows = delayList.slice(0,50).map(r=>`
     <tr>
@@ -2457,8 +2460,8 @@ async function generateExecReport(lang) {
   </div>
 
   <h2>${T.bottleneckSection}</h2>
-  <table><thead><tr><th>${T.bottleneckCols[0]}</th><th>${T.bottleneckCols[1]}</th><th>${T.bottleneckCols[2]}</th></tr></thead>
-  <tbody>${approverRows||`<tr><td colspan="3" style="text-align:center;color:#9ca3af">${T.none}</td></tr>`}</tbody></table>
+  <table><thead><tr><th>${T.bottleneckCols[0]}</th><th>${T.bottleneckCols[1]}</th><th>${T.bottleneckCols[2]}</th><th>${T.bottleneckCols[3]}</th></tr></thead>
+  <tbody>${approverRows||`<tr><td colspan="4" style="text-align:center;color:#9ca3af">${T.none}</td></tr>`}</tbody></table>
 
   <h2>${T.sysSection}</h2>
   <table><thead><tr>${T.sysCols.map(c=>`<th>${c}</th>`).join('')}</tr></thead><tbody>${sysRows}</tbody></table>
