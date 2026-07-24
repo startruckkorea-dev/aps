@@ -805,6 +805,18 @@ async function loadSystemConfig() {
     return null;
   }
 }
+// ACC Voucher는 ApproverRole에 "TL"/"MC" 같은 짧은 코드만 저장돼 있어(다른 시스템들은 이미 "1차결재자(CFO)" 형태로 저장됨),
+// 여기서 ACC Voucher 자체 앱의 roleLabelMap과 동일한 매핑으로 변환해서 다른 시스템들과 표시 형식을 통일한다.
+const ACC_ROLE_LABELS = { TL:'Line Manager', MC:'Department Head', CEO:'CEO', RD:'RD', CTRL:'Controlling Head', AMGR:'Accounting Head', CFO:'CFO', ACC_AP:'AP 담당자', ACC_AR:'AR 담당자', ACC_GL:'GL 담당자', ACC:'담당자' };
+function formatNextRole(sysKey, apr) {
+  if (!apr) return '-';
+  if (sysKey === 'ACC') {
+    const label = ACC_ROLE_LABELS[apr.ApproverRole] || apr.ApproverRole || '-';
+    return `${apr.ApprovalOrder||'?'}차결재자(${label})`;
+  }
+  return apr.ApproverRole || '-';
+}
+
 function cfgVal(cfg, key, defaultObj) {
   if (!cfg || !cfg[key]) return defaultObj;
   const v = cfg[key];
@@ -2038,7 +2050,7 @@ async function loadAdminPage(force=false) {
           totalAprs: aprs.length,
           doneCount: doneAprs.length,
           nextApprover: pendingAprs.length ? (pendingAprs[0].ApproverName||'-') : '-',
-          nextRole: pendingAprs.length ? (pendingAprs[0].ApproverRole||'-') : '-',
+          nextRole: pendingAprs.length ? formatNextRole(sys.key, pendingAprs[0]) : '-',
           requestDate: rf.RequestDate || '',
           lastApprovalDate: doneAprs.length ? (doneAprs[doneAprs.length-1].ApprovalDate||'') : '',
         });
