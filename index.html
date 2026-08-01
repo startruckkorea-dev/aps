@@ -358,8 +358,15 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#f5f7f
       </div>
       <button id="ann-bell-btn" onclick="toggleAnnPopup()" style="display:none;align-items:center;gap:5px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);color:#fff;border-radius:6px;padding:6px 9px;font-size:.82rem;cursor:pointer;font-family:inherit;transition:background .15s" onmouseover="this.style.background='rgba(255,255,255,.22)'" onmouseout="this.style.background='rgba(255,255,255,.12)'" style="line-height:1">📢 <span id="ann-bell-cnt" style="vertical-align:middle;background:#ef4444;color:#fff;border-radius:10px;padding:1px 6px;font-size:.62rem;font-weight:700;margin-left:3px;vertical-align:middle">0</span></button>
       <button id="apv-bell-btn" onclick="toggleApvPopup()" style="display:none;align-items:center;gap:5px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);color:#fff;border-radius:6px;padding:6px 9px;font-size:.82rem;cursor:pointer;font-family:inherit;transition:background .15s" onmouseover="this.style.background='rgba(255,255,255,.22)'" onmouseout="this.style.background='rgba(255,255,255,.12)'" style="line-height:1">✅ <span id="apv-bell-cnt" style="vertical-align:middle;background:#16a34a;color:#fff;border-radius:10px;padding:1px 6px;font-size:.62rem;font-weight:700;margin-left:3px;vertical-align:middle">0</span></button>
-      <button id="my-record-btn" onclick="switchApsTab('myapproved')" title="My Approvals Record" style="display:none;align-items:center;gap:5px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);color:#fff;border-radius:6px;padding:6px 9px;font-size:.82rem;cursor:pointer;font-family:inherit;transition:background .15s" onmouseover="this.style.background='rgba(255,255,255,.22)'" onmouseout="this.style.background='rgba(255,255,255,.12)'">✍️</button>
-      <button id="aps-admin-btn" onclick="switchApsTab('admin')" style="display:none;background:#0078d4;color:#fff;border:none;border-radius:6px;padding:6px 14px;font-size:.8rem;font-weight:600;cursor:pointer;font-family:inherit;margin-right:8px;">⚙️</button>
+      <button id="my-requests-btn" onclick="switchApsTab('myrequests')" title="My Requests Record" style="display:none;align-items:center;gap:5px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);color:#fff;border-radius:6px;padding:6px 9px;font-size:.82rem;cursor:pointer;font-family:inherit;transition:background .15s" onmouseover="this.style.background='rgba(255,255,255,.22)'" onmouseout="this.style.background='rgba(255,255,255,.12)'">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg>
+      </button>
+      <button id="my-record-btn" onclick="switchApsTab('myapproved')" title="My Approvals Record" style="display:none;align-items:center;gap:5px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);color:#fff;border-radius:6px;padding:6px 9px;font-size:.82rem;cursor:pointer;font-family:inherit;transition:background .15s" onmouseover="this.style.background='rgba(255,255,255,.22)'" onmouseout="this.style.background='rgba(255,255,255,.12)'">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+      </button>
+      <button id="aps-admin-btn" onclick="switchApsTab('admin')" title="APS 전체 결재 관리" style="display:none;align-items:center;justify-content:center;background:#0078d4;color:#fff;border:none;border-radius:6px;padding:6px 10px;font-size:.8rem;font-weight:600;cursor:pointer;font-family:inherit;margin-right:8px;">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      </button>
       <button class="btn-signout" onclick="signOut()">로그아웃</button>
     </div>
   </div>
@@ -399,9 +406,55 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#f5f7f
     <button class="ql-scroll-btn ql-scroll-right" id="ql-right" onclick="qlScroll(160)">›</button>
   </div>
 
+  <div id="aps-myrequests-page" style="display:none;padding:10px 20px 0;">
+    <div class="topbar">
+      <span class="topbar-title">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:4px"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg>My Requests Record
+      </span>
+      <span id="myrequests-total-count" style="display:none"></span>
+      <span id="myr-record-count" style="font-size:.78rem;color:#64748b;margin-left:8px;font-weight:400"></span>
+      <div class="topbar-space"></div>
+      <button class="btn-refresh" onclick="loadMyRequestsPage(true)">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+        새로고침
+      </button>
+      <button onclick="exportMyRequestsExcel()" style="background:#1d6f42;color:#fff;border:none;border-radius:6px;padding:6px 14px;font-size:.8rem;font-weight:600;cursor:pointer;font-family:inherit;margin-left:8px;">📊 Excel</button>
+      <button onclick="switchApsTab('main')" style="background:#fff;color:#374151;border:1px solid #d1d5db;border-radius:6px;padding:5px 13px;font-size:.8rem;cursor:pointer;font-family:inherit;margin-left:8px;box-shadow:0 1px 2px rgba(0,0,0,.06);">← 결재함</button>
+    </div>
+    <div class="filter-row" style="margin:6px 0 12px;">
+      <select id="myr-filter-sys" class="filter-select" onchange="if(guardAccFilter(this))renderMyRequestsTable(true)">
+        <option value="">전체 시스템</option>
+        <option value="IT">IT Ticket</option>
+        <option value="SCC">STK Contract</option>
+        <option value="GW">Goodwill</option>
+        <option value="BP">BP Master</option>
+        <option value="FA">FA Registration</option>
+        <option value="MC">Mobility Car</option>
+        <option value="RR">Repair Report</option>
+        <option value="GA_STN">GA Stationery</option>
+        <option value="GA_BC">GA Business Card</option>
+        <option value="GA_IDC">GA ID Card</option>
+        <option value="LTR">Local Travel (PC)</option>
+        <option value="CTR_PR">CTR PR</option>
+        <option value="ACC" class="acc-filter-opt">ACC Voucher</option>
+      </select>
+      <select id="myr-filter-status" class="filter-select" onchange="renderMyRequestsTable(true)">
+        <option value="">전체</option>
+        <option value="대기">대기</option>
+        <option value="진행중">진행중</option>
+        <option value="승인완료">승인완료</option>
+        <option value="반려">반려</option>
+      </select>
+      <input id="myr-search" class="filter-select" type="text" placeholder="제목 검색..." oninput="renderMyRequestsTable(true)" style="min-width:200px;">
+    </div>
+    <div id="myrequests-table-wrap"></div>
+  </div>
+
   <div id="aps-myapproved-page" style="display:none;padding:10px 20px 0;">
     <div class="topbar">
-      <span class="topbar-title">✍️ My Approvals Record</span>
+      <span class="topbar-title">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:4px"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>My Approvals Record
+      </span>
       <span id="myapproved-total-count" style="display:none"></span>
       <span id="mya-record-count" style="font-size:.78rem;color:#64748b;margin-left:8px;font-weight:400"></span>
       <div class="topbar-space"></div>
@@ -441,7 +494,7 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#f5f7f
 
   <div id="aps-admin-page" style="display:none;padding:12px 20px 0;">
     <div class="topbar">
-      <span class="topbar-title">⚙️ APS 전체 결재 관리</span>
+      <span class="topbar-title"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:4px"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>APS 전체 결재 관리</span>
       <span class="topbar-cnt" id="admin-total-count"></span>
       <div class="topbar-space"></div>
       <button class="btn-refresh" onclick="loadAdminPage(true)">
@@ -1080,6 +1133,8 @@ function renderAnnouncements(rows){
   if(bell){bell.style.display='inline-flex';bell.style.alignItems='center';bell.style.gap='5px';}
   var recBtn0=document.getElementById('my-record-btn');
   if(recBtn0)recBtn0.style.display='inline-flex';
+  var reqBtn0=document.getElementById('my-requests-btn');
+  if(reqBtn0)reqBtn0.style.display='inline-flex';
   if(cnt)cnt.textContent=recentCnt;
   // popup body — 2일 이내/미래만 표시, 이전 건은 접힘 섹션
   var now2=new Date();
@@ -1199,6 +1254,8 @@ function renderApvPopup(){
   if(bellBtn)bellBtn.style.display='inline-flex';
   var recBtn=document.getElementById('my-record-btn');
   if(recBtn)recBtn.style.display='inline-flex';
+  var reqBtn=document.getElementById('my-requests-btn');
+  if(reqBtn)reqBtn.style.display='inline-flex';
   var html='';
   // active + old 합쳐서 렌더, old는 노란색 표시
   items.forEach(function(it){
@@ -1269,6 +1326,8 @@ function updateApvBadge(){
   if(bell){bell.style.display='inline-flex';bell.style.alignItems='center';bell.style.gap='5px';}
   var recBtn2=document.getElementById('my-record-btn');
   if(recBtn2)recBtn2.style.display='inline-flex';
+  var reqBtn2=document.getElementById('my-requests-btn');
+  if(reqBtn2)reqBtn2.style.display='inline-flex';
   if(el)el.textContent=n;
   console.log('[APV badge] activeCnt='+activeCnt+' totalCnt='+totalCnt+' display='+n);
 }
@@ -1762,11 +1821,12 @@ async function doApproval(){
 
 // ── APS 관리자 탭 ──────────────────────────
 function switchApsTab(tab) {
-  const mainPage       = document.getElementById('aps-main-page');
-  const adminPage      = document.getElementById('aps-admin-page');
-  const myapprovedPage = document.getElementById('aps-myapproved-page');
-  const adminBtn       = document.getElementById('aps-admin-btn');
-  const qlStrip        = document.getElementById('ql-strip-inner');
+  const mainPage        = document.getElementById('aps-main-page');
+  const adminPage       = document.getElementById('aps-admin-page');
+  const myapprovedPage  = document.getElementById('aps-myapproved-page');
+  const myrequestsPage  = document.getElementById('aps-myrequests-page');
+  const adminBtn        = document.getElementById('aps-admin-btn');
+  const qlStrip         = document.getElementById('ql-strip-inner');
 
   // ── 아이콘 바 드래그 스크롤 ──
   (() => {
@@ -1790,6 +1850,7 @@ function switchApsTab(tab) {
   if(mainPage)       mainPage.style.display       = 'none';
   if(adminPage)      adminPage.style.display      = 'none';
   if(myapprovedPage) myapprovedPage.style.display = 'none';
+  if(myrequestsPage) myrequestsPage.style.display = 'none';
   if(qlStrip)        qlStrip.style.display        = 'none';
 
   // reset button highlights
@@ -1802,6 +1863,9 @@ function switchApsTab(tab) {
   } else if (tab === 'myapproved') {
     if(myapprovedPage) myapprovedPage.style.display = 'block';
     loadMyApprovedPage();
+  } else if (tab === 'myrequests') {
+    if(myrequestsPage) myrequestsPage.style.display = 'block';
+    loadMyRequestsPage();
   } else {
     if(mainPage)  mainPage.style.display  = 'block';
     if(qlStrip)   qlStrip.style.display   = '';
@@ -2007,6 +2071,181 @@ function exportMyApprovedExcel() {
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'My Approvals Record');
   XLSX.writeFile(wb, 'My_Approvals_Record_'+new Date().toISOString().slice(0,10)+'.xlsx');
+}
+
+// ── 내가 신청한 건 기록 (My Requests Record) ──
+let _myRequestsData = [];
+let _myRequestsPage = 1;
+let _myRequestsDataTime = 0;
+const MYR_PAGE_SIZE = 15;
+
+async function loadMyRequestsPage(force=false) {
+  if (!force && _myRequestsDataTime && (Date.now()-_myRequestsDataTime) < CACHE_TTL_MS) { renderMyRequestsTable(true); return; }
+  const wrap = document.getElementById('myrequests-table-wrap');
+  wrap.innerHTML = '<div style="padding:40px;text-align:center;color:#94a3b8;">신청 기록 불러오는 중...</div>';
+  _myRequestsData = [];
+  const myEmail = (user.email || user.username || '').toLowerCase();
+
+  await Promise.all(visibleSystems().map(async sys => {
+    try {
+      const [aprData, reqData] = await Promise.all([
+        sys.key==='ACC' ? fetchAllAccApprovals() : apiAll('/sites/'+siteId+'/lists/'+sys.apr+'/items?$expand=fields'),
+        apiAll('/sites/'+siteId+'/lists/'+sys.req+'/items?$expand=fields'),
+      ]);
+      const aprMap = {};
+      aprData.value.forEach(i => {
+        const rid = String(i.fields.RequestID);
+        if (!aprMap[rid]) aprMap[rid] = [];
+        aprMap[rid].push(i.fields);
+      });
+      reqData.value
+        .filter(r => (r.fields.RequesterEmail||'').toLowerCase() === myEmail)
+        .forEach(r => {
+          const rf = r.fields;
+          if (!rf.RequestDate && rf.SubmittedDate) rf.RequestDate = rf.SubmittedDate;
+          const rid = String(r.id);
+          const aprs = aprMap[rid] || [];
+          const aprStatuses = aprs.map(a => (a.Status && a.Status.Value ? a.Status.Value : a.Status || '').trim());
+          let reqStatus = rf.Status || '대기';
+          if (aprStatuses.some(s => s === '반려')) reqStatus = '반려';
+          else if (aprStatuses.length && aprStatuses.every(s => s === '승인')) reqStatus = '승인완료';
+          else if (aprStatuses.some(s => s === '대기')) reqStatus = '진행중';
+          const doneAprs = aprs.filter(a => {const s=(a.Status&&a.Status.Value?a.Status.Value:a.Status||'').trim();return s==='승인'||s==='반려';}).sort((a,b)=>(a.ApprovalOrder||0)-(b.ApprovalOrder||0));
+          const pendingAprs = aprs.filter(a => (a.Status&&a.Status.Value?a.Status.Value:a.Status||'').trim()==='대기').sort((a,b)=>(a.ApprovalOrder||0)-(b.ApprovalOrder||0));
+          _myRequestsData.push({
+            sysKey: sys.key, sysLabel: sys.name,
+            reqId: r.id,
+            title: rf.Title || '-',
+            reqStatus,
+            totalAprs: aprs.length,
+            doneCount: doneAprs.length,
+            nextApprover: pendingAprs.length ? (pendingAprs[0].ApproverName||'-') : '-',
+            nextRole: pendingAprs.length ? formatNextRole(sys.key, pendingAprs[0]) : '-',
+            requestDate: rf.RequestDate || '',
+            lastApprovalDate: doneAprs.length ? (doneAprs[doneAprs.length-1].ApprovalDate||'') : '',
+          });
+        });
+    } catch(e) { console.warn('myrequests load error', sys.key, e); }
+  }));
+
+  _myRequestsData.sort((a,b) => (b.requestDate > a.requestDate ? 1 : -1));
+  _myRequestsDataTime = Date.now();
+  renderMyRequestsTable(true);
+}
+
+function renderMyRequestsTable(resetPage) {
+  if (resetPage) _myRequestsPage = 1;
+  const fSys    = (document.getElementById('myr-filter-sys')||{}).value || '';
+  const fStatus = (document.getElementById('myr-filter-status')||{}).value || '';
+  const fSearch = ((document.getElementById('myr-search')||{}).value||'').toLowerCase();
+
+  const rows = _myRequestsData.filter(r =>
+    (!fSys    || r.sysKey === fSys) &&
+    (!fStatus || r.reqStatus === fStatus) &&
+    (!fSearch || r.title.toLowerCase().includes(fSearch))
+  );
+
+  const totalPages = Math.max(1, Math.ceil(rows.length / MYR_PAGE_SIZE));
+  if (_myRequestsPage > totalPages) _myRequestsPage = totalPages;
+  const start = (_myRequestsPage - 1) * MYR_PAGE_SIZE;
+  const pageRows = rows.slice(start, start + MYR_PAGE_SIZE);
+
+  const _cntTxt = '필터 ' + rows.length + '건 / 전체 ' + _myRequestsData.length + '건';
+  document.getElementById('myrequests-total-count').textContent = _cntTxt;
+  const _rcEl = document.getElementById('myr-record-count');
+  if (_rcEl) _rcEl.textContent = _cntTxt;
+
+  const wrap = document.getElementById('myrequests-table-wrap');
+  if (!rows.length) {
+    wrap.innerHTML = '<div style="padding:40px;text-align:center;color:#94a3b8;">신청한 기록이 없습니다.</div>';
+    return;
+  }
+
+  const tsColor = {'대기':'#b45309','진행중':'#1d4ed8','승인완료':'#15803d','반려':'#b91c1c'};
+  const tsBg    = {'대기':'#fef3c7','진행중':'#dbeafe','승인완료':'#dcfce7','반려':'#fee2e2'};
+
+  function fmtDt(iso) {
+    if (!iso) return '';
+    const d = new Date(new Date(iso).getTime() + 9*3600*1000);
+    return d.getUTCFullYear()+'-'+String(d.getUTCMonth()+1).padStart(2,'0')+'-'+String(d.getUTCDate()).padStart(2,'0')+
+      ' '+String(d.getUTCHours()).padStart(2,'0')+':'+String(d.getUTCMinutes()).padStart(2,'0');
+  }
+
+  const trs = pageRows.map((r, i) => {
+    const rowNum = rows.length - ((_myRequestsPage - 1) * MYR_PAGE_SIZE + i);
+    return `
+    <tr style="border-bottom:1px solid #f1f5f9;font-size:.78rem;cursor:pointer"
+        onclick="showDetail('${r.sysKey}',${r.reqId})"
+        onmouseover="this.style.background='#f0f6ff'" onmouseout="this.style.background=''">
+      <td style="padding:6px 8px;text-align:center;color:#64748b;font-weight:600">${rowNum}</td>
+      <td style="padding:6px 8px;color:#0078d4;font-weight:600;white-space:nowrap">${r.sysLabel}</td>
+      <td style="padding:6px 8px;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.75rem">${r.title}</td>
+      <td style="padding:6px 8px;text-align:center">
+        <span style="background:${tsBg[r.reqStatus]||'#f1f5f9'};color:${tsColor[r.reqStatus]||'#374151'};border-radius:10px;padding:2px 8px;font-size:.72rem;font-weight:700">${r.reqStatus}</span>
+      </td>
+      <td style="padding:6px 8px;text-align:center;color:#64748b;white-space:nowrap">${r.doneCount}${r.totalAprs?'/'+r.totalAprs:''}차</td>
+      <td style="padding:6px 8px;max-width:170px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#1e293b;font-size:.75rem">
+        ${r.reqStatus==='진행중'||r.reqStatus==='대기' ? `<span style="font-weight:600">${r.nextApprover}</span><br><span style="color:#94a3b8;font-size:.7rem">${r.nextRole}</span>` : '-'}
+      </td>
+      <td style="padding:6px 8px;color:#94a3b8;white-space:nowrap;font-size:.75rem">${fmtDt(r.requestDate)}</td>
+      <td style="padding:6px 8px;color:#64748b;white-space:nowrap;font-size:.75rem">${fmtDt(r.lastApprovalDate)}</td>
+    </tr>`;}).join('');
+
+  let pgHtml = '';
+  if (totalPages > 1) {
+    pgHtml = '<div style="display:flex;justify-content:center;align-items:center;gap:6px;padding:14px 0">';
+    pgHtml += `<button onclick="_myRequestsPage=Math.max(1,_myRequestsPage-1);renderMyRequestsTable(false)" style="padding:4px 10px;border:1px solid #d1d5db;border-radius:4px;cursor:pointer;background:#fff">‹</button>`;
+    for (let p=1; p<=totalPages; p++) {
+      const active = p === _myRequestsPage;
+      pgHtml += `<button onclick="_myRequestsPage=${p};renderMyRequestsTable(false)" style="padding:4px 10px;border:1px solid ${active?'#0078d4':'#d1d5db'};border-radius:4px;cursor:pointer;background:${active?'#0078d4':'#fff'};color:${active?'#fff':'#374151'}">${p}</button>`;
+    }
+    pgHtml += `<button onclick="_myRequestsPage=Math.min(${totalPages},_myRequestsPage+1);renderMyRequestsTable(false)" style="padding:4px 10px;border:1px solid #d1d5db;border-radius:4px;cursor:pointer;background:#fff">›</button>`;
+    pgHtml += '</div>';
+  }
+
+  wrap.innerHTML = `
+    <div style="overflow-x:auto;background:#fff;border-radius:8px;border:1px solid #e2e8f0">
+      <table style="width:100%;border-collapse:collapse;background:#fff">
+        <thead>
+          <tr style="background:#f8fafc;border-bottom:2px solid #e2e8f0;font-size:.78rem;color:#64748b">
+            <th style="padding:10px 10px;text-align:center;font-weight:600">번호</th>
+            <th style="padding:10px 10px;text-align:left;font-weight:600">시스템</th>
+            <th style="padding:10px 10px;text-align:left;font-weight:600">제목</th>
+            <th style="padding:10px 10px;text-align:center;font-weight:600">상태</th>
+            <th style="padding:10px 10px;text-align:center;font-weight:600">결재차수</th>
+            <th style="padding:10px 10px;text-align:left;font-weight:600">다음 결재자</th>
+            <th style="padding:10px 10px;text-align:left;font-weight:600">신청일</th>
+            <th style="padding:10px 10px;text-align:left;font-weight:600">최근결재일</th>
+          </tr>
+        </thead>
+        <tbody>${trs}</tbody>
+      </table>
+    </div>
+    ${pgHtml}`;
+}
+
+function exportMyRequestsExcel() {
+  if (!_myRequestsData.length) { alert('먼저 데이터를 로드해주세요.'); return; }
+  const fSys    = (document.getElementById('myr-filter-sys')||{}).value || '';
+  const fStatus = (document.getElementById('myr-filter-status')||{}).value || '';
+  const fSearch = ((document.getElementById('myr-search')||{}).value||'').toLowerCase();
+  const rows = _myRequestsData.filter(r =>
+    (!fSys    || r.sysKey === fSys) &&
+    (!fStatus || r.reqStatus === fStatus) &&
+    (!fSearch || r.title.toLowerCase().includes(fSearch))
+  );
+  logAction('APS', 'Excel 내보내기', { 화면: 'My Requests Record', 건수: rows.length, 필터: { 시스템: fSys||'전체', 결과: fStatus||'전체', 검색어: fSearch||'' } });
+  const ws = XLSX.utils.json_to_sheet(rows.map((r,i) => ({
+    '번호': rows.length - i,
+    '시스템': r.sysLabel, '제목': r.title,
+    '상태': r.reqStatus,
+    '결재차수': r.doneCount + (r.totalAprs ? '/'+r.totalAprs : '') + '차',
+    '다음 결재자': r.nextApprover, '다음 결재역할': r.nextRole,
+    '신청일시': fmt(r.requestDate), '최근결재일시': fmt(r.lastApprovalDate),
+  })));
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'My Requests Record');
+  XLSX.writeFile(wb, 'My_Requests_Record_'+new Date().toISOString().slice(0,10)+'.xlsx');
 }
 
 let _adminData = [];
