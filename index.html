@@ -2189,6 +2189,9 @@ function renderMyRequestsTable(resetPage) {
       </td>
       <td style="padding:6px 8px;color:#94a3b8;white-space:nowrap;font-size:.75rem">${fmtDt(r.requestDate)}</td>
       <td style="padding:6px 8px;color:#64748b;white-space:nowrap;font-size:.75rem">${fmtDt(r.lastApprovalDate)}</td>
+      <td style="padding:6px 8px;text-align:center">
+        <span style="background:${tsBg[r.reqStatus]||'#f1f5f9'};color:${tsColor[r.reqStatus]||'#374151'};border-radius:10px;padding:2px 8px;font-size:.72rem;font-weight:700">${r.reqStatus}</span>
+      </td>
     </tr>`;}).join('');
 
   let pgHtml = '';
@@ -2216,6 +2219,7 @@ function renderMyRequestsTable(resetPage) {
             <th style="padding:10px 10px;text-align:left;font-weight:600">다음 결재자</th>
             <th style="padding:10px 10px;text-align:left;font-weight:600">신청일</th>
             <th style="padding:10px 10px;text-align:left;font-weight:600">최근결재일</th>
+            <th style="padding:10px 10px;text-align:center;font-weight:600">내 티켓 현재 상태</th>
           </tr>
         </thead>
         <tbody>${trs}</tbody>
@@ -2242,6 +2246,7 @@ function exportMyRequestsExcel() {
     '결재차수': r.doneCount + (r.totalAprs ? '/'+r.totalAprs : '') + '차',
     '다음 결재자': r.nextApprover, '다음 결재역할': r.nextRole,
     '신청일시': fmt(r.requestDate), '최근결재일시': fmt(r.lastApprovalDate),
+    '내 티켓 현재 상태': r.reqStatus,
   })));
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'My Requests Record');
