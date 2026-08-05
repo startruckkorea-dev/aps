@@ -1544,8 +1544,9 @@ async function showDetail(sysKey,reqId){
     };
     const rowFull=(l,v)=>`<div style="padding:7px 0;border-bottom:0.5px solid #edebe9;font-size:13px"><div style="font-size:11px;color:#605e5c;margin-bottom:3px">${l}</div><div style="white-space:pre-wrap;color:#323130">${v||'-'}</div></div>`;
 
-    const _titleVal = sys.key==='IT' ? (f.TicketTitle||f.Title) : sys.key==='GW' ? (f.RequestTitle||f.Title) : (['SCC','BP','FA','MC','RR','GA_STN','GA_BC','GA_IDC','CTR_PR','ACC'].includes(sys.key)?f.Title:('#'+reqId));
-    let info=sec('기본 정보')+row('제목',_titleVal||'-')+row('신청자',f.RequesterEmail)+
+    const _baseTitle = (['GW','IT','SCC','BP','FA','MC','RR','GA_STN','GA_BC','GA_IDC','CTR_PR','ACC'].includes(sys.key)?f.Title:('#'+reqId));
+    const _userTitle = sys.key==='IT' ? f.TicketTitle : sys.key==='GW' ? f.RequestTitle : '';
+    let info=sec('기본 정보')+row('제목',_baseTitle||'-')+(_userTitle?row('요청 제목',_userTitle):'')+row('신청자',f.RequesterEmail)+
       row('상태',stBadge(f.Status))+row('신청일',fmt(f.RequestDate));
 
     if(sysKey==='IT'){
