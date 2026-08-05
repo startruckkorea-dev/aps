@@ -1120,7 +1120,7 @@ function renderAnnouncements(rows){
   window._annRows=rows;
   var total=rows.length;
   // 배지: 오늘 포함 2일 이내(오늘+어제) 또는 미래 날짜인 것만 카운트
-  var now=new Date();
+  var now=new Date(new Date().getTime()+9*3600*1000);
   var todayStr=now.toISOString().slice(0,10).replace(/-/g,'.');
   var yesterday=new Date(now-1*24*60*60*1000);
   var yestStr=yesterday.toISOString().slice(0,10).replace(/-/g,'.');
@@ -1138,7 +1138,7 @@ function renderAnnouncements(rows){
   if(reqBtn0)reqBtn0.style.display='inline-flex';
   if(cnt)cnt.textContent=recentCnt;
   // popup body — 2일 이내/미래만 표시, 이전 건은 접힘 섹션
-  var now2=new Date();
+  var now2=new Date(new Date().getTime()+9*3600*1000);
   var yesterday2=new Date(now2-1*24*60*60*1000);
   var yestStr2=yesterday2.toISOString().slice(0,10).replace(/-/g,'.');
   var recentRows=rows.filter(function(r){return String(r[0]||'').trim()>=yestStr2;});
@@ -2073,7 +2073,7 @@ function exportMyApprovedExcel() {
   })));
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'My Approvals Record');
-  XLSX.writeFile(wb, 'My_Approvals_Record_'+new Date().toISOString().slice(0,10)+'.xlsx');
+  XLSX.writeFile(wb, 'My_Approvals_Record_'+new Date(new Date().getTime()+9*3600*1000).toISOString().slice(0,10)+'.xlsx');
 }
 
 // ── 내가 신청한 건 기록 (My Requests Record) ──
@@ -2248,7 +2248,7 @@ function exportMyRequestsExcel() {
   })));
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'My Requests Record');
-  XLSX.writeFile(wb, 'My_Requests_Record_'+new Date().toISOString().slice(0,10)+'.xlsx');
+  XLSX.writeFile(wb, 'My_Requests_Record_'+new Date(new Date().getTime()+9*3600*1000).toISOString().slice(0,10)+'.xlsx');
 }
 
 let _adminData = [];
@@ -2780,7 +2780,7 @@ function exportAdminExcel() {
   }));
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'APS 전체결재');
-  XLSX.writeFile(wb, 'APS_전체결재_'+new Date().toISOString().slice(0,10)+'.xlsx');
+  XLSX.writeFile(wb, 'APS_전체결재_'+new Date(new Date().getTime()+9*3600*1000).toISOString().slice(0,10)+'.xlsx');
 }
 </script>
 
