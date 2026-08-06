@@ -998,7 +998,7 @@ async function loadAll(force=false){
 }
 
 function summary(sysKey,rf){
-  const t = sysKey==='IT' ? (rf.TicketTitle||rf.Title) : sysKey==='GW' ? (rf.RequestTitle||rf.Title) : rf.Title;
+  const t = rf.Title;
   return (t||'').substring(0,40) || '-';
 }
 
@@ -1931,7 +1931,7 @@ async function loadMyApprovedPage(force=false) {
             sysKey:      sys.key,
             sysLabel:    sys.name,
             reqId:       f.RequestID,
-            title:       (sys.key==='IT'?(rf.TicketTitle||rf.Title):sys.key==='GW'?(rf.RequestTitle||rf.Title):rf.Title) || rf.Subject || '',
+            title:       rf.Title || rf.Subject || '',
             requester:   rf.RequesterEmail || rf.RequestorEmail || '',
             requestDate: rf.RequestDate || '',
             approver:    f.ApproverName || (user.name||'').split(' ')[0] || '-',
@@ -2118,7 +2118,7 @@ async function loadMyRequestsPage(force=false) {
           _myRequestsData.push({
             sysKey: sys.key, sysLabel: sys.name,
             reqId: r.id,
-            title: (sys.key==='IT'?(rf.TicketTitle||rf.Title):sys.key==='GW'?(rf.RequestTitle||rf.Title):rf.Title) || '-',
+            title: rf.Title || '-',
             reqStatus,
             totalAprs: aprs.length,
             doneCount: doneAprs.length,
@@ -2288,7 +2288,7 @@ async function loadAdminPage(force=false) {
         _adminData.push({
           sysKey: sys.key, sysLabel: sys.label || sys.key,
           reqId: r.id,
-          title: (sys.key==='IT'?(rf.TicketTitle||rf.Title):sys.key==='GW'?(rf.RequestTitle||rf.Title):rf.Title) || '-',
+          title: rf.Title || '-',
           requester: rf.RequesterEmail || '-',
           reqStatus,
           totalAprs: aprs.length,
