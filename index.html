@@ -1552,9 +1552,9 @@ async function showDetail(sysKey,reqId){
     if(sysKey==='IT'){
       info+=row('유형',f.TicketType||'-')+row('우선순위',f.Priority||'-')+row('대상 시스템',f.Systems||'-');
       const t=f.TicketType;
-      if(t==='Incident'||t==='Problem') info+=sec('장애/이슈 상세')+rowFull('발생 일시',f.IncOccurredAt)+rowFull('증상 설명',f.Symptom)+row('영향 범위',f.Scope)+row('임시 해결책',f.Workaround);
-      else if(t==='Change') info+=sec('변경 요청 상세')+row('변경 유형',f.ChangeType)+row('예상 영향도',f.Impact)+rowFull('변경 내용',f.Detail)+rowFull('변경 이유',f.ChangeReason);
-      else if(t==='Request') info+=sec('서비스 요청 상세')+row('요청 유형',f.ReqType)+row('계정 생성 목적',f.AcctPurpose)+row('권한 환경',f.ReqEnv)+row('신청 기간',f.ReqFrom&&f.ReqTo?f.ReqFrom+' ~ '+f.ReqTo:'-')+rowFull('요청 내용',f.Detail);
+      if(t==='Incident'||t==='Problem') info+=sec('장애/이슈 상세')+(f.TicketTitle?row('제목',f.TicketTitle):'')+rowFull('발생 일시',f.IncOccurredAt)+rowFull('증상 설명',f.Symptom)+row('영향 범위',f.Scope)+row('임시 해결책',f.Workaround);
+      else if(t==='Change') info+=sec('변경 요청 상세')+(f.TicketTitle?row('제목',f.TicketTitle):'')+row('변경 유형',f.ChangeType)+row('예상 영향도',f.Impact)+rowFull('변경 내용',f.Detail)+rowFull('변경 이유',f.ChangeReason);
+      else if(t==='Request') info+=sec('서비스 요청 상세')+(f.TicketTitle?row('제목',f.TicketTitle):'')+row('요청 유형',f.ReqType)+row('계정 생성 목적',f.AcctPurpose)+row('권한 환경',f.ReqEnv)+row('신청 기간',f.ReqFrom&&f.ReqTo?f.ReqFrom+' ~ '+f.ReqTo:'-')+rowFull('요청 내용',f.Detail);
       info+=sec('첨부파일')+parseFiles(f.AttachedFiles);
     }
     else if(sysKey==='SCC'){
@@ -1564,7 +1564,7 @@ async function showDetail(sysKey,reqId){
       info+=sec('첨부파일')+parseFiles(f.AttachedFiles);
     }
     else if(sysKey==='GW'){
-      info+=sec('신청 정보')+row('Company',f.Company)+row('Source',f.Source)+row('Amount',(f.Amount||'').replace(/^(\d+)~$/,(m,n)=>Number(n).toLocaleString()+'~').replace(/^(\d+)~(\d+)$/,(m,a,b)=>Number(a).toLocaleString()+'~'+Number(b).toLocaleString()))+row('Type',f.GoodwillType)+sec('상세 내용')+row('Description',`<span style="white-space:pre-wrap">${f.Description||'-'}</span>`);
+      info+=sec('신청 정보')+row('Company',f.Company)+row('Source',f.Source)+row('Amount',(f.Amount||'').replace(/^(\d+)~$/,(m,n)=>Number(n).toLocaleString()+'~').replace(/^(\d+)~(\d+)$/,(m,a,b)=>Number(a).toLocaleString()+'~'+Number(b).toLocaleString()))+row('Type',f.GoodwillType)+sec('상세 내용')+(f.RequestTitle?row('제목',f.RequestTitle):'')+row('Description',`<span style="white-space:pre-wrap">${f.Description||'-'}</span>`);
       info+=sec('첨부파일')+parseFiles(f.AttachedFiles);
     }
     else if(sysKey==='BP'){
