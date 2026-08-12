@@ -1648,7 +1648,7 @@ async function showDetail(sysKey,reqId){
         +(f.AccLineSkipReason
             ? rowFull('Accounting Approval Line',
                 '<span style="color:#0b5fa5;font-weight:600">Duplicate accounting review excluded</span>'
-                + '<div style="font-size:11px;color:#a19f9d;margin-top:2px">Submitted by a member of the Accounting team and processed through the approval line dedicated to the Accounting department.</div>')
+                + '<div style="font-size:11px;color:#a19f9d;margin-top:2px">Submitted by a member of the Accounting team. The Team Lead and Dept Head steps already correspond to the Accounting Head and the CFO, so the duplicate accounting review was excluded.</div>')
             : '')
         +(f.RDExemptReason
             ? rowFull('RD Approval Exemption — Reason Requested',
