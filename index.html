@@ -1647,8 +1647,8 @@ async function showDetail(sysKey,reqId){
         // 회계팀 담당자가 상신해 회계 담당자 결재 단계가 제외된 건
         +(f.AccLineSkipReason
             ? rowFull('Accounting Approval Line',
-                '<span style="color:#0b5fa5;font-weight:600">Accounting review step skipped</span>'
-                + '<div style="font-size:11px;color:#a19f9d;margin-top:2px">Submitted by a member of the Accounting team; the approval line ends with Accounting Head and CFO.</div>')
+                '<span style="color:#0b5fa5;font-weight:600">Duplicate accounting review excluded</span>'
+                + '<div style="font-size:11px;color:#a19f9d;margin-top:2px">Submitted by a member of the Accounting team and processed through the approval line dedicated to the Accounting department.</div>')
             : '')
         +(f.RDExemptReason
             ? rowFull('RD Approval Exemption — Reason Requested',
