@@ -1644,12 +1644,6 @@ async function showDetail(sysKey,reqId){
       info+=sec('전표 정보')+row('유형',f.VoucherType||'-')+row('원가부서(CCTR)',f.RequesterCCTR||'-')+row('BP 코드',f.BPCode||'-')+row('BP명',f.BPName||'-')+row('사업자등록번호',f.BPBizNo||'-')+row('Invoice Date',_invDate)+row('참고 환율',_exRate)+row('DR 합계(KRW)',f.TotalDR_KRW?Number(f.TotalDR_KRW).toLocaleString()+'원':'-')+row('CR 합계(KRW)',f.TotalCR_KRW?Number(f.TotalCR_KRW).toLocaleString()+'원':'-')+_accNotice+rowFull('Purpose',f.Purpose)
         // RD 승인 제외 건은 결재 단계가 하나 빠진 상태이므로 그 근거를 상세에서도 확인할 수 있어야 한다.
         // 저장값에 옛 접두어가 붙어 있을 수 있어 제거 후 표시한다(ACC Voucher와 동일 처리).
-        // 회계팀 담당자가 상신해 회계 담당자 결재 단계가 제외된 건
-        +(f.AccLineSkipReason
-            ? rowFull('Accounting Approval Line',
-                '<span style="color:#0b5fa5;font-weight:600">Duplicate accounting review excluded</span>'
-                + '<div style="font-size:11px;color:#a19f9d;margin-top:2px">Submitted by a member of the Accounting team. The Team Lead and Dept Head steps already correspond to the Accounting Head and the CFO, so the duplicate accounting review was excluded.</div>')
-            : '')
         +(f.RDExemptReason
             ? rowFull('RD Approval Exemption — Reason Requested',
                 '<span style="color:#8a6116;font-weight:600">'
@@ -1696,7 +1690,15 @@ async function showDetail(sysKey,reqId){
           </div>
         </div>
         <span style="color:${sc[af.Status]||'#4a5568'};font-weight:700;font-size:.78rem;white-space:nowrap;padding-left:8px">${af.Status||''}</span>
-      </div>`;}).join('')+'</div>';
+      </div>`;}).join('')+'</div>'
+      // 회계팀 담당자가 상신해 회계 담당자·Accounting Head·CFO 단계가 제외된 건은
+      // 결재 이력만 보면 단계가 적어 보이므로, 이력 바로 아래에 근거를 함께 표시한다.
+      + (f.AccLineSkipReason
+          ? '<div style="margin-top:10px;background:#eaf3fd;border:1px solid #b6d7f2;border-radius:6px;padding:10px 12px;line-height:1.6">'
+            + '<div style="font-size:12px;font-weight:700;color:#0b5fa5;margin-bottom:3px">Accounting Approval Line — Duplicate accounting review excluded</div>'
+            + '<div style="font-size:11px;color:#0b5fa5">Submitted by a member of the Accounting team. The Team Lead and Dept Head steps already correspond to the Accounting Head and the CFO, so the duplicate accounting review was excluded.</div>'
+            + '</div>'
+          : '');
 
     const myPending=apprList.find(a=>(a.fields.ApproverEmail||'').toLowerCase()===(user.email||'').toLowerCase()&&(a.fields.Status||'').trim()==='대기');
     _currentApprList = apprList; // 전역 저장 — showConfirm onclick에서 참조
