@@ -1641,7 +1641,9 @@ async function showDetail(sysKey,reqId){
       const _exRate=(f.ExchangeRate||'').split(',').filter(s=>{const v=parseFloat(s.split(':')[1]);return v>0;}).map(s=>{const[c,v]=s.split(':');return c+' '+Number(v).toLocaleString();}).join(' · ')||'KRW (환율 미해당)';
       const _invDate=f.InvoiceDate?fmt(f.InvoiceDate).slice(0,10):'-'; // KST 보정 후 날짜만 추출 (SSC와 동일 패턴 — 단순 슬라이싱하면 하루 당겨져 보임)
       const _accNotice=`<div style="font-size:12px;color:#8a5a00;background:#fff8e1;border:1px solid #ffe08a;border-radius:6px;padding:8px 10px;margin:4px 0 10px">📌 회계 라인(계정과목/차대변) 상세는 ACC Voucher에서 직접 확인해주세요 — <a href="${_sysUrl}" target="_blank" style="color:#0078d4;font-weight:700;text-decoration:underline">→ ACC Voucher 바로가기</a></div>`;
-      info+=sec('전표 정보')+row('유형',f.VoucherType||'-')+row('원가부서(CCTR)',f.RequesterCCTR||'-')+row('BP 코드',f.BPCode||'-')+row('BP명',f.BPName||'-')+row('사업자등록번호',f.BPBizNo||'-')+row('Invoice Date',_invDate)+row('참고 환율',_exRate)+row('DR 합계(KRW)',f.TotalDR_KRW?Number(f.TotalDR_KRW).toLocaleString()+'원':'-')+row('CR 합계(KRW)',f.TotalCR_KRW?Number(f.TotalCR_KRW).toLocaleString()+'원':'-')+_accNotice+rowFull('Purpose',f.Purpose)
+      info+=sec('전표 정보')+row('유형',f.VoucherType||'-')+row('원가부서(CCTR)',f.RequesterCCTR||'-')+row('BP 코드',f.BPCode||'-')+row('BP명',f.BPName||'-')+row('사업자등록번호',f.BPBizNo||'-')+row('Invoice Date',_invDate)+row('참고 환율',_exRate)+row('DR 합계(KRW)',f.TotalDR_KRW?Number(f.TotalDR_KRW).toLocaleString()+'원':'-')+row('CR 합계(KRW)',f.TotalCR_KRW?Number(f.TotalCR_KRW).toLocaleString()+'원':'-')+_accNotice
+        +(f.PurposeTitle ? rowFull('Purpose Title','<span style="font-weight:600">'+String(f.PurposeTitle).replace(/<[^>]*>/g,'').trim()+'</span>') : '')
+        +rowFull('Purpose',f.Purpose)
         // RD 승인 제외 건은 결재 단계가 하나 빠진 상태이므로 그 근거를 상세에서도 확인할 수 있어야 한다.
         // 저장값에 옛 접두어가 붙어 있을 수 있어 제거 후 표시한다(ACC Voucher와 동일 처리).
         +(f.RDExemptReason
