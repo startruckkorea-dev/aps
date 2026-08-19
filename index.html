@@ -689,6 +689,10 @@ async function loadAccVolumeConfig() {
   return _accVolConfig;
 }
 // ACC Voucher의 등록된 모든 Approvals 세대를 병렬로 조회해서 apiAll()과 동일한 {value:[...]} 형태로 합쳐서 반환
+// ⚠ 이 함수는 "목록 화면용"이다. 한 세대 조회가 실패해도 나머지로 화면을 그리기 위해 실패를 빈 배열로 흡수한다.
+//    결재 처리(doApproval)처럼 이 결과로 쓰기를 판단하는 곳에서는 절대 쓰면 안 된다.
+//    (빈 배열 → "다음 결재자 없음"으로 오인 → 남은 결재자를 건너뛴 채 '승인완료' 마감)
+//    그 용도로는 아래 fetchApprovalsForRequest()를 쓴다.
 async function fetchAllAccApprovals() {
   const cfg = await loadAccVolumeConfig();
   const results = await Promise.all((cfg.aprVolumes||[]).map(vol =>
@@ -697,6 +701,39 @@ async function fetchAllAccApprovals() {
       .catch(()=>({value:[]}))
   ));
   return { value: results.flatMap(r=>r.value||[]) };
+}
+
+// ── 결재 처리 전용: 특정 신청 건(reqId)의 결재 행만 조회 ────────────────────────
+// 목록용 전량조회(수백~수천 건)를 그대로 쓰면 전송량이 크고 페이지네이션까지 겹쳐 실패 확률이 높다.
+// RequestID로 서버 필터를 걸어 4~9건만 받는다. 인덱스가 없거나 필터가 거부되는 리스트가 있을 수 있으므로,
+// 필터 조회가 실패하면 기존과 동일한 전량조회 + 클라이언트 필터로 자동 폴백한다(동작 후퇴 없음).
+// 실패를 빈 배열로 흡수하지 않는다 — 호출부가 "0건"을 "다음 결재자 없음"과 구분할 수 있어야 한다.
+async function fetchApprovalsForRequest(sysKey, reqId){
+  const sys = SYSTEMS.find(s=>s.key===sysKey);
+  const rid = parseInt(reqId);
+  const lists = sysKey==='ACC'
+    ? ((await loadAccVolumeConfig()).aprVolumes||[]).map(v=>v.id)
+    : [sys.apr];
+  const rows = [];
+  let lastErr = null, okCount = 0;
+  for(const listId of lists){
+    const base = '/sites/'+siteId+'/lists/'+listId+'/items?$expand=fields';
+    let page = null;
+    try {
+      page = await apiAll(base+'&$filter=fields/RequestID eq '+rid+'&$top=50');
+    } catch(fe) {
+      console.warn('[결재] 서버 필터 조회 실패 → 전량조회로 폴백:', listId, fe && fe.message);
+      try {
+        const all = await apiAll(base);
+        page = { value: (all.value||[]).filter(i=>Number(i.fields.RequestID)===rid) };
+      } catch(ae) { lastErr = ae; continue; }
+    }
+    okCount++;
+    (page.value||[]).forEach(item=>{ item._accVolId = listId; rows.push(item); });
+  }
+  // 모든 리스트 조회가 실패했으면 "결재 행이 없다"가 아니라 "조회를 못 했다"이므로 예외로 올린다.
+  if(!okCount && lastErr) throw lastErr;
+  return rows;
 }
 
 let msalApp=null,user=null,siteId=null,_allData={},_pending=null,_currentApprList=[];
@@ -744,13 +781,28 @@ async function apiAll(path) {
   }
   return {value: items};
 }
+// Graph 스로틀(429)이나 일시적 서버 오류(503/504)는 한 번 튕겼다고 포기하면 안 된다.
+// 특히 결재 처리는 "PATCH → 조회 → PATCH" 순서라, 가운데 조회가 한 번 실패하면
+// 앞의 승인만 반영되고 다음 결재자가 안 풀린 채 전표가 멈춘다(2026-08-18 ACC 장애).
+// GET·PATCH만 사용하고 둘 다 같은 값을 다시 쓰는 형태라 재시도해도 중복 생성 위험이 없다.
+// Prefer 헤더는 인덱스가 없는 컬럼으로 $filter를 걸 때 리스트 임계치(5,000건)에 막히지 않도록 하는 것으로,
+// 다른 APS 시스템(GW·SCC·BP·FA·GA·MC 등)과 동일한 설정이며 필터를 안 쓰는 호출에는 영향이 없다.
 async function api(path,method='GET',body=null){
-  const t=await token();
-  const opts={method,headers:{Authorization:'Bearer '+t,'Content-Type':'application/json'}};
-  if(body)opts.body=JSON.stringify(body);
-  const res=await fetch(GRAPH+path,opts);
-  if(!res.ok)throw new Error((await res.json())?.error?.message||res.status);
-  return res.status===204?null:res.json();
+  for(let attempt=0;;attempt++){
+    const t=await token();
+    const opts={method,headers:{Authorization:'Bearer '+t,'Content-Type':'application/json',Prefer:'HonorNonIndexedQueriesWarningMayFailRandomly'}};
+    if(body)opts.body=JSON.stringify(body);
+    const res=await fetch(GRAPH+path,opts);
+    if(res.ok) return res.status===204?null:res.json();
+    if([429,503,504].includes(res.status)&&attempt<3){
+      const ra=parseInt(res.headers.get('Retry-After')||'0',10);
+      const wait=ra>0?ra*1000:Math.pow(2,attempt)*800;   // 0.8s → 1.6s → 3.2s
+      console.warn('[api] '+res.status+' 재시도 '+(attempt+1)+'/3 ('+wait+'ms 후) '+path.slice(0,120));
+      await new Promise(r=>setTimeout(r,wait));
+      continue;
+    }
+    throw new Error((await res.json().catch(()=>null))?.error?.message||res.status);
+  }
 }
 function loading(on,txt='처리 중...'){
   document.getElementById('loading').className=on?'show':'';
@@ -1832,8 +1884,21 @@ async function doApproval(){
     if(action==='반려'){
       await api('/sites/'+siteId+'/lists/'+sys.req+'/items/'+reqId,'PATCH',{fields:{Status:'반려'}});
     }else{
-      const all = sysKey==='ACC' ? await fetchAllAccApprovals() : await apiAll('/sites/'+siteId+'/lists/'+sys.apr+'/items?$expand=fields');
-      const next=all.value.filter(i=>Number(i.fields.RequestID)===Number(reqId)&&(i.fields.Status||'').trim()==='대기(잠김)').sort((a,b)=>a.fields.ApprovalOrder-b.fields.ApprovalOrder);
+      // 이 건의 결재 행만 조회한다(전량조회 아님). 실패는 예외로 올라온다.
+      const rows = await fetchApprovalsForRequest(sysKey, reqId);
+      // 조회 결과가 비어 있으면 "결재 행이 없다"가 아니라 "조회가 잘못됐다"로 본다.
+      // 바로 위에서 이 건의 행 하나를 '승인'으로 바꿨으므로 최소 1건은 반드시 나와야 정상이다.
+      // 이 상태에서 '승인완료'로 넘기면 남은 결재자를 건너뛴 채 마감된다.
+      if(!rows.length){
+        console.error('[결재] 결재 행 조회 결과가 비어 있음 — 승인완료 전환 중단. sys:', sysKey, 'RequestID:', reqId);
+        loading(false);
+        alert('승인은 기록되었으나 다음 단계로 넘기지 못했습니다.\n잠시 후 결재함에서 상태를 다시 확인해 주세요.\n계속 같은 증상이면 IT팀(stk_it@hyosung.com)에 알려주세요.');
+        closeDetail();
+        _adminDataTime = 0; _myApprovedDataTime = 0;
+        await loadAll(true);
+        return;
+      }
+      const next=rows.filter(i=>(i.fields.Status||'').trim()==='대기(잠김)').sort((a,b)=>a.fields.ApprovalOrder-b.fields.ApprovalOrder);
       if(next.length)await api('/sites/'+siteId+'/lists/'+(next[0]._accVolId||sys.apr)+'/items/'+next[0].id,'PATCH',{fields:{Status:'대기'}});
       else await api('/sites/'+siteId+'/lists/'+sys.req+'/items/'+reqId,'PATCH',{fields:{Status:'승인완료'}});
     }
