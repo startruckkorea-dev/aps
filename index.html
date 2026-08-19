@@ -1752,11 +1752,11 @@ async function showDetail(sysKey,reqId){
     // RD 승인 제외는 전표 내용이 아니라 '결재선이 왜 한 단계 짧은지'에 대한 설명이므로
     // 결재 이력 바로 아래에 둔다. 저장값에 옛 접두어가 붙어 있을 수 있어 제거 후 표시한다.
     const rdExemptHtml = (sysKey==='ACC' && f.RDExemptReason)
-      ? '<div style="margin-top:8px;background:#fdf6e3;border:1px solid #f0d9a0;border-radius:6px;padding:9px 12px">'
-        + '<div style="font-size:.75rem;font-weight:700;color:#8a6116;margin-bottom:3px">RD Approval Exemption — Reason Requested</div>'
-        + '<div style="font-size:.78rem;color:#8a6116;font-weight:600">'
+      ? '<div style="margin-top:8px;background:#fdf6e3;border:1px solid #f0d9a0;border-radius:6px;padding:7px 10px">'
+        + '<div style="font-size:.66rem;font-weight:700;color:#8a6116;margin-bottom:2px">RD Approval Exemption — Reason Requested</div>'
+        + '<div style="font-size:.68rem;color:#8a6116;font-weight:600">'
         + String(f.RDExemptReason).replace(/^RD\s*승인\s*제외\s*[—\-:]?\s*/,'').trim() + '</div>'
-        + '<div style="font-size:11px;color:#a19f9d;margin-top:3px">Requested by the requester; the RD approval step was excluded for this voucher.</div>'
+        + '<div style="font-size:10px;color:#a19f9d;margin-top:2px">Requested by the requester; the RD approval step was excluded for this voucher.</div>'
         + '</div>'
       : '';
     document.getElementById('detail-content').innerHTML=info+apprHtml+rdExemptHtml+
