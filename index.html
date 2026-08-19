@@ -1644,14 +1644,7 @@ async function showDetail(sysKey,reqId){
       info+=sec('전표 정보')+row('유형',f.VoucherType||'-')+row('원가부서(CCTR)',f.RequesterCCTR||'-')+row('BP 코드',f.BPCode||'-')+row('BP명',f.BPName||'-')+row('사업자등록번호',f.BPBizNo||'-')+row('Invoice Date',_invDate)+row('참고 환율',_exRate)+row('DR 합계(KRW)',f.TotalDR_KRW?Number(f.TotalDR_KRW).toLocaleString()+'원':'-')+row('CR 합계(KRW)',f.TotalCR_KRW?Number(f.TotalCR_KRW).toLocaleString()+'원':'-')+_accNotice
         +(f.PurposeTitle ? rowFull('Purpose Title', String(f.PurposeTitle).replace(/<[^>]*>/g,'').trim()) : '')
         +rowFull('Purpose',f.Purpose)
-        // RD 승인 제외 건은 결재 단계가 하나 빠진 상태이므로 그 근거를 상세에서도 확인할 수 있어야 한다.
-        // 저장값에 옛 접두어가 붙어 있을 수 있어 제거 후 표시한다(ACC Voucher와 동일 처리).
-        +(f.RDExemptReason
-            ? rowFull('RD Approval Exemption — Reason Requested',
-                '<span style="color:#8a6116;font-weight:600">'
-                + String(f.RDExemptReason).replace(/^RD\s*승인\s*제외\s*[—\-:]?\s*/,'').trim()
-                + '</span><div style="font-size:11px;color:#a19f9d;margin-top:2px">Requested by the requester; the RD approval step was excluded for this voucher.</div>')
-            : '');
+        ;
       info+=sec('첨부파일')+parseFiles(f.AttachmentRef);
     }
 
@@ -1704,7 +1697,17 @@ async function showDetail(sysKey,reqId){
 
     const myPending=apprList.find(a=>(a.fields.ApproverEmail||'').toLowerCase()===(user.email||'').toLowerCase()&&(a.fields.Status||'').trim()==='대기');
     _currentApprList = apprList; // 전역 저장 — showConfirm onclick에서 참조
-    document.getElementById('detail-content').innerHTML=info+apprHtml+
+    // RD 승인 제외는 전표 내용이 아니라 '결재선이 왜 한 단계 짧은지'에 대한 설명이므로
+    // 결재 이력 바로 아래에 둔다. 저장값에 옛 접두어가 붙어 있을 수 있어 제거 후 표시한다.
+    const rdExemptHtml = (sysKey==='ACC' && f.RDExemptReason)
+      ? '<div style="margin-top:8px;background:#fdf6e3;border:1px solid #f0d9a0;border-radius:6px;padding:9px 12px">'
+        + '<div style="font-size:.75rem;font-weight:700;color:#8a6116;margin-bottom:3px">RD Approval Exemption — Reason Requested</div>'
+        + '<div style="font-size:.78rem;color:#8a6116;font-weight:600">'
+        + String(f.RDExemptReason).replace(/^RD\s*승인\s*제외\s*[—\-:]?\s*/,'').trim() + '</div>'
+        + '<div style="font-size:11px;color:#a19f9d;margin-top:3px">Requested by the requester; the RD approval step was excluded for this voucher.</div>'
+        + '</div>'
+      : '';
+    document.getElementById('detail-content').innerHTML=info+apprHtml+rdExemptHtml+
       (myPending?`<div class="modal-action">
         <button onclick="showConfirm(${myPending.id},'승인',${reqId},'${sysKey}','${(myPending.fields.ApproverRole||'').replace(/'/g,'')}',${myPending.fields.ApprovalOrder||0})" class="btn-approve">✅ 승인</button>
         <button onclick="showConfirm(${myPending.id},'반려',${reqId},'${sysKey}','${(myPending.fields.ApproverRole||'').replace(/'/g,'')}',${myPending.fields.ApprovalOrder||0})" class="btn-reject">❌ 반려</button>
