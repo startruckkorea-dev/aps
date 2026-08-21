@@ -53,6 +53,25 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#f5f7f
 .filter-row{display:flex;gap:8px;margin-bottom:20px;flex-wrap:nowrap}
 .filter-select{background:#fff;border:1px solid #e2e8f0;border-radius:20px;padding:6px 28px 6px 12px;font-size:.78rem;font-family:inherit;color:#334155;cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%2394a3b8'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;box-shadow:0 1px 3px rgba(0,0,0,.06);transition:all .15s;white-space:nowrap}
 .filter-select:focus{outline:none;border-color:#3b82f6}
+/* 검색창은 select 가 아니므로 화살표 여백을 빼고 돋보기 아이콘을 넣는다 */
+.filter-input{background:#fff;border:1px solid #e2e8f0;border-radius:20px;padding:6px 12px 6px 28px;
+  font-size:.78rem;font-family:inherit;color:#334155;box-shadow:0 1px 3px rgba(0,0,0,.06);transition:all .15s;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='11' viewBox='0 0 16 16'%3E%3Cpath d='M6.5 1a5.5 5.5 0 013.9 9.4l4.1 4.1-1 1-4.1-4.1A5.5 5.5 0 116.5 1zm0 1.5a4 4 0 100 8 4 4 0 000-8z' fill='%2394a3b8'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:left 10px center}
+.filter-input::placeholder{color:#a0aab5}
+.filter-input:focus{outline:none;border-color:#3b82f6}
+/* 관리자 필터 바 — 각 칸을 내용에 맞는 폭으로 고정해 가로로 늘어지지 않게 한다 */
+#admin-filter-sys{width:146px}
+#admin-filter-status{width:192px}
+#admin-search{width:170px}
+#admin-search-approver{width:150px}
+/* 내 신청 / 내 결재 탭의 검색창도 같은 기준으로 */
+#myr-search{width:180px}
+#mya-search{width:200px}
+@media(max-width:900px){
+  #admin-filter-sys,#admin-filter-status,#admin-search,#admin-search-approver,
+  #myr-search,#mya-search{width:calc(50% - 4px)}
+}
 
 /* ── Grid ── */
 #content{}
@@ -445,7 +464,7 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#f5f7f
         <option value="승인완료">승인완료</option>
         <option value="반려">반려</option>
       </select>
-      <input id="myr-search" class="filter-select" type="text" placeholder="제목 검색..." oninput="renderMyRequestsTable(true)" style="min-width:200px;">
+      <input id="myr-search" class="filter-input" type="text" placeholder="제목" oninput="renderMyRequestsTable(true)">
     </div>
     <div id="myrequests-table-wrap"></div>
   </div>
@@ -487,7 +506,7 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#f5f7f
         <option value="승인">승인</option>
         <option value="반려">반려</option>
       </select>
-      <input id="mya-search" class="filter-select" type="text" placeholder="신청자 / 제목 검색..." oninput="renderMyApprovedTable(true)" style="min-width:200px;">
+      <input id="mya-search" class="filter-input" type="text" placeholder="신청자 · 제목" oninput="renderMyApprovedTable(true)">
     </div>
     <div id="myapproved-table-wrap"></div>
   </div>
@@ -525,16 +544,16 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#f5f7f
       <select id="admin-filter-status" class="filter-select" onchange="renderAdminTable(true)">
         <option value="">전체 상태</option>
         <option value="진행중">진행중</option>
-        <option value="지연(3일+)">⚠️ 지연 3일+ (신청일 기준)</option>
-        <option value="지연(7일+)">🔴 지연 7일+ (신청일 기준)</option>
-        <option value="정체(3일+)">⚠️ 정체 3일+ (최근결재일 기준)</option>
-        <option value="정체(7일+)">🔴 정체 7일+ (최근결재일 기준)</option>
+        <option value="지연(3일+)">⚠️ 지연 3일+ · 신청일</option>
+        <option value="지연(7일+)">🔴 지연 7일+ · 신청일</option>
+        <option value="정체(3일+)">⚠️ 정체 3일+ · 최근결재</option>
+        <option value="정체(7일+)">🔴 정체 7일+ · 최근결재</option>
         <option value="대기">대기</option>
         <option value="승인완료">승인완료</option>
         <option value="반려">반려</option>
       </select>
-      <input id="admin-search" class="filter-select" type="text" placeholder="신청자/제목 검색..." oninput="renderAdminTable(true)" style="min-width:200px;" />
-      <input id="admin-search-approver" class="filter-select" type="text" placeholder="다음 결재자 검색..." oninput="renderAdminTable(true)" style="min-width:180px;" />
+      <input id="admin-search" class="filter-input" type="text" placeholder="신청자 · 제목" oninput="renderAdminTable(true)" />
+      <input id="admin-search-approver" class="filter-input" type="text" placeholder="다음 결재자" oninput="renderAdminTable(true)" />
     </div>
     <div id="admin-table-wrap"></div>
   </div>
