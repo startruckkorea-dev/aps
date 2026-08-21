@@ -1369,13 +1369,6 @@ function renderApvPopup(){
   });
   body.innerHTML=html;
 }
-function apvToggleOld(){
-  var t=document.getElementById('apv-old-toggle');
-  var l=document.getElementById('apv-old-list');
-  if(!t||!l)return;
-  if(l.style.display==='none'){l.style.display='flex';t.textContent=t.textContent.replace('▼','▲');}
-  else{l.style.display='none';t.textContent=t.textContent.replace('▲','▼');}
-}
 function updateApvBadge(){
   if(!user)return;
   var myEmail=(user.email||'').toLowerCase();
@@ -2205,7 +2198,8 @@ async function loadMyRequestsPage(force=false) {
   if (!force && _myRequestsDataTime && (Date.now()-_myRequestsDataTime) < CACHE_TTL_MS) { renderMyRequestsTable(true); return; }
   const wrap = document.getElementById('myrequests-table-wrap');
   wrap.innerHTML = '<div style="padding:40px;text-align:center;color:#94a3b8;">신청 기록 불러오는 중...</div>';
-  _myRequestsData = [];
+  const _seq = ++_adminLoadSeq;
+  const _rows = [];
   const myEmail = (user.email || user.username || '').toLowerCase();
 
   await Promise.all(visibleSystems().map(async sys => {
@@ -2234,7 +2228,7 @@ async function loadMyRequestsPage(force=false) {
           else if (aprStatuses.some(s => s === '대기')) reqStatus = '진행중';
           const doneAprs = aprs.filter(a => {const s=(a.Status&&a.Status.Value?a.Status.Value:a.Status||'').trim();return s==='승인'||s==='반려';}).sort((a,b)=>(a.ApprovalOrder||0)-(b.ApprovalOrder||0));
           const pendingAprs = aprs.filter(a => (a.Status&&a.Status.Value?a.Status.Value:a.Status||'').trim()==='대기').sort((a,b)=>(a.ApprovalOrder||0)-(b.ApprovalOrder||0));
-          _myRequestsData.push({
+          _rows.push({
             sysKey: sys.key, sysLabel: sys.name,
             reqId: r.id,
             title: rf.Title || '-',
@@ -2244,12 +2238,19 @@ async function loadMyRequestsPage(force=false) {
             nextApprover: pendingAprs.length ? (pendingAprs[0].ApproverName||'-') : '-',
             nextRole: pendingAprs.length ? formatNextRole(sys.key, pendingAprs[0]) : '-',
             requestDate: rf.RequestDate || '',
-            lastApprovalDate: doneAprs.length ? (doneAprs[doneAprs.length-1].ApprovalDate||'') : '',
+            lastApprovalDate: pickLastApprovalDate(doneAprs),
           });
         });
     } catch(e) { console.warn('myrequests load error', sys.key, e); }
   }));
 
+  if (_seq !== _adminLoadSeq) { console.warn('[myrequests] 이전 로딩 결과 폐기'); return; }
+  const _seen = new Set();
+  _myRequestsData = _rows.filter(r => {
+    const k = r.sysKey + '#' + r.reqId;
+    if (_seen.has(k)) return false;
+    _seen.add(k); return true;
+  });
   _myRequestsData.sort((a,b) => (b.requestDate > a.requestDate ? 1 : -1));
   _myRequestsDataTime = Date.now();
   renderMyRequestsTable(true);
@@ -2370,7 +2371,22 @@ function exportMyRequestsExcel() {
   XLSX.writeFile(wb, 'My_Requests_Record_'+new Date(new Date().getTime()+9*3600*1000).toISOString().slice(0,10)+'.xlsx');
 }
 
+// 처리된 결재 중 실제로 가장 늦게 승인·반려된 날짜를 고른다.
+// 차수(ApprovalOrder) 순 마지막 건을 쓰면 그 건의 날짜가 비어 있거나
+// 차수와 처리 순서가 다를 때 엉뚱한 날짜가 나온다.
+function pickLastApprovalDate(doneAprs){
+  let best = '';
+  (doneAprs||[]).forEach(a => {
+    const d = (a.ApprovalDate||'').trim();
+    if (d && d > best) best = d;      // ISO 문자열이라 사전순 비교로 충분
+  });
+  return best;
+}
+
 let _adminData = [];
+// 로딩 세대 토큰 — 새로고침이 겹쳤을 때 늦게 도착한 옛 응답을 버리기 위해 쓴다.
+// (이 값이 없으면 먼저 시작한 호출의 결과가 나중에 push 되어 건수가 두 배가 된다)
+let _adminLoadSeq = 0;
 
 async function loadAdminPage(force=false) {
   if (!force && _adminDataTime && (Date.now()-_adminDataTime) < CACHE_TTL_MS) {
@@ -2379,7 +2395,8 @@ async function loadAdminPage(force=false) {
     return;
   }
   document.getElementById('admin-table-wrap').innerHTML = '<div style="padding:40px;text-align:center;color:#94a3b8;">전체 데이터 로딩 중...</div>';
-  _adminData = [];
+  const _seq = ++_adminLoadSeq;
+  const _rows = [];                    // 전역이 아니라 이번 호출 전용 배열에 모은다
   await Promise.all(visibleSystems().map(async sys => {
     try {
       const [aprData, reqData] = await Promise.all([
@@ -2404,7 +2421,7 @@ async function loadAdminPage(force=false) {
         else if (aprStatuses.some(s => s === '대기')) reqStatus = '진행중';
         const doneAprs = aprs.filter(a => {const s=(a.Status&&a.Status.Value?a.Status.Value:a.Status||'').trim();return s==='승인'||s==='반려';}).sort((a,b)=>(a.ApprovalOrder||0)-(b.ApprovalOrder||0));
         const pendingAprs = aprs.filter(a => (a.Status&&a.Status.Value?a.Status.Value:a.Status||'').trim()==='대기').sort((a,b)=>(a.ApprovalOrder||0)-(b.ApprovalOrder||0));
-        _adminData.push({
+        _rows.push({
           sysKey: sys.key, sysLabel: sys.label || sys.key,
           reqId: r.id,
           title: rf.Title || '-',
@@ -2415,11 +2432,22 @@ async function loadAdminPage(force=false) {
           nextApprover: pendingAprs.length ? (pendingAprs[0].ApproverName||'-') : '-',
           nextRole: pendingAprs.length ? formatNextRole(sys.key, pendingAprs[0]) : '-',
           requestDate: rf.RequestDate || '',
-          lastApprovalDate: doneAprs.length ? (doneAprs[doneAprs.length-1].ApprovalDate||'') : '',
+          lastApprovalDate: pickLastApprovalDate(doneAprs),
         });
       });
     } catch(e) {}
   }));
+  // 로딩 중에 새로고침이 다시 눌렸다면 이번 결과는 버린다
+  if (_seq !== _adminLoadSeq) { console.warn('[admin] 이전 로딩 결과 폐기 (seq '+_seq+' / 최신 '+_adminLoadSeq+')'); return; }
+  // 같은 시스템의 같은 건이 두 번 들어오지 않도록 한 번 더 걸러낸다
+  const _seen = new Set();
+  _adminData = _rows.filter(r => {
+    const k = r.sysKey + '#' + r.reqId;
+    if (_seen.has(k)) return false;
+    _seen.add(k); return true;
+  });
+  if (_adminData.length !== _rows.length)
+    console.warn('[admin] 중복 '+(_rows.length-_adminData.length)+'건 제거');
   document.getElementById('admin-total-count').textContent = '총 '+_adminData.length+'건';
   _adminDataTime = Date.now();
   renderAdminTable();
@@ -2455,7 +2483,7 @@ function renderAdminTable(resetPage) {
       (fStatus!=='정체(3일+)' || (r.reqStatus==='진행중' && stagnantRef && stagnantDays>=3)) &&
       (fStatus!=='정체(7일+)' || (r.reqStatus==='진행중' && stagnantRef && stagnantDays>=7)) &&
       (!fSearch || r.title.toLowerCase().includes(fSearch) || r.requester.toLowerCase().includes(fSearch)) &&
-      (!fApprover || (r.nextApprover||'').toLowerCase().includes(fApprover) || (r.nextApproverRole||'').toLowerCase().includes(fApprover));
+      (!fApprover || (r.nextApprover||'').toLowerCase().includes(fApprover) || (r.nextRole||'').toLowerCase().includes(fApprover));
     })
     .sort((a, b) => {
       const {col, dir} = _adminSort;
