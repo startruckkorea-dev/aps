@@ -1771,14 +1771,14 @@ async function showDetail(sysKey,reqId){
     // RD 승인 제외는 전표 내용이 아니라 '결재선이 왜 한 단계 짧은지'에 대한 설명이므로
     // 결재 이력 바로 아래에 둔다. 저장값에 옛 접두어가 붙어 있을 수 있어 제거 후 표시한다.
     // 사유만 덩그러니 있으면 "누가 요청한 제외인지"를 판단할 수 없어, 신청자와 사유를 라벨로 나눠 보여준다.
-    const _rdLbl = t => '<span style="display:inline-block;min-width:46px;text-align:right;color:#a8842e;font-weight:600">' + t + '</span>'
+    const _rdLbl = t => '<span style="display:inline-block;min-width:58px;text-align:right;color:#a8842e;font-weight:600">' + t + '</span>'
       + '<span style="display:inline-block;width:15px;text-align:center;color:#c2a25a;font-weight:600">:</span>';
     const rdExemptHtml = (sysKey==='ACC' && f.RDExemptReason)
       ? '<div style="margin-top:8px;background:#fdf6e3;border:1px solid #f0d9a0;border-radius:6px;padding:8px 11px">'
         + '<div style="font-size:.66rem;font-weight:700;color:#8a6116;margin-bottom:5px">RD Approval Exemption — Reason Requested</div>'
         + '<div style="font-size:.68rem;color:#8a6116;line-height:1.65">'
-        + _rdLbl('신청자') + '<span style="font-weight:600">' + escHtml(f.RequesterEmail || f.RequesterName || '-') + '</span><br>'
-        + _rdLbl('사유') + '<span style="font-weight:700">'
+        + _rdLbl('Requester') + '<span style="font-weight:600">' + escHtml(f.RequesterEmail || f.RequesterName || '-') + '</span><br>'
+        + _rdLbl('Reason') + '<span style="font-weight:700">'
         + escHtml(String(f.RDExemptReason).replace(/^RD\s*승인\s*제외\s*[—\-:]?\s*/,'').trim()) + '</span>'
         + '</div>'
         + '<div style="font-size:10px;color:#a19f9d;margin-top:5px">(Requested by the requester; the RD approval step was excluded for this voucher)</div>'
