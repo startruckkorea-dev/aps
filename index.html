@@ -1996,7 +1996,8 @@ async function loadMyApprovedPage(force=false) {
   if (!force && _myApprovedDataTime && (Date.now()-_myApprovedDataTime) < CACHE_TTL_MS) { renderMyApprovedTable(true); return; }
   const wrap = document.getElementById('myapproved-table-wrap');
   wrap.innerHTML = '<div style="padding:40px;text-align:center;color:#94a3b8;">결재 기록 불러오는 중...</div>';
-  _myApprovedData = [];
+  const _seq = ++_adminLoadSeq;
+  const _rows = [];                    // 전역이 아니라 이번 호출 전용 배열에 모은다
   const myEmail = (user.email || user.username || '').toLowerCase();
 
   await Promise.all(visibleSystems().map(async sys => {
@@ -2039,7 +2040,7 @@ async function loadMyApprovedPage(force=false) {
           const f = i.fields;
           const s = (f.Status && f.Status.Value ? f.Status.Value : f.Status || '').trim();
           const rf = reqMap[String(f.RequestID)] || {};
-          _myApprovedData.push({
+          _rows.push({
             sysKey:      sys.key,
             sysLabel:    sys.name,
             reqId:       f.RequestID,
@@ -2058,6 +2059,14 @@ async function loadMyApprovedPage(force=false) {
     } catch(e) { console.warn('myapproved load error', sys.key, e); }
   }));
 
+  // 로딩 중에 다시 호출됐다면 이번 결과는 버린다 (겹치면 건수가 두 배가 된다)
+  if (_seq !== _adminLoadSeq) { console.warn('[myapproved] 이전 로딩 결과 폐기'); return; }
+  const _seen = new Set();
+  _myApprovedData = _rows.filter(r => {
+    const k = r.sysKey + '#' + r.reqId + '#' + r.aprOrder;
+    if (_seen.has(k)) return false;
+    _seen.add(k); return true;
+  });
   _myApprovedData.sort((a,b) => (b.processedAt > a.processedAt ? 1 : -1));
   _myApprovedDataTime = Date.now();
   renderMyApprovedTable(true);
