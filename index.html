@@ -1996,7 +1996,7 @@ async function loadMyApprovedPage(force=false) {
   if (!force && _myApprovedDataTime && (Date.now()-_myApprovedDataTime) < CACHE_TTL_MS) { renderMyApprovedTable(true); return; }
   const wrap = document.getElementById('myapproved-table-wrap');
   wrap.innerHTML = '<div style="padding:40px;text-align:center;color:#94a3b8;">결재 기록 불러오는 중...</div>';
-  const _seq = ++_adminLoadSeq;
+  const _seq = ++_myApvLoadSeq;
   const _rows = [];                    // 전역이 아니라 이번 호출 전용 배열에 모은다
   const myEmail = (user.email || user.username || '').toLowerCase();
 
@@ -2060,7 +2060,7 @@ async function loadMyApprovedPage(force=false) {
   }));
 
   // 로딩 중에 다시 호출됐다면 이번 결과는 버린다 (겹치면 건수가 두 배가 된다)
-  if (_seq !== _adminLoadSeq) { console.warn('[myapproved] 이전 로딩 결과 폐기'); return; }
+  if (_seq !== _myApvLoadSeq) { console.warn('[myapproved] 이전 로딩 결과 폐기'); return; }
   const _seen = new Set();
   _myApprovedData = _rows.filter(r => {
     const k = r.sysKey + '#' + r.reqId + '#' + r.aprOrder;
@@ -2207,7 +2207,7 @@ async function loadMyRequestsPage(force=false) {
   if (!force && _myRequestsDataTime && (Date.now()-_myRequestsDataTime) < CACHE_TTL_MS) { renderMyRequestsTable(true); return; }
   const wrap = document.getElementById('myrequests-table-wrap');
   wrap.innerHTML = '<div style="padding:40px;text-align:center;color:#94a3b8;">신청 기록 불러오는 중...</div>';
-  const _seq = ++_adminLoadSeq;
+  const _seq = ++_myReqLoadSeq;
   const _rows = [];
   const myEmail = (user.email || user.username || '').toLowerCase();
 
@@ -2253,7 +2253,7 @@ async function loadMyRequestsPage(force=false) {
     } catch(e) { console.warn('myrequests load error', sys.key, e); }
   }));
 
-  if (_seq !== _adminLoadSeq) { console.warn('[myrequests] 이전 로딩 결과 폐기'); return; }
+  if (_seq !== _myReqLoadSeq) { console.warn('[myrequests] 이전 로딩 결과 폐기'); return; }
   const _seen = new Set();
   _myRequestsData = _rows.filter(r => {
     const k = r.sysKey + '#' + r.reqId;
@@ -2395,7 +2395,9 @@ function pickLastApprovalDate(doneAprs){
 let _adminData = [];
 // 로딩 세대 토큰 — 새로고침이 겹쳤을 때 늦게 도착한 옛 응답을 버리기 위해 쓴다.
 // (이 값이 없으면 먼저 시작한 호출의 결과가 나중에 push 되어 건수가 두 배가 된다)
-let _adminLoadSeq = 0;
+let _adminLoadSeq = 0;      // 전체 결재 관리
+let _myReqLoadSeq = 0;      // 내 신청 목록
+let _myApvLoadSeq = 0;      // 내 결재 기록
 
 async function loadAdminPage(force=false) {
   if (!force && _adminDataTime && (Date.now()-_adminDataTime) < CACHE_TTL_MS) {
