@@ -1760,10 +1760,19 @@ async function showDetail(sysKey,reqId){
       // 회계팀 담당자가 상신해 회계 담당자·Accounting Head·CFO 단계가 제외된 건은
       // 결재 이력만 보면 단계가 적어 보이므로, 이력 바로 아래에 근거를 함께 표시한다.
       + (f.AccLineSkipReason
-          ? '<div style="margin-top:10px;background:#eaf3fd;border:1px solid #b6d7f2;border-radius:8px;padding:8px 12px">'
-            + '<div style="font-size:11.5px;font-weight:700;color:#0b5fa5;margin-bottom:2px">Accounting Approval Line — Duplicate accounting review excluded</div>'
-            + '<div style="font-size:11px;color:#0b5fa5;line-height:1.5"><b style="color:#a4262c">Submitted by a member of the Accounting team.</b> The Team Lead and Dept Head steps already correspond to the Accounting Head and the CFO, so the duplicate accounting review was excluded.</div>'
-            + '</div>'
+          ? (() => {
+              // RD 승인 제외 안내와 같은 3단 구조(제목 → 라벨:값 → 회색 설명)로 맞춘다.
+              const _acLbl = t => '<span style="display:inline-block;min-width:78px;text-align:right;color:#3d7fb8;font-weight:600">' + t + '</span>'
+                                + '<span style="display:inline-block;width:15px;text-align:center;color:#8fb8d8;font-weight:600">:</span>';
+              return '<div style="margin-top:10px;background:#eaf3fd;border:1px solid #b6d7f2;border-radius:8px;padding:9px 12px">'
+                + '<div style="font-size:11.5px;font-weight:700;color:#0b5fa5;margin-bottom:5px">Accounting Approval Line — Duplicate accounting review excluded</div>'
+                + '<div style="font-size:11px;color:#0b5fa5;line-height:1.65">'
+                + _acLbl('Submitted by') + '<span style="font-weight:600">' + escHtml(f.RequesterEmail || f.RequesterName || '-') + '</span><br>'
+                + _acLbl('Excluded') + '<span style="font-weight:700">Accounting staff · Accounting Head · CFO</span>'
+                + '</div>'
+                + '<div style="font-size:10px;color:#a19f9d;margin-top:5px">(The Team Lead and Dept Head steps already correspond to the Accounting Head and the CFO, so the duplicate accounting review was excluded)</div>'
+                + '</div>';
+            })()
           : '');
 
     const myPending=apprList.find(a=>(a.fields.ApproverEmail||'').toLowerCase()===(user.email||'').toLowerCase()&&(a.fields.Status||'').trim()==='대기');
