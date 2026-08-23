@@ -2119,12 +2119,12 @@ function renderMyApprovedTable(resetPage) {
       </td>
       <td style="padding:6px 8px;text-align:center;color:#64748b;white-space:nowrap">${r.aprOrder}${r.totalAprs?'/'+r.totalAprs:''}차</td>
       <td style="padding:6px 8px;text-align:center">
-        <span style="background:${stBg[r.myStatus]||'#f1f5f9'};color:${stColor[r.myStatus]||'#374151'};border-radius:10px;padding:2px 8px;font-size:.72rem;font-weight:700">${r.myStatus}</span>
+        <span style="background:${stBg[r.myStatus]||'#f1f5f9'};color:${stColor[r.myStatus]||'#374151'};border-radius:10px;padding:2px 5px;font-size:.72rem;font-weight:700">${r.myStatus}</span>
       </td>
       <td style="padding:6px 8px;color:#94a3b8;white-space:nowrap;font-size:.75rem">${fmtDt(r.requestDate)}</td>
       <td style="padding:6px 8px;color:#64748b;white-space:nowrap;font-size:.75rem">${fmtDt(r.processedAt)}</td>
       <td style="padding:6px 8px;text-align:center">
-        <span style="background:${tsBg[r.ticketStatus]||'#f1f5f9'};color:${tsColor[r.ticketStatus]||'#374151'};border-radius:10px;padding:2px 8px;font-size:.72rem;font-weight:700">${r.ticketStatus}</span>
+        <span style="background:${tsBg[r.ticketStatus]||'#f1f5f9'};color:${tsColor[r.ticketStatus]||'#374151'};border-radius:10px;padding:2px 5px;font-size:.72rem;font-weight:700">${r.ticketStatus}</span>
       </td>
     </tr>`;}).join('');
 
@@ -2304,7 +2304,7 @@ function renderMyRequestsTable(resetPage) {
       <td style="padding:6px 8px;color:#0078d4;font-weight:600;white-space:nowrap">${r.sysLabel}</td>
       <td style="padding:6px 8px;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.75rem">${r.title}</td>
       <td style="padding:6px 8px;text-align:center">
-        <span style="background:${tsBg[r.reqStatus]||'#f1f5f9'};color:${tsColor[r.reqStatus]||'#374151'};border-radius:10px;padding:2px 8px;font-size:.72rem;font-weight:700">${r.reqStatus}</span>
+        <span style="background:${tsBg[r.reqStatus]||'#f1f5f9'};color:${tsColor[r.reqStatus]||'#374151'};border-radius:10px;padding:2px 5px;font-size:.72rem;font-weight:700">${r.reqStatus}</span>
       </td>
       <td style="padding:6px 8px;text-align:center;color:#64748b;white-space:nowrap">${r.doneCount}${r.totalAprs?'/'+r.totalAprs:''}차</td>
       <td style="padding:6px 8px;max-width:170px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#1e293b;font-size:.75rem">
@@ -2534,7 +2534,7 @@ function renderAdminTable(resetPage) {
       <td style="padding:8px 10px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.title}</td>
       <td style="padding:8px 10px;color:#374151;">${r.requester}</td>
       <td style="padding:8px 10px;text-align:center;">
-        <span style="background:${stBg[r.reqStatus]||'#f1f5f9'};color:${stMap[r.reqStatus]||'#374151'};border-radius:10px;padding:2px 10px;font-size:.75rem;font-weight:600;">${r.reqStatus}</span>
+        <span style="background:${stBg[r.reqStatus]||'#f1f5f9'};color:${stMap[r.reqStatus]||'#374151'};border-radius:10px;padding:2px 6px;font-size:.75rem;font-weight:600;">${r.reqStatus}</span>
       </td>
       <td style="padding:8px 10px;text-align:center;color:#64748b;">${r.doneCount} / ${r.totalAprs}차</td>
       <td style="padding:8px 10px;color:#374151;font-size:.78rem;">${r.nextApprover !== '-' ? r.nextApprover+'<br><span style="color:#94a3b8;font-size:.7rem;">'+r.nextRole+'</span>' : '<span style="color:#94a3b8;">-</span>'}</td>
