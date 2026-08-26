@@ -1631,8 +1631,39 @@ async function showDetail(sysKey,reqId){
     }
     else if(sysKey==='SCC'){
       info+=sec('계약 정보')+row('Title of Contract',f.ContractTitle||'(미입력)')+row('Type',f.ContractCompanyType)+row('Contract Type',f.ContractType)+row('Contract Partner',f.ContractPartner)+row('Objective',f.Objective)+row('Contract Value',f.ContractValue?Number(f.ContractValue).toLocaleString()+' '+(f.Currency||''):'-')+row('Contract Period',(f.PeriodType||'')+(f.PeriodStart?' | '+f.PeriodStart+' ~ '+(f.PeriodEnd||'No end'):''))+row('Payment Term',f.PaymentDays?'Within '+f.PaymentDays+' days from invoice date':'-');
-      if(f.ContractTemplate){const ti=(f.ContractTemplate||'').replace(/<[^>]*>/g,'').replace(/&#58;/g,':').replace(/&amp;/g,'&').trim().split(';').map(s=>s.trim()).filter(s=>s&&s.length>1);info+=sec('3. Contract Template')+'<div style="padding:6px 0">'+(ti.map(i=>`<div style="padding:3px 0;font-size:13px"><span style="color:#107c10">✓</span> ${i}</div>`).join('')||'-')+'</div>';}
-      if(f.BizTermsReviewed||f.DDPerformed||f.PersonalInfo||f.SMRCompliance||f.FinalSignOff){const yn=v=>v?`<span style="font-weight:600;color:${v.toLowerCase()==='yes'?'#107c10':'#a4262c'}">${v.toUpperCase()}</span>`:'-';info+=sec('4. Compliance / Final Check')+row('Business terms reviewed',yn(f.BizTermsReviewed))+row('Due Diligence performed',yn(f.DDPerformed)+(f.DDId?` (DD ID: ${f.DDId})`:''))+row('Personal Info disclosed',yn(f.PersonalInfo))+row('SMR Compliance',yn(f.SMRCompliance))+(f.FinalSignOff?row('Final signing off',f.FinalSignOff):'');}
+      if(f.ContractTemplate){
+        // SCC 상세 화면과 동일하게 전체 항목을 고정 목록으로 두고 체크 여부를 ☑/☐ 로 표기한다.
+        // ContractTemplate 컬럼에는 선택된 값만 저장되므로, 목록을 여기서 갖고 있어야 미선택 항목도 보인다.
+        const tmpl=(f.ContractTemplate||'').replace(/<[^>]*>/g,'').replace(/&#58;/g,':').replace(/&amp;/g,'&').trim();
+        const checkedList = tmpl ? tmpl.split(';').map(s=>s.trim()).filter(Boolean) : [];
+        const isChecked = l => checkedList.includes(l);
+        const otherStd = checkedList.find(c=>c.startsWith('- Other standard template'));
+        const row2 = (checked,label,indent) =>
+          `<div class="modal-row" style="align-items:flex-start${indent?';padding-left:18px':''}">`
+          + `<div style="min-width:18px;color:${checked?'#107c10':'#c8c6c4'}">${checked?'☑':'☐'}</div>`
+          + `<div style="flex:1;font-size:13px;color:${checked?'inherit':'#a19f9d'}">${escHtml(label)}</div></div>`;
+        info += sec('3. Contract Template')
+          + row2(isChecked('Standard template'),'Standard template')
+          + row2(isChecked('- Dealership / Service Center Agreement'),'- Dealership / Service Center Agreement',true)
+          + row2(isChecked('- Service Level Agreement with Other Mercedes-Benz Entity'),'- Service Level Agreement with Other Mercedes-Benz Entity',true)
+          + row2(isChecked('- (STK) Bodybuilder Framework Agreement'),'- (STK) Bodybuilder Framework Agreement',true)
+          + row2(!!otherStd, otherStd || '- Other standard template', true)
+          + row2(isChecked('Non-Standard template'),'Non-Standard template')
+          + row2(isChecked("- Legal's review was complete"),"- Legal's review was complete",true)
+          + row2(isChecked('- Soft copy was emailed to Legal'),'- Soft copy was emailed to Legal',true)
+          + row2(isChecked('- Contract was drafted by Legal'),'- Contract was drafted by Legal',true)
+          + row2(isChecked('Government template'),'Government template');
+      }
+      if(f.BizTermsReviewed||f.DDPerformed||f.PersonalInfo||f.SMRCompliance||f.FinalSignOff){
+        // 라벨은 SCC 상세 화면과 동일하게 유지한다. 감사·법무 대응 문구라 임의로 줄이지 않는다.
+        const yn=v=>v?`<span style="font-weight:600;color:${v.toLowerCase()==='yes'?'#107c10':'#a4262c'}">${escHtml(v.toUpperCase())}</span>`:'-';
+        info += sec('4. Compliance / Final Check');
+        if(f.BizTermsReviewed) info += row('Business / commercial terms reviewed', yn(f.BizTermsReviewed));
+        if(f.DDPerformed)      info += row('Is Compliance Due Diligence performed?', yn(f.DDPerformed)+(f.DDId?` &nbsp;(DD ID: ${escHtml(f.DDId)})`:''));
+        if(f.PersonalInfo)     info += row('Is personal Information disclosed?', yn(f.PersonalInfo)+(f.PersonalInfoStd?`  →  Standard contract: ${escHtml(String(f.PersonalInfoStd).toUpperCase())}`:''));
+        if(f.SMRCompliance)    info += row('Signing Party Designation (SMR)', yn(f.SMRCompliance));
+        if(f.FinalSignOff)     info += row('Final signing off', escHtml(f.FinalSignOff));
+      }
       info+=sec('첨부파일')+parseFiles(f.AttachedFiles);
     }
     else if(sysKey==='GW'){
