@@ -1646,6 +1646,23 @@ async function showDetail(sysKey,reqId){
       row('상태',stBadge(f.Status))+row('신청일',fmt(f.RequestDate));
 
     if(sysKey==='IT'){
+      // IT_Requests 의 일부 열은 SharePoint 내부 이름이 만들 때 붙은 그대로다.
+      // (열 이름에 쉼표·공백이 있어 OccurredAt_x002c__x0020_Symptom_ 같은 형태로 굳었다)
+      // IT-Ticket 화면은 읽은 뒤 같은 매핑을 하고 있는데 APS 에는 없어,
+      // 증상 설명·영향 범위가 늘 «-» 로 비어 보였다.
+      f.Symptom = f['OccurredAt_x002c__x0020_Symptom_'] || f.Symptom;
+      f.Scope   = f['Detail_x002c__x0020_ChangeType_x'] || f.Scope;
+      // 서식 있는 텍스트 열이라 <div> 로 감싸여 저장된다. 태그를 걷어내되
+      // </div>·<br> 은 줄바꿈으로 바꿔 여러 줄로 쓴 내용이 한 줄로 붙지 않게 한다.
+      ['Symptom','Scope','Workaround','Detail','ChangeReason','Impact','AcctPurpose','ReqEnv'].forEach(k => {
+        if (!f[k] || typeof f[k] !== 'string') return;
+        f[k] = f[k]
+          .replace(/<br\s*\/?>/gi, '\n').replace(/<\/(?:div|p)>/gi, '\n')
+          .replace(/<[^>]*>/g, '')
+          .replace(/&nbsp;/gi, ' ').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+          .replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&amp;/g, '&')
+          .replace(/\n{3,}/g, '\n\n').trim();
+      });
       info+=row('유형',f.TicketType||'-')+row('우선순위',f.Priority||'-')+row('대상 시스템',f.Systems||'-');
       const t=f.TicketType;
       if(t==='Incident'||t==='Problem') info+=sec('장애/이슈 상세')+(f.TicketTitle?row('요청 제목',f.TicketTitle):'')+rowFull('발생 일시',f.IncOccurredAt)+rowFull('증상 설명',f.Symptom)+row('영향 범위',f.Scope)+row('임시 해결책',f.Workaround);
