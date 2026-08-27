@@ -557,7 +557,9 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#f5f7f
         <option value="반려">반려</option>
       </select>
       <input id="admin-search" class="filter-input" type="text" placeholder="신청자 · 제목" oninput="renderAdminTable(true)" />
-      <input id="admin-search-approver" class="filter-input" type="text" placeholder="다음 결재자" oninput="renderAdminTable(true)" />
+      <input id="admin-search-approver" class="filter-input" type="text" placeholder="결재자 (이름·이메일·역할)"
+        title="아직 처리되지 않은 결재자 전부에서 찾습니다. 담당자가 바뀐 뒤 옛 사람이 결재선에 남아 있는 건을 찾을 때 쓰세요."
+        oninput="renderAdminTable(true)" />
     </div>
     <div id="admin-table-wrap"></div>
   </div>
@@ -2489,6 +2491,22 @@ async function loadAdminPage(force=false) {
           nextRole: pendingAprs.length ? formatNextRole(sys.key, pendingAprs[0]) : '-',
           requestDate: rf.RequestDate || '',
           lastApprovalDate: pickLastApprovalDate(doneAprs),
+          // 아직 처리되지 않은 결재행 전부(대기 + 대기(잠김)).
+          // 담당자가 바뀌었을 때 이미 만들어진 결재선에 옛 사람이 남는데,
+          // 「다음 결재자」만 보면 3차·4차에 걸린 건은 찾을 수 없어 전부 담아 둔다.
+          openAprs: aprs
+            .filter(a => {
+              const st = (a.Status && a.Status.Value ? a.Status.Value : a.Status || '').trim();
+              return st === '대기' || st === '대기(잠김)';
+            })
+            .sort((a,b)=>(a.ApprovalOrder||0)-(b.ApprovalOrder||0))
+            .map(a => ({
+              order: a.ApprovalOrder || 0,
+              name: a.ApproverName || '',
+              email: (a.ApproverEmail || '').toLowerCase(),
+              role: formatNextRole(sys.key, a),
+              status: (a.Status && a.Status.Value ? a.Status.Value : a.Status || '').trim(),
+            })),
         });
       });
     } catch(e) {}
@@ -2512,6 +2530,27 @@ async function loadAdminPage(force=false) {
 let _adminPage = 1;
 let _adminSort = {col:'requestDate', dir:'desc'};
 const ADMIN_PAGE_SIZE = 20;
+
+// 결재자 검색 시, 「다음 결재자」가 아닌 뒤 차수에 걸린 사람도 어디에 있는지 보여준다.
+// 담당자가 바뀐 뒤 이미 상신된 건을 SharePoint 에서 고쳐야 하는데,
+// 몇 차인지 모르면 어느 행을 봐야 할지 알 수 없다.
+function adminMatchedAprs(r, kw) {
+  if (!kw) return '';
+  const hit = (r.openAprs || []).filter(a =>
+    (a.name||'').toLowerCase().includes(kw)
+    || (a.email||'').includes(kw)
+    || (a.role||'').toLowerCase().includes(kw));
+  if (!hit.length) return '';
+  return '<div style="margin-top:4px;padding-top:4px;border-top:1px dashed #e2e8f0;font-size:.68rem;line-height:1.5">'
+    + hit.map(a =>
+        '<span style="color:' + (a.status === '대기' ? '#b45309' : '#64748b') + ';font-weight:700">'
+        + a.order + '차</span> '
+        + '<span style="color:#475569">' + (a.name || '-') + '</span> '
+        + '<span style="color:#94a3b8">' + (a.role || '') + '</span> '
+        + '<span style="color:#94a3b8">(' + a.status + ')</span>'
+      ).join('<br>')
+    + '</div>';
+}
 
 function renderAdminTable(resetPage) {
   if (resetPage !== false) _adminPage = 1;
@@ -2539,7 +2578,14 @@ function renderAdminTable(resetPage) {
       (fStatus!=='정체(3일+)' || (r.reqStatus==='진행중' && stagnantRef && stagnantDays>=3)) &&
       (fStatus!=='정체(7일+)' || (r.reqStatus==='진행중' && stagnantRef && stagnantDays>=7)) &&
       (!fSearch || r.title.toLowerCase().includes(fSearch) || r.requester.toLowerCase().includes(fSearch)) &&
-      (!fApprover || (r.nextApprover||'').toLowerCase().includes(fApprover) || (r.nextRole||'').toLowerCase().includes(fApprover));
+      // 「다음 결재자」뿐 아니라 아직 처리되지 않은 결재행 전부에서 찾는다.
+      // 담당자가 바뀐 뒤 이미 상신된 건의 3차·4차에 옛 사람이 남아 있는 경우를 잡기 위함.
+      (!fApprover || (r.nextApprover||'').toLowerCase().includes(fApprover)
+        || (r.nextRole||'').toLowerCase().includes(fApprover)
+        || (r.openAprs||[]).some(a =>
+             (a.name||'').toLowerCase().includes(fApprover)
+             || (a.email||'').includes(fApprover)
+             || (a.role||'').toLowerCase().includes(fApprover)));
     })
     .sort((a, b) => {
       const {col, dir} = _adminSort;
@@ -2593,7 +2639,7 @@ function renderAdminTable(resetPage) {
         <span style="background:${stBg[r.reqStatus]||'#f1f5f9'};color:${stMap[r.reqStatus]||'#374151'};border-radius:10px;padding:2px 6px;font-size:.75rem;font-weight:600;">${r.reqStatus}</span>
       </td>
       <td style="padding:8px 10px;text-align:center;color:#64748b;">${r.doneCount} / ${r.totalAprs}차</td>
-      <td style="padding:8px 10px;color:#374151;font-size:.78rem;">${r.nextApprover !== '-' ? r.nextApprover+'<br><span style="color:#94a3b8;font-size:.7rem;">'+r.nextRole+'</span>' : '<span style="color:#94a3b8;">-</span>'}</td>
+      <td style="padding:8px 10px;color:#374151;font-size:.78rem;">${r.nextApprover !== '-' ? r.nextApprover+'<br><span style="color:#94a3b8;font-size:.7rem;">'+r.nextRole+'</span>' : '<span style="color:#94a3b8;">-</span>'}${adminMatchedAprs(r, fApprover)}</td>
       <td style="padding:8px 10px;color:#94a3b8;font-size:.75rem;">${fmt(r.requestDate)}</td>
       <td style="padding:8px 10px;color:#94a3b8;font-size:.75rem;">${fmt(r.lastApprovalDate)}</td>
       ${(()=>{
@@ -2964,7 +3010,14 @@ function exportAdminExcel() {
     (fStatus!=='정체(3일+)' || (r.reqStatus==='진행중' && stagnantRef && stagnantDays>=3)) &&
     (fStatus!=='정체(7일+)' || (r.reqStatus==='진행중' && stagnantRef && stagnantDays>=7)) &&
     (!fSearch || r.title.toLowerCase().includes(fSearch) || r.requester.toLowerCase().includes(fSearch)) &&
-      (!fApprover || (r.nextApprover||'').toLowerCase().includes(fApprover) || (r.nextRole||'').toLowerCase().includes(fApprover));
+      // 「다음 결재자」뿐 아니라 아직 처리되지 않은 결재행 전부에서 찾는다.
+      // 담당자가 바뀐 뒤 이미 상신된 건의 3차·4차에 옛 사람이 남아 있는 경우를 잡기 위함.
+      (!fApprover || (r.nextApprover||'').toLowerCase().includes(fApprover)
+        || (r.nextRole||'').toLowerCase().includes(fApprover)
+        || (r.openAprs||[]).some(a =>
+             (a.name||'').toLowerCase().includes(fApprover)
+             || (a.email||'').includes(fApprover)
+             || (a.role||'').toLowerCase().includes(fApprover)));
   });
   logAction('APS', 'Excel 내보내기', { 화면: '전체 결재관리', 건수: rows.length, 필터: { 시스템: fSys||'전체', 상태: fStatus||'전체', 검색어: fSearch||'', 결재자검색: fApprover||'' } });
   const ws = XLSX.utils.json_to_sheet(rows.map(r => {
