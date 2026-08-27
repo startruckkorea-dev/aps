@@ -560,6 +560,22 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#f5f7f
       <input id="admin-search-approver" class="filter-input" type="text" placeholder="결재자 (이름·이메일·역할)"
         title="아직 처리되지 않은 결재자 전부에서 찾습니다. 담당자가 바뀐 뒤 옛 사람이 결재선에 남아 있는 건을 찾을 때 쓰세요."
         oninput="renderAdminTable(true)" />
+      <button onclick="pickAllMatched()" title="검색에 걸린 결재행을 모두 선택합니다"
+        style="padding:6px 12px;border:1px solid #cbd5e1;border-radius:6px;background:#fff;color:#475569;font-size:.75rem;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap">검색결과 전체선택</button>
+    </div>
+
+    <!-- 결재자 교체 — 선택한 결재행이 있을 때만 나타난다 -->
+    <div id="apr-replace-bar" style="display:none;align-items:center;flex-wrap:wrap;gap:10px;margin:0 0 12px;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px">
+      <span style="font-size:.78rem;font-weight:700;color:#92400e">선택 <span id="apr-replace-count">0건</span></span>
+      <span style="font-size:.75rem;color:#a16207">→ 새 결재자</span>
+      <input id="apr-new-email" list="apr-emp-list" placeholder="이름 또는 이메일" onfocus="loadApsEmployees().then(fillEmpList).catch(e=>console.warn(e.message))"
+        style="min-width:230px;padding:6px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:.75rem;font-family:inherit" />
+      <datalist id="apr-emp-list"></datalist>
+      <button id="apr-replace-run" onclick="runAprReplace()"
+        style="padding:6px 16px;border:none;border-radius:6px;background:#b45309;color:#fff;font-size:.75rem;font-weight:700;cursor:pointer;font-family:inherit">결재자 변경</button>
+      <button onclick="clearAprPicks()"
+        style="padding:6px 12px;border:1px solid #d1d5db;border-radius:6px;background:#fff;color:#64748b;font-size:.75rem;cursor:pointer;font-family:inherit">선택 해제</button>
+      <span style="font-size:.7rem;color:#a16207">아직 처리되지 않은 결재행(대기 · 대기(잠김))만 바뀝니다. 되돌릴 수 없습니다.</span>
     </div>
     <div id="admin-table-wrap"></div>
   </div>
@@ -1052,7 +1068,9 @@ async function boot(account){
     const _uu = (user.username||'').toLowerCase();
     // ADMIN_SP_1, ADMIN_SP_2... 자동 확장 + ADMIN_SP도 체크
     const _adminEmails = cfgEmails(_cfg, ['ADMIN_SP_1','ADMIN_SP']);
-    const _isApsAdmin = _adminEmails.some(e => e.toLowerCase()===_ue || e.toLowerCase()===_uu);
+    // 전역에 둔다. 결재자 교체처럼 실제로 데이터를 바꾸는 기능은
+    // 버튼 숨김만으로는 부족해 실행 직전에 다시 확인해야 한다.
+    _isApsAdmin = _adminEmails.some(e => e.toLowerCase()===_ue || e.toLowerCase()===_uu);
     if (_isApsAdmin) {
       const btn = document.getElementById('aps-admin-btn');
       if (btn) btn.style.display = 'inline-block';
@@ -2440,6 +2458,7 @@ function pickLastApprovalDate(doneAprs){
 }
 
 let _adminData = [];
+let _isApsAdmin = false;   // ADMIN_SP 등록 여부. 교체 실행 시 재확인용.
 // 로딩 세대 토큰 — 새로고침이 겹쳤을 때 늦게 도착한 옛 응답을 버리기 위해 쓴다.
 // (이 값이 없으면 먼저 시작한 호출의 결과가 나중에 push 되어 건수가 두 배가 된다)
 let _adminLoadSeq = 0;      // 전체 결재 관리
@@ -2465,6 +2484,10 @@ async function loadAdminPage(force=false) {
       aprData.value.forEach(i => {
         const rid = String(i.fields.RequestID);
         if (!aprMap[rid]) aprMap[rid] = [];
+        // 결재자 교체 시 어느 리스트의 몇 번 항목인지 알아야 하므로 함께 보존한다.
+        // (fields 만 담으면 item.id 를 잃어버려 나중에 되찾을 방법이 없다)
+        i.fields._itemId = i.id;
+        i.fields._aprListId = i._accVolId || sys.apr;
         aprMap[rid].push(i.fields);
       });
       reqData.value.forEach(r => {
@@ -2506,6 +2529,10 @@ async function loadAdminPage(force=false) {
               email: (a.ApproverEmail || '').toLowerCase(),
               role: formatNextRole(sys.key, a),
               status: (a.Status && a.Status.Value ? a.Status.Value : a.Status || '').trim(),
+              // 결재자 교체에 필요한 식별 정보.
+              // ACC 는 세대(volume)마다 Approvals 리스트가 달라, 전표별 리스트 id 를 함께 들고 있어야 한다.
+              aprId: a._itemId || '',
+              listId: a._aprListId || sys.apr,
             })),
         });
       });
@@ -2531,6 +2558,131 @@ let _adminPage = 1;
 let _adminSort = {col:'requestDate', dir:'desc'};
 const ADMIN_PAGE_SIZE = 20;
 
+// ── 결재자 교체 ────────────────────────────────────────────────────────
+// 담당자가 바뀌면 설정 파일만 고쳐도 새로 상신되는 건은 새 담당자로 결재선이 만들어진다.
+// 이미 상신된 건은 결재행에 옛 담당자가 그대로 남아 SharePoint 에서 손으로 고쳐야 했다.
+// 여기서 검색으로 찾은 결재행을 골라 한 번에 바꾼다.
+// 대상은 아직 처리되지 않은 행(대기 · 대기(잠김))뿐이다.
+// 이미 승인·반려한 행을 바꾸면 그 사람이 처리한 것처럼 기록이 뒤바뀌므로 절대 건드리지 않는다.
+let _apsEmployees = null;   // employee_search.xlsx [{name, email}]
+const _apsPicked = new Set(); // "sysKey#reqId#aprId"
+
+async function loadApsEmployees() {
+  if (_apsEmployees) return _apsEmployees;
+  const t = await token();
+  const drivesRes = await api('/sites/' + siteId + '/drives');
+  const docDrive = (drivesRes.value||[]).find(d=>['Documents','문서','Shared Documents'].includes(d.name)) || (drivesRes.value||[])[0];
+  if (!docDrive) throw new Error('문서 라이브러리를 찾을 수 없습니다.');
+  const res = await fetch(GRAPH+'/drives/'+docDrive.id+'/root:/employee_search.xlsx:/content', {headers:{Authorization:'Bearer '+t}});
+  if (!res.ok) throw new Error('employee_search.xlsx 를 읽을 수 없습니다 ('+res.status+').');
+  const wb = XLSX.read(await res.arrayBuffer(), {type:'array'});
+  const sh = wb.Sheets[wb.SheetNames[0]];
+  const rows = XLSX.utils.sheet_to_json(sh, {defval:''});
+  const pick = (r, names) => { for (const n of names) { const k = Object.keys(r).find(x=>x.trim().toLowerCase()===n); if (k && r[k]) return String(r[k]).trim(); } return ''; };
+  _apsEmployees = rows.map(r => ({
+    name:  pick(r, ['name','성명','이름','displayname']),
+    email: pick(r, ['mail','email','메일','이메일']).toLowerCase(),
+  })).filter(e => e.email);
+  return _apsEmployees;
+}
+
+function apsPickKey(r, a) { return r.sysKey + '#' + r.reqId + '#' + a.aprId; }
+
+// 직원 명부를 자동완성 목록으로 채운다. value 는 이메일이라 선택 즉시 대조가 된다.
+function fillEmpList() {
+  const dl = document.getElementById('apr-emp-list');
+  if (!dl || !_apsEmployees) return;
+  dl.innerHTML = _apsEmployees
+    .map(e => '<option value="' + e.email + '">' + (e.name || '') + '</option>')
+    .join('');
+}
+// 선택한 결재행의 결재자를 새 담당자로 바꾼다.
+async function runAprReplace() {
+  // 버튼 숨김만으로는 콘솔 호출을 막지 못한다. 실제로 쓰기 전에 다시 확인한다.
+  if (!_isApsAdmin) { alert('권한이 없습니다.'); return; }
+  if (!_apsPicked.size) { alert('바꿀 결재행을 먼저 선택해 주세요.'); return; }
+
+  const newEmail = (document.getElementById('apr-new-email').value||'').trim().toLowerCase();
+  if (!newEmail) { alert('새 결재자를 선택해 주세요.'); return; }
+  const emp = (_apsEmployees||[]).find(e => e.email === newEmail);
+  if (!emp) { alert('직원 명부에 없는 계정입니다.\n목록에서 골라 주세요.'); return; }
+
+  // 선택 항목을 실제 데이터에서 다시 찾는다(화면 캐시가 아니라 _adminData 기준).
+  const targets = [];
+  _adminData.forEach(r => (r.openAprs||[]).forEach(a => {
+    if (_apsPicked.has(apsPickKey(r, a))) targets.push({ r, a });
+  }));
+  if (!targets.length) { alert('선택한 항목을 찾을 수 없습니다. 새로고침 후 다시 시도해 주세요.'); return; }
+
+  const lines = targets.slice(0, 12).map(t =>
+    `· ${t.r.sysLabel} ${t.r.title} — ${t.a.order}차 ${t.a.role} (${t.a.status})`).join('\n');
+  const more = targets.length > 12 ? `\n… 외 ${targets.length-12}건` : '';
+  if (!confirm(
+      `${targets.length}건의 결재자를 바꿉니다.\n\n`
+    + `→ ${emp.name} <${emp.email}>\n\n`
+    + lines + more
+    + `\n\n되돌릴 수 없습니다. 진행하시겠습니까?`)) return;
+
+  const btn = document.getElementById('apr-replace-run');
+  if (btn) { btn.disabled = true; btn.textContent = '변경 중...'; }
+  let ok = 0; const fails = [];
+  for (const t of targets) {
+    try {
+      // 쓰기 직전에 현재 상태를 다시 확인한다.
+      // 조회한 뒤 누군가 결재했을 수 있고, 그 행을 바꾸면 처리자가 뒤바뀐다.
+      const cur = await api('/sites/'+siteId+'/lists/'+t.a.listId+'/items/'+t.a.aprId+'?$expand=fields');
+      const st = ((cur.fields.Status && cur.fields.Status.Value) ? cur.fields.Status.Value : cur.fields.Status || '').trim();
+      if (st !== '대기' && st !== '대기(잠김)') {
+        fails.push(`${t.r.sysLabel} ${t.r.title} ${t.a.order}차 — 이미 «${st}» 처리됨`);
+        continue;
+      }
+      await api('/sites/'+siteId+'/lists/'+t.a.listId+'/items/'+t.a.aprId, 'PATCH',
+        { fields: { ApproverEmail: emp.email, ApproverName: emp.name } });
+      ok++;
+    } catch(e) {
+      fails.push(`${t.r.sysLabel} ${t.r.title} ${t.a.order}차 — ${e.message}`);
+    }
+  }
+  if (btn) { btn.disabled = false; btn.textContent = '결재자 변경'; }
+
+  alert(
+    `변경 완료: ${ok}건\n`
+  + (fails.length ? `실패: ${fails.length}건\n\n` + fails.slice(0,10).join('\n')
+      + (fails.length>10 ? `\n… 외 ${fails.length-10}건` : '')
+      : '')
+  );
+  _apsPicked.clear();
+  refreshReplaceBar();
+  await loadAdminPage(true);   // 서버에서 다시 읽어 화면을 맞춘다
+}
+
+function toggleAprPick(key, on) {
+  if (on) _apsPicked.add(key); else _apsPicked.delete(key);
+  refreshReplaceBar();
+}
+function refreshReplaceBar() {
+  const bar = document.getElementById('apr-replace-bar');
+  const cnt = document.getElementById('apr-replace-count');
+  if (!bar) return;
+  bar.style.display = _apsPicked.size ? 'flex' : 'none';
+  if (cnt) cnt.textContent = _apsPicked.size + '건';
+}
+function clearAprPicks() { _apsPicked.clear(); refreshReplaceBar(); renderAdminTable(false); }
+
+// 화면에 보이는(필터에 걸린) 일치 결재행을 모두 선택한다.
+function pickAllMatched() {
+  const kw = (document.getElementById('admin-search-approver').value||'').toLowerCase();
+  if (!kw) { alert('결재자 검색어를 먼저 입력해 주세요.'); return; }
+  _adminData.forEach(r => {
+    (r.openAprs||[]).forEach(a => {
+      const hit = (a.name||'').toLowerCase().includes(kw) || (a.email||'').includes(kw) || (a.role||'').toLowerCase().includes(kw);
+      if (hit && a.aprId) _apsPicked.add(apsPickKey(r, a));
+    });
+  });
+  refreshReplaceBar();
+  renderAdminTable(false);
+}
+
 // 결재자 검색 시, 「다음 결재자」가 아닌 뒤 차수에 걸린 사람도 어디에 있는지 보여준다.
 // 담당자가 바뀐 뒤 이미 상신된 건을 SharePoint 에서 고쳐야 하는데,
 // 몇 차인지 모르면 어느 행을 봐야 할지 알 수 없다.
@@ -2541,14 +2693,22 @@ function adminMatchedAprs(r, kw) {
     || (a.email||'').includes(kw)
     || (a.role||'').toLowerCase().includes(kw));
   if (!hit.length) return '';
-  return '<div style="margin-top:4px;padding-top:4px;border-top:1px dashed #e2e8f0;font-size:.68rem;line-height:1.5">'
-    + hit.map(a =>
-        '<span style="color:' + (a.status === '대기' ? '#b45309' : '#64748b') + ';font-weight:700">'
-        + a.order + '차</span> '
-        + '<span style="color:#475569">' + (a.name || '-') + '</span> '
-        + '<span style="color:#94a3b8">' + (a.role || '') + '</span> '
-        + '<span style="color:#94a3b8">(' + a.status + ')</span>'
-      ).join('<br>')
+  return '<div style="margin-top:4px;padding-top:4px;border-top:1px dashed #e2e8f0;font-size:.68rem;line-height:1.6">'
+    + hit.map(a => {
+        const key = apsPickKey(r, a);
+        // aprId 가 없으면(옛 캐시 등) 체크박스를 주지 않는다. 대상을 특정할 수 없기 때문.
+        const box = (_isApsAdmin && a.aprId)
+          ? '<input type="checkbox" style="vertical-align:middle;margin-right:4px;cursor:pointer"'
+            + (_apsPicked.has(key) ? ' checked' : '')
+            + ' onchange="toggleAprPick(\'' + key + '\', this.checked)">'
+          : '';
+        return box
+          + '<span style="color:' + (a.status === '대기' ? '#b45309' : '#64748b') + ';font-weight:700">'
+          + a.order + '차</span> '
+          + '<span style="color:#475569">' + (a.name || '-') + '</span> '
+          + '<span style="color:#94a3b8">' + (a.role || '') + '</span> '
+          + '<span style="color:#94a3b8">(' + a.status + ')</span>';
+      }).join('<br>')
     + '</div>';
 }
 
