@@ -2596,6 +2596,72 @@ function fillEmpList() {
     .map(e => '<option value="' + e.email + '">' + (e.name || '') + '</option>')
     .join('');
 }
+// ── 결재자 변경 진행 팝업 ──────────────────────────────────────────────
+// 한 건씩 순서대로 처리하므로 건수가 많으면 몇 초가 걸린다.
+// 아무 표시가 없으면 멈춘 줄 알고 새로고침하게 되는데, 그러면 중간까지만 바뀐 채로 남는다.
+let _rpRows = [];   // 결과 리포트용
+
+function rpOpen(total, newName, newEmail) {
+  _rpRows = [];
+  document.getElementById('rp-title').textContent = '결재자 변경 중';
+  document.getElementById('rp-sub').textContent = '→ ' + newName + ' <' + newEmail + '>   창을 닫지 마세요.';
+  document.getElementById('rp-bar').style.width = '0%';
+  document.getElementById('rp-count').textContent = '0 / ' + total + '건';
+  document.getElementById('rp-body').innerHTML = '';
+  document.getElementById('rp-foot').style.display = 'none';
+  document.getElementById('rp-modal').style.display = 'flex';
+}
+function rpStep(done, total, row) {
+  _rpRows.push(row);
+  document.getElementById('rp-bar').style.width = Math.round(done/total*100) + '%';
+  document.getElementById('rp-count').textContent = done + ' / ' + total + '건';
+  const body = document.getElementById('rp-body');
+  const mark = row.ok ? '<span style="color:#15803d;font-weight:700">완료</span>'
+                      : '<span style="color:#b91c1c;font-weight:700">실패</span>';
+  body.insertAdjacentHTML('beforeend',
+    '<div style="padding:3px 0;border-bottom:1px solid #f8fafc">'
+    + mark + ' <span style="color:#0078d4;font-weight:600">' + row.sys + '</span> '
+    + '<span style="color:#475569">' + row.title + '</span> '
+    + '<span style="color:#64748b">' + row.order + '차 ' + row.role + '</span>'
+    + (row.ok ? '' : ' <span style="color:#b91c1c">— ' + row.note + '</span>')
+    + '</div>');
+  body.scrollTop = body.scrollHeight;
+}
+function rpFinish(ok, fail) {
+  document.getElementById('rp-title').textContent =
+    fail ? '변경 완료 (실패 ' + fail + '건)' : '변경 완료';
+  document.getElementById('rp-sub').textContent =
+    '성공 ' + ok + '건' + (fail ? ' · 실패 ' + fail + '건 — 아래 목록을 확인해 주세요.' : '');
+  document.getElementById('rp-bar').style.width = '100%';
+  document.getElementById('rp-bar').style.background = fail ? '#b91c1c' : '#15803d';
+  document.getElementById('rp-foot').style.display = 'flex';
+}
+function closeReplaceModal() {
+  document.getElementById('rp-modal').style.display = 'none';
+  document.getElementById('rp-bar').style.background = '#b45309';
+}
+
+// 결과를 CSV 로 내려받는다. SharePoint 에서 손으로 마무리할 때 목록이 필요하다.
+// Excel 이 한글을 깨지 않도록 BOM 을 붙인다.
+function downloadReplaceReport() {
+  if (!_rpRows.length) { alert('저장할 결과가 없습니다.'); return; }
+  const q = v => '"' + String(v == null ? '' : v).replace(/"/g,'""') + '"';
+  const head = ['결과','시스템','제목','차수','역할','이전 결재자','새 결재자','비고'];
+  const lines = [head.map(q).join(',')].concat(
+    _rpRows.map(r => [r.ok?'완료':'실패', r.sys, r.title, r.order+'차', r.role,
+                      r.oldEmail, r.newEmail, r.note||''].map(q).join(','))
+  );
+  const now = new Date(Date.now()+9*3600*1000);
+  const p2 = n => String(n).padStart(2,'0');
+  const name = 'APS_결재자변경_' + now.getUTCFullYear() + p2(now.getUTCMonth()+1) + p2(now.getUTCDate())
+             + '_' + p2(now.getUTCHours()) + p2(now.getUTCMinutes()) + '.csv';
+  const blob = new Blob(['\uFEFF' + lines.join('\r\n')], {type:'text/csv;charset=utf-8;'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = name;
+  document.body.appendChild(a); a.click();
+  setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); }, 0);
+}
+
 // 선택한 결재행의 결재자를 새 담당자로 바꾼다.
 async function runAprReplace() {
   // 버튼 숨김만으로는 콘솔 호출을 막지 못한다. 실제로 쓰기 전에 다시 확인한다.
@@ -2625,32 +2691,34 @@ async function runAprReplace() {
 
   const btn = document.getElementById('apr-replace-run');
   if (btn) { btn.disabled = true; btn.textContent = '변경 중...'; }
-  let ok = 0; const fails = [];
+  rpOpen(targets.length, emp.name, emp.email);
+
+  let ok = 0, fail = 0, done = 0;
   for (const t of targets) {
+    const base = { sys: t.r.sysLabel, title: t.r.title, order: t.a.order, role: t.a.role,
+                   oldEmail: t.a.email, newEmail: emp.email };
     try {
       // 쓰기 직전에 현재 상태를 다시 확인한다.
       // 조회한 뒤 누군가 결재했을 수 있고, 그 행을 바꾸면 처리자가 뒤바뀐다.
       const cur = await api('/sites/'+siteId+'/lists/'+t.a.listId+'/items/'+t.a.aprId+'?$expand=fields');
       const st = ((cur.fields.Status && cur.fields.Status.Value) ? cur.fields.Status.Value : cur.fields.Status || '').trim();
       if (st !== '대기' && st !== '대기(잠김)') {
-        fails.push(`${t.r.sysLabel} ${t.r.title} ${t.a.order}차 — 이미 «${st}» 처리됨`);
+        fail++; done++;
+        rpStep(done, targets.length, Object.assign({}, base, { ok:false, note:'이미 «'+st+'» 처리됨' }));
         continue;
       }
       await api('/sites/'+siteId+'/lists/'+t.a.listId+'/items/'+t.a.aprId, 'PATCH',
         { fields: { ApproverEmail: emp.email, ApproverName: emp.name } });
-      ok++;
+      ok++; done++;
+      rpStep(done, targets.length, Object.assign({}, base, { ok:true, note:'' }));
     } catch(e) {
-      fails.push(`${t.r.sysLabel} ${t.r.title} ${t.a.order}차 — ${e.message}`);
+      fail++; done++;
+      rpStep(done, targets.length, Object.assign({}, base, { ok:false, note:e.message }));
     }
   }
   if (btn) { btn.disabled = false; btn.textContent = '결재자 변경'; }
+  rpFinish(ok, fail);
 
-  alert(
-    `변경 완료: ${ok}건\n`
-  + (fails.length ? `실패: ${fails.length}건\n\n` + fails.slice(0,10).join('\n')
-      + (fails.length>10 ? `\n… 외 ${fails.length-10}건` : '')
-      : '')
-  );
   _apsPicked.clear();
   refreshReplaceBar();
   await loadAdminPage(true);   // 서버에서 다시 읽어 화면을 맞춘다
@@ -3235,6 +3303,25 @@ function exportAdminExcel() {
     </div>
   </div>
 </footer>
+
+<!-- 결재자 변경 진행 팝업 — 건수가 많으면 몇 초 걸려 아무 표시가 없으면 멈춘 줄 안다 -->
+<div id="rp-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:1400;align-items:center;justify-content:center;padding:20px">
+  <div style="background:#fff;border-radius:12px;width:100%;max-width:620px;max-height:88vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 10px 40px rgba(0,0,0,.28)">
+    <div style="padding:18px 22px 14px;border-bottom:1px solid #edebe9;flex-shrink:0">
+      <div id="rp-title" style="font-size:1rem;font-weight:700;color:#1e293b">결재자 변경 중</div>
+      <div id="rp-sub" style="font-size:.78rem;color:#64748b;margin-top:3px">창을 닫지 마세요.</div>
+      <div style="margin-top:12px;height:6px;background:#f1f5f9;border-radius:4px;overflow:hidden">
+        <div id="rp-bar" style="height:100%;width:0%;background:#b45309;transition:width .18s"></div>
+      </div>
+      <div id="rp-count" style="font-size:.74rem;color:#94a3b8;margin-top:6px"></div>
+    </div>
+    <div id="rp-body" style="overflow-y:auto;flex:1;padding:12px 22px;font-size:.75rem;line-height:1.7"></div>
+    <div id="rp-foot" style="display:none;padding:12px 22px;border-top:1px solid #edebe9;background:#faf9f8;flex-shrink:0;gap:8px;justify-content:flex-end">
+      <button id="rp-dl" onclick="downloadReplaceReport()" style="padding:8px 16px;border:1px solid #cbd5e1;border-radius:6px;background:#fff;color:#475569;font-size:.78rem;font-weight:600;cursor:pointer;font-family:inherit">결과 파일 저장</button>
+      <button onclick="closeReplaceModal()" style="padding:8px 20px;border:none;border-radius:6px;background:#0078d4;color:#fff;font-size:.78rem;font-weight:700;cursor:pointer;font-family:inherit">닫기</button>
+    </div>
+  </div>
+</div>
 
 </body>
 </html>
