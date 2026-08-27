@@ -209,6 +209,10 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#f5f7f
 .modal-sec{margin:16px 0 10px;font-size:.68rem;font-weight:800;color:#3b82f6;text-transform:uppercase;letter-spacing:.6px;padding:5px 10px;background:#eff6ff;border-left:3px solid #3b82f6;border-radius:6px}
 .modal-row{display:flex;padding:8px 0;border-bottom:1px solid #f8fafc;font-size:.82rem}
 .modal-row:last-child{border-bottom:none}
+/* 계약 템플릿 체크리스트 — 라벨/값 2열이 아니라 한 줄짜리 항목이라 .modal-row 보다 촘촘하게 */
+.tmpl-row{display:flex;align-items:flex-start;gap:7px;padding:2px 0;font-size:.8rem;line-height:1.45}
+.tmpl-row .bx{flex-shrink:0;width:14px;text-align:center}
+.tmpl-row.ind{padding-left:20px}
 .modal-label{color:#94a3b8;width:142px;flex-shrink:0;font-size:.74rem;font-weight:500;line-height:1.45}
 .modal-val{color:#1e293b;font-weight:500;flex:1;line-height:1.5}
 .appr-history{background:#f8fafc;border-radius:12px;border:1px solid #f1f5f9;overflow:hidden;margin-top:4px}
@@ -1639,10 +1643,10 @@ async function showDetail(sysKey,reqId){
         const isChecked = l => checkedList.includes(l);
         const otherStd = checkedList.find(c=>c.startsWith('- Other standard template'));
         const row2 = (checked,label,indent) =>
-          `<div class="modal-row" style="align-items:flex-start${indent?';padding-left:18px':''}">`
-          + `<div style="min-width:18px;color:${checked?'#107c10':'#c8c6c4'}">${checked?'☑':'☐'}</div>`
-          + `<div style="flex:1;font-size:13px;color:${checked?'inherit':'#a19f9d'}">${escHtml(label)}</div></div>`;
-        info += sec('3. Contract Template')
+          `<div class="tmpl-row${indent?' ind':''}">`
+          + `<span class="bx" style="color:${checked?'#107c10':'#c8c6c4'}">${checked?'☑':'☐'}</span>`
+          + `<span style="color:${checked?'#1e293b':'#a19f9d'}">${escHtml(label)}</span></div>`;
+        info += sec('3. Contract Template') + '<div style="padding:2px 0 6px">'
           + row2(isChecked('Standard template'),'Standard template')
           + row2(isChecked('- Dealership / Service Center Agreement'),'- Dealership / Service Center Agreement',true)
           + row2(isChecked('- Service Level Agreement with Other Mercedes-Benz Entity'),'- Service Level Agreement with Other Mercedes-Benz Entity',true)
@@ -1652,7 +1656,8 @@ async function showDetail(sysKey,reqId){
           + row2(isChecked("- Legal's review was complete"),"- Legal's review was complete",true)
           + row2(isChecked('- Soft copy was emailed to Legal'),'- Soft copy was emailed to Legal',true)
           + row2(isChecked('- Contract was drafted by Legal'),'- Contract was drafted by Legal',true)
-          + row2(isChecked('Government template'),'Government template');
+          + row2(isChecked('Government template'),'Government template')
+          + '</div>';
       }
       if(f.BizTermsReviewed||f.DDPerformed||f.PersonalInfo||f.SMRCompliance||f.FinalSignOff){
         // 라벨은 SCC 상세 화면과 동일하게 유지한다. 감사·법무 대응 문구라 임의로 줄이지 않는다.
