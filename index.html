@@ -2596,10 +2596,14 @@ async function loadApsEmployees() {
   const sh = wb.Sheets[wb.SheetNames[0]];
   const rows = XLSX.utils.sheet_to_json(sh, {defval:''});
   const pick = (r, names) => { for (const n of names) { const k = Object.keys(r).find(x=>x.trim().toLowerCase()===n); if (k && r[k]) return String(r[k]).trim(); } return ''; };
+  // 실제 열 이름은 EngName · EMail 이다. 다른 시스템(ACC 등)도 이 두 열을 쓴다.
+  // 예전에는 name·mail 만 찾아 이름이 빈 채로 저장됐고, 결재 이력에 이메일만 남았다.
   _apsEmployees = rows.map(r => ({
-    name:  pick(r, ['name','성명','이름','displayname']),
-    email: pick(r, ['mail','email','메일','이메일']).toLowerCase(),
+    name:  pick(r, ['engname','name','성명','이름','displayname','korname']),
+    email: pick(r, ['email','mail','메일','이메일']).toLowerCase(),
   })).filter(e => e.email);
+  const _noName = _apsEmployees.filter(e => !e.name).length;
+  if (_noName) console.warn('[APS] 직원 명부에서 이름을 찾지 못한 항목:', _noName, '건 — 열 이름을 확인하세요.');
   return _apsEmployees;
 }
 
@@ -2689,6 +2693,14 @@ async function runAprReplace() {
   if (!newEmail) { alert('새 결재자를 선택해 주세요.'); return; }
   const emp = (_apsEmployees||[]).find(e => e.email === newEmail);
   if (!emp) { alert('직원 명부에 없는 계정입니다.\n목록에서 골라 주세요.'); return; }
+  // 이름이 비면 결재 이력에 이메일만 남아 누구인지 알아보기 어렵다.
+  // 명부의 열 이름이 바뀐 경우이므로 저장하지 않고 알린다.
+  if (!emp.name) {
+    alert('이 계정의 이름을 직원 명부에서 찾지 못했습니다.\n\n'
+        + newEmail + '\n\n이름 없이 저장하면 결재 이력에 이메일만 남습니다.\n'
+        + 'employee_search.xlsx 의 EngName 열을 확인해 주세요.');
+    return;
+  }
 
   // 선택 항목을 실제 데이터에서 다시 찾는다(화면 캐시가 아니라 _adminData 기준).
   const targets = [];
