@@ -2151,6 +2151,27 @@ function purposeOf(rf) {
   return s.length > 80 ? s.slice(0, 80) + '…' : s;
 }
 
+// ── 도착하는 대로 그리기 ───────────────────────────────────────────────
+// 예전에는 13개 시스템을 Promise.all 로 묶어 전부 끝난 뒤 한 번에 그렸다.
+// 가장 느린 하나를 나머지 열둘이 기다렸다. 받는 양은 그대로 두고
+// (조회 결과가 달라지지 않는다) 시스템 하나가 끝날 때마다 표에 얹는다.
+//
+// 아직 남았을 때 「기록이 없습니다」 가 뜨면 다 받은 줄로 오해한다.
+// 진행 상황을 함께 보여 준다.
+function loadProgressNote(wrapId, done, total, empty) {
+  const w = document.getElementById(wrapId);
+  if (!w) return;
+  const txt = '불러오는 중… (' + done + '/' + total + ' 시스템)';
+  if (empty) {
+    w.innerHTML = '<div style="padding:40px;text-align:center;color:#94a3b8;">' + txt + '</div>';
+    return;
+  }
+  const d = document.createElement('div');
+  d.style.cssText = 'padding:10px 0;text-align:center;color:#94a3b8;font-size:.75rem';
+  d.textContent = txt;
+  w.appendChild(d);
+}
+
 async function loadMyApprovedPage(force=false) {
   if (!force && _myApprovedDataTime && (Date.now()-_myApprovedDataTime) < CACHE_TTL_MS) { renderMyApprovedTable(true); return; }
   const wrap = document.getElementById('myapproved-table-wrap');
@@ -2160,7 +2181,27 @@ async function loadMyApprovedPage(force=false) {
   const _failed = [];   // 불러오지 못한 시스템                    // 전역이 아니라 이번 호출 전용 배열에 모은다
   const myEmail = (user.email || user.username || '').toLowerCase();
 
-  await Promise.all(visibleSystems().map(async sys => {
+  const _sysList = visibleSystems();
+  const _total = _sysList.length;
+  let _done = 0, _firstPaint = true;
+  // 시스템 하나가 끝날 때마다 호출한다. 중복 제거와 정렬은 전체를 다시 훑으므로
+  // 도중에 그려도 최종 결과와 같은 순서가 된다.
+  const _commit = () => {
+    if (_seq !== _myApvLoadSeq) return;   // 겹쳐 호출된 이전 로딩이면 버린다
+    const _seen = new Set();
+    _myApprovedData = _rows.filter(r => {
+      const k = r.sysKey + '#' + r.reqId + '#' + r.aprOrder;
+      if (_seen.has(k)) return false;
+      _seen.add(k); return true;
+    });
+    _myApprovedData.sort((a,b) => (b.processedAt > a.processedAt ? 1 : -1));
+    // 첫 그림에서만 1페이지로 돌린다. 그 뒤에는 보고 있던 페이지를 유지한다.
+    renderMyApprovedTable(_firstPaint);
+    _firstPaint = false;
+    if (_done < _total) loadProgressNote('myapproved-table-wrap', _done, _total, !_myApprovedData.length);
+  };
+
+  await Promise.all(_sysList.map(async sys => {
     try {
       const [aprData, reqData] = await Promise.all([
         sys.key==='ACC' ? fetchAllAccApprovals() : apiAll('/sites/'+siteId+'/lists/'+sys.apr+'/items?$expand=fields'),
@@ -2223,17 +2264,12 @@ async function loadMyApprovedPage(force=false) {
       console.warn('myapproved load error', sys.key, e);
       _failed.push(sys.label || sys.key);
     }
+    _done++; _commit();   // 성공이든 실패든 여기까지 온 만큼은 그린다
   }));
 
   // 로딩 중에 다시 호출됐다면 이번 결과는 버린다 (겹치면 건수가 두 배가 된다)
   if (_seq !== _myApvLoadSeq) { console.warn('[myapproved] 이전 로딩 결과 폐기'); return; }
-  const _seen = new Set();
-  _myApprovedData = _rows.filter(r => {
-    const k = r.sysKey + '#' + r.reqId + '#' + r.aprOrder;
-    if (_seen.has(k)) return false;
-    _seen.add(k); return true;
-  });
-  _myApprovedData.sort((a,b) => (b.processedAt > a.processedAt ? 1 : -1));
+  _commit();   // 마지막 한 번 — 진행 안내가 사라지고 최종 상태가 된다
   // 일부라도 실패했으면 캐시에 남기지 않는다. 남기면 90초 동안 모자란 데이터를
   // 그대로 다시 보여 준다.
   _myApprovedDataTime = _failed.length ? 0 : Date.now();
@@ -2242,7 +2278,6 @@ async function loadMyApprovedPage(force=false) {
       + _failed.map(f => '· ' + f).join('\n')
       + '\n\n새로고침을 눌러 다시 시도해 주세요.');
   }
-  renderMyApprovedTable(true);
 }
 
 function renderMyApprovedTable(resetPage) {
@@ -2387,7 +2422,27 @@ async function loadMyRequestsPage(force=false) {
   const _failed = [];   // 불러오지 못한 시스템
   const myEmail = (user.email || user.username || '').toLowerCase();
 
-  await Promise.all(visibleSystems().map(async sys => {
+  const _sysList = visibleSystems();
+  const _total = _sysList.length;
+  let _done = 0, _firstPaint = true;
+  // 시스템 하나가 끝날 때마다 호출한다. 중복 제거와 정렬은 전체를 다시 훑으므로
+  // 도중에 그려도 최종 결과와 같은 순서가 된다.
+  const _commit = () => {
+    if (_seq !== _myReqLoadSeq) return;   // 겹쳐 호출된 이전 로딩이면 버린다
+    const _seen = new Set();
+    _myRequestsData = _rows.filter(r => {
+      const k = r.sysKey + '#' + r.reqId;
+      if (_seen.has(k)) return false;
+      _seen.add(k); return true;
+    });
+    _myRequestsData.sort((a,b) => (b.requestDate > a.requestDate ? 1 : -1));
+    // 첫 그림에서만 1페이지로 돌린다. 그 뒤에는 보고 있던 페이지를 유지한다.
+    renderMyRequestsTable(_firstPaint);
+    _firstPaint = false;
+    if (_done < _total) loadProgressNote('myrequests-table-wrap', _done, _total, !_myRequestsData.length);
+  };
+
+  await Promise.all(_sysList.map(async sys => {
     try {
       const [aprData, reqData] = await Promise.all([
         sys.key==='ACC' ? fetchAllAccApprovals() : apiAll('/sites/'+siteId+'/lists/'+sys.apr+'/items?$expand=fields'),
@@ -2433,16 +2488,11 @@ async function loadMyRequestsPage(force=false) {
       console.warn('myrequests load error', sys.key, e);
       _failed.push(sys.label || sys.key);
     }
+    _done++; _commit();   // 성공이든 실패든 여기까지 온 만큼은 그린다
   }));
 
   if (_seq !== _myReqLoadSeq) { console.warn('[myrequests] 이전 로딩 결과 폐기'); return; }
-  const _seen = new Set();
-  _myRequestsData = _rows.filter(r => {
-    const k = r.sysKey + '#' + r.reqId;
-    if (_seen.has(k)) return false;
-    _seen.add(k); return true;
-  });
-  _myRequestsData.sort((a,b) => (b.requestDate > a.requestDate ? 1 : -1));
+  _commit();   // 마지막 한 번 — 진행 안내가 사라지고 최종 상태가 된다
   // 일부라도 실패했으면 캐시에 남기지 않는다. 남기면 90초 동안 모자란 데이터를
   // 그대로 다시 보여 준다.
   _myRequestsDataTime = _failed.length ? 0 : Date.now();
@@ -2451,7 +2501,6 @@ async function loadMyRequestsPage(force=false) {
       + _failed.map(f => '· ' + f).join('\n')
       + '\n\n새로고침을 눌러 다시 시도해 주세요.');
   }
-  renderMyRequestsTable(true);
 }
 
 function renderMyRequestsTable(resetPage) {
