@@ -2104,8 +2104,29 @@ function purposeOf(rf) {
   if (!rf) return '';
   const v = rf.PurposeTitle || rf.RequestTitle || rf.Symptom || rf.Detail
          || rf.Purpose || rf.Reason || rf.Description || rf.Summary || '';
-  const s = String(v).replace(/\s+/g, ' ').trim();
-  // 여러 줄 본문이 들어오는 필드(Detail·Description)는 첫 줄만 쓴다.
+  // SharePoint 여러 줄 텍스트 열은 리치 텍스트라 값이 HTML 로 온다.
+  //   <div class="ExternalClass00A11...">As mentioned in the a…</div>
+  // 그대로 두면 표에 태그가 그대로 보인다. 태그를 걷어내고 글자만 남긴다.
+  //
+  // innerHTML 로 파싱하면 안 된다. 문서에 붙이지 않은 요소라도
+  // <img src=x onerror=...> 같은 값은 그 자리에서 실행된다.
+  // 이 값들은 전부 사용자가 입력한 것이고, 보는 사람의 세션은
+  // Sites.ReadWrite.All 토큰을 들고 있다.
+  // DOMParser 가 만든 문서는 불활성이라 리소스도 안 부르고 스크립트도 안 돈다.
+  let s = String(v);
+  if (s.includes('<') && s.includes('>')) {
+    try {
+      s = new DOMParser().parseFromString(s, 'text/html').body.textContent || '';
+    } catch (e) {
+      // 파싱이 실패해도 빈 값으로 만들지 않는다. 태그만 걷어내고 내용은 남긴다.
+      s = s.replace(/<[^>]*>/g, '');
+    }
+  }
+  // &#58; 같은 문자 참조도 함께 푼다. 위와 같은 이유로 DOMParser 를 쓴다.
+  if (s.includes('&')) {
+    try { s = new DOMParser().parseFromString(s, 'text/html').body.textContent || s; } catch (e) {}
+  }
+  s = s.replace(/\s+/g, ' ').trim();
   return s.length > 80 ? s.slice(0, 80) + '…' : s;
 }
 
