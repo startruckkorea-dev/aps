@@ -2350,23 +2350,23 @@ function renderMyApprovedTable(resetPage) {
   const trs = pageRows.map((r, i) => {
     const rowNum = rows.length - ((_myApprovedPage - 1) * MYA_PAGE_SIZE + i);
     return `
-    <tr style="border-bottom:1px solid #f1f5f9;font-size:.78rem;cursor:pointer"
+    <tr style="border-bottom:1px solid #f1f5f9;font-size:.74rem;cursor:pointer"
         onclick="showDetail('${r.sysKey}',${r.reqId})"
         onmouseover="this.style.background='#f0f6ff'" onmouseout="this.style.background=''">
       <td style="padding:6px 8px;text-align:left;color:#64748b;font-weight:600">${rowNum}</td>
       <td style="padding:6px 8px;color:#0078d4;font-weight:600;white-space:nowrap">${r.sysLabel}</td>
-      <td style="padding:6px 8px;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.75rem">${r.title}</td>
-      <td style="padding:6px 8px;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#334155;font-size:.75rem" title="${escHtml(r.purpose||'')}">${r.purpose ? escHtml(r.purpose) : '<span style="color:#cbd5e1">-</span>'}</td>
-      <td style="padding:6px 8px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#374151;font-size:.75rem">${r.requester}</td>
-      <td style="padding:6px 8px;max-width:170px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#1e293b;font-size:.75rem" title="${escHtml(r.approverEmail||r.approver||'')}">
+      <td style="padding:6px 8px;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.74rem">${r.title}</td>
+      <td style="padding:6px 8px;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#334155;font-size:.74rem" title="${escHtml(r.purpose||'')}">${r.purpose ? escHtml(r.purpose) : '<span style="color:#cbd5e1">-</span>'}</td>
+      <td style="padding:6px 8px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#374151;font-size:.74rem">${r.requester}</td>
+      <td style="padding:6px 8px;max-width:170px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#1e293b;font-size:.74rem" title="${escHtml(r.approverEmail||r.approver||'')}">
         ${r.approverEmail ? escHtml(r.approverEmail) : (r.approver ? escHtml(r.approver) : '<span style="color:#cbd5e1">-</span>')}
       </td>
       <td style="padding:6px 8px;text-align:left;color:#64748b;white-space:nowrap">${r.aprOrder}${r.totalAprs?'/'+r.totalAprs:''}차</td>
       <td style="padding:6px 8px;text-align:left">
         <span style="background:${stBg[r.myStatus]||'#f1f5f9'};color:${stColor[r.myStatus]||'#374151'};border-radius:10px;padding:2px 5px;font-size:.72rem;font-weight:700">${r.myStatus}</span>
       </td>
-      <td style="padding:6px 8px;color:#94a3b8;white-space:nowrap;font-size:.75rem">${fmtDt(r.requestDate)}</td>
-      <td style="padding:6px 8px;color:#64748b;white-space:nowrap;font-size:.75rem">${fmtDt(r.processedAt)}</td>
+      <td style="padding:6px 8px;color:#94a3b8;white-space:nowrap;font-size:.74rem">${fmtDt(r.requestDate)}</td>
+      <td style="padding:6px 8px;color:#64748b;white-space:nowrap;font-size:.74rem">${fmtDt(r.processedAt)}</td>
       <td style="padding:6px 8px;text-align:left">
         <span style="background:${tsBg[r.ticketStatus]||'#f1f5f9'};color:${tsColor[r.ticketStatus]||'#374151'};border-radius:10px;padding:2px 5px;font-size:.72rem;font-weight:700">${r.ticketStatus}</span>
       </td>
@@ -2389,7 +2389,7 @@ function renderMyApprovedTable(resetPage) {
     <div style="overflow-x:auto;background:#fff;border-radius:8px;border:1px solid #e2e8f0">
       <table style="width:100%;border-collapse:collapse;background:#fff">
         <thead>
-          <tr style="background:#f8fafc;border-bottom:2px solid #e2e8f0;font-size:.78rem;color:#64748b">
+          <tr style="background:#f8fafc;border-bottom:2px solid #e2e8f0;font-size:.68rem;color:#64748b">
             <th style="padding:10px 10px;text-align:left;font-weight:600">번호</th>
             <th style="padding:10px 10px;text-align:left;font-weight:600">결재시스템</th>
             <th style="padding:10px 10px;text-align:left;font-weight:600">제목</th>
@@ -2570,22 +2570,22 @@ function renderMyRequestsTable(resetPage) {
   const trs = pageRows.map((r, i) => {
     const rowNum = rows.length - ((_myRequestsPage - 1) * MYR_PAGE_SIZE + i);
     return `
-    <tr style="border-bottom:1px solid #f1f5f9;font-size:.78rem;cursor:pointer"
+    <tr style="border-bottom:1px solid #f1f5f9;font-size:.74rem;cursor:pointer"
         onclick="showDetail('${r.sysKey}',${r.reqId})"
         onmouseover="this.style.background='#f0f6ff'" onmouseout="this.style.background=''">
       <td style="padding:6px 8px;text-align:left;color:#64748b;font-weight:600">${rowNum}</td>
       <td style="padding:6px 8px;color:#0078d4;font-weight:600;white-space:nowrap">${r.sysLabel}</td>
-      <td style="padding:6px 8px;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.75rem">${r.title}</td>
-      <td style="padding:6px 8px;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#334155;font-size:.75rem" title="${escHtml(r.purpose||'')}">${r.purpose ? escHtml(r.purpose) : '<span style="color:#cbd5e1">-</span>'}</td>
+      <td style="padding:6px 8px;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.74rem">${r.title}</td>
+      <td style="padding:6px 8px;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#334155;font-size:.74rem" title="${escHtml(r.purpose||'')}">${r.purpose ? escHtml(r.purpose) : '<span style="color:#cbd5e1">-</span>'}</td>
       <td style="padding:6px 8px;text-align:left">
         <span style="background:${tsBg[r.reqStatus]||'#f1f5f9'};color:${tsColor[r.reqStatus]||'#374151'};border-radius:10px;padding:2px 5px;font-size:.72rem;font-weight:700">${r.reqStatus}</span>
       </td>
       <td style="padding:6px 8px;text-align:left;color:#64748b;white-space:nowrap">${r.doneCount}${r.totalAprs?'/'+r.totalAprs:''}차</td>
-      <td style="padding:6px 8px;max-width:170px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#1e293b;font-size:.75rem" title="${escHtml(r.nextApprover&&r.nextApprover!=='-'?(r.nextRole&&r.nextRole!=='-'?r.nextApprover+' ('+r.nextRole+')':r.nextApprover):'')}">
+      <td style="padding:6px 8px;max-width:170px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#1e293b;font-size:.74rem" title="${escHtml(r.nextApprover&&r.nextApprover!=='-'?(r.nextRole&&r.nextRole!=='-'?r.nextApprover+' ('+r.nextRole+')':r.nextApprover):'')}">
         ${r.reqStatus==='진행중'||r.reqStatus==='대기' ? nextApproverCell(r) : '-'}
       </td>
-      <td style="padding:6px 8px;color:#94a3b8;white-space:nowrap;font-size:.75rem">${fmtDt(r.requestDate)}</td>
-      <td style="padding:6px 8px;color:#64748b;white-space:nowrap;font-size:.75rem">${fmtDt(r.lastApprovalDate)}</td>
+      <td style="padding:6px 8px;color:#94a3b8;white-space:nowrap;font-size:.74rem">${fmtDt(r.requestDate)}</td>
+      <td style="padding:6px 8px;color:#64748b;white-space:nowrap;font-size:.74rem">${fmtDt(r.lastApprovalDate)}</td>
     </tr>`;}).join('');
 
   let pgHtml = '';
@@ -2604,7 +2604,7 @@ function renderMyRequestsTable(resetPage) {
     <div style="overflow-x:auto;background:#fff;border-radius:8px;border:1px solid #e2e8f0">
       <table style="width:100%;border-collapse:collapse;background:#fff">
         <thead>
-          <tr style="background:#f8fafc;border-bottom:2px solid #e2e8f0;font-size:.78rem;color:#64748b">
+          <tr style="background:#f8fafc;border-bottom:2px solid #e2e8f0;font-size:.68rem;color:#64748b">
             <th style="padding:10px 10px;text-align:left;font-weight:600">번호</th>
             <th style="padding:10px 10px;text-align:left;font-weight:600">시스템</th>
             <th style="padding:10px 10px;text-align:left;font-weight:600">제목</th>
@@ -2676,7 +2676,28 @@ async function loadAdminPage(force=false) {
   const _seq = ++_adminLoadSeq;
   const _rows = [];                    // 전역이 아니라 이번 호출 전용 배열에 모은다
   const _failed = [];                  // 불러오지 못한 시스템 (아래에서 화면에 알린다)
-  await Promise.all(visibleSystems().map(async sys => {
+
+  const _sysList = visibleSystems();
+  const _total = _sysList.length;
+  let _done = 0, _firstPaint = true;
+  // 내 기록 두 화면과 같은 방식. 시스템 하나가 끝날 때마다 표에 얹는다.
+  // 조회하는 목록·필드·건수는 그대로라 결과가 달라질 여지가 없다.
+  const _commit = () => {
+    if (_seq !== _adminLoadSeq) return;   // 겹쳐 호출된 이전 로딩이면 버린다
+    const _seen = new Set();
+    _adminData = _rows.filter(r => {
+      const k = r.sysKey + '#' + r.reqId;
+      if (_seen.has(k)) return false;
+      _seen.add(k); return true;
+    });
+    const _c = document.getElementById('admin-total-count');
+    if (_c) _c.textContent = '총 ' + _adminData.length + '건';
+    renderAdminTable(_firstPaint);
+    _firstPaint = false;
+    if (_done < _total) loadProgressNote('admin-table-wrap', _done, _total, !_adminData.length);
+  };
+
+  await Promise.all(_sysList.map(async sys => {
     try {
       const [aprData, reqData] = await Promise.all([
         sys.key==='ACC' ? fetchAllAccApprovals() : apiAll('/sites/'+siteId+'/lists/'+sys.apr+'/items?$expand=fields'),
@@ -2745,16 +2766,11 @@ async function loadAdminPage(force=false) {
       console.warn('[admin] '+sys.key+' 로딩 실패:', e && e.message);
       _failed.push({ key: sys.key, label: sys.label || sys.key, msg: (e && e.message) || String(e) });
     }
+    _done++; _commit();   // 성공이든 실패든 여기까지 온 만큼은 그린다
   }));
   // 로딩 중에 새로고침이 다시 눌렸다면 이번 결과는 버린다
   if (_seq !== _adminLoadSeq) { console.warn('[admin] 이전 로딩 결과 폐기 (seq '+_seq+' / 최신 '+_adminLoadSeq+')'); return; }
-  // 같은 시스템의 같은 건이 두 번 들어오지 않도록 한 번 더 걸러낸다
-  const _seen = new Set();
-  _adminData = _rows.filter(r => {
-    const k = r.sysKey + '#' + r.reqId;
-    if (_seen.has(k)) return false;
-    _seen.add(k); return true;
-  });
+  _commit();   // 마지막 한 번 — 진행 안내가 사라지고 최종 상태가 된다
   if (_adminData.length !== _rows.length)
     console.warn('[admin] 중복 '+(_rows.length-_adminData.length)+'건 제거');
   // 일부 시스템을 못 불러왔으면 건수 옆에 그대로 적는다.
@@ -2773,7 +2789,6 @@ async function loadAdminPage(force=false) {
   // 일부라도 실패했으면 캐시에 남기지 않는다. 남기면 10분 동안 모자란 데이터를
   // 그대로 다시 보여 준다(CACHE_TTL_MS).
   _adminDataTime = _failed.length ? 0 : Date.now();
-  renderAdminTable();
 }
 
 let _adminPage = 1;
@@ -3092,32 +3107,32 @@ function renderAdminTable(resetPage) {
   const stBg  = {'대기':'#fef3c7','진행중':'#dbeafe','승인완료':'#dcfce7','반려':'#fee2e2'};
 
   const trs = pageRows.map((r, i) => { const rowNum = rows.length - ((_adminPage - 1) * ADMIN_PAGE_SIZE + i); return `
-    <tr style="border-bottom:1px solid #f1f5f9;font-size:.8rem;cursor:pointer" onclick="showDetail('${r.sysKey}',${r.reqId})" onmouseover="this.style.background='#f0f6ff'" onmouseout="this.style.background=''">
+    <tr style="border-bottom:1px solid #f1f5f9;font-size:.74rem;cursor:pointer" onclick="showDetail('${r.sysKey}',${r.reqId})" onmouseover="this.style.background='#f0f6ff'" onmouseout="this.style.background=''">
       <td style="padding:8px 10px;color:#0078d4;font-weight:600;">${r.sysLabel}</td>
-      <td style="padding:8px 10px;text-align:center;color:#64748b;font-weight:600;">${rowNum}</td>
+      <td style="padding:8px 10px;text-align:left;color:#64748b;font-weight:600;">${rowNum}</td>
       <td style="padding:8px 10px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.title}</td>
       <td style="padding:8px 10px;color:#374151;">${r.requester}</td>
-      <td style="padding:8px 10px;text-align:center;">
-        <span style="background:${stBg[r.reqStatus]||'#f1f5f9'};color:${stMap[r.reqStatus]||'#374151'};border-radius:10px;padding:2px 6px;font-size:.75rem;font-weight:600;">${r.reqStatus}</span>
+      <td style="padding:8px 10px;text-align:left;">
+        <span style="background:${stBg[r.reqStatus]||'#f1f5f9'};color:${stMap[r.reqStatus]||'#374151'};border-radius:10px;padding:2px 6px;font-size:.74rem;font-weight:600;">${r.reqStatus}</span>
       </td>
-      <td style="padding:8px 10px;text-align:center;color:#64748b;">${r.doneCount} / ${r.totalAprs}차</td>
-      <td style="padding:8px 10px;color:#374151;font-size:.78rem;white-space:nowrap;" title="${escHtml(r.nextApprover&&r.nextApprover!=='-'?(r.nextRole&&r.nextRole!=='-'?r.nextApprover+' ('+r.nextRole+')':r.nextApprover):'')}">${nextApproverCell(r)}${adminMatchedAprs(r, fApprover)}</td>
-      <td style="padding:8px 10px;color:#94a3b8;font-size:.75rem;">${fmt(r.requestDate)}</td>
-      <td style="padding:8px 10px;color:#94a3b8;font-size:.75rem;">${fmt(r.lastApprovalDate)}</td>
+      <td style="padding:8px 10px;text-align:left;color:#64748b;">${r.doneCount} / ${r.totalAprs}차</td>
+      <td style="padding:8px 10px;color:#374151;font-size:.74rem;white-space:nowrap;" title="${escHtml(r.nextApprover&&r.nextApprover!=='-'?(r.nextRole&&r.nextRole!=='-'?r.nextApprover+' ('+r.nextRole+')':r.nextApprover):'')}">${nextApproverCell(r)}${adminMatchedAprs(r, fApprover)}</td>
+      <td style="padding:8px 10px;color:#94a3b8;font-size:.74rem;">${fmt(r.requestDate)}</td>
+      <td style="padding:8px 10px;color:#94a3b8;font-size:.74rem;">${fmt(r.lastApprovalDate)}</td>
       ${(()=>{
-        if(r.reqStatus==='승인완료'||r.reqStatus==='반려'||r.reqStatus==='철회'||r.reqStatus==='철회(잠김)') return '<td style="padding:8px 10px;text-align:center;color:#94a3b8;font-size:.75rem;">-</td>';
+        if(r.reqStatus==='승인완료'||r.reqStatus==='반려'||r.reqStatus==='철회'||r.reqStatus==='철회(잠김)') return '<td style="padding:8px 10px;text-align:left;color:#94a3b8;font-size:.74rem;">-</td>';
         const days=r.requestDate?Math.floor((Date.now()-new Date(r.requestDate))/86400000):0;
         const color=days>=7?'#b91c1c':days>=3?'#b45309':'#64748b';
         const bg=days>=7?'#fee2e2':days>=3?'#fef3c7':'transparent';
-        return '<td style="padding:8px 10px;text-align:center;font-size:.75rem;font-weight:'+(days>=3?'700':'400')+';color:'+color+';background:'+bg+';">'+(days>=7?'🔴 ':days>=3?'🟡 ':'')+days+'일</td>';
+        return '<td style="padding:8px 10px;text-align:left;font-size:.74rem;font-weight:'+(days>=3?'700':'400')+';color:'+color+';background:'+bg+';">'+(days>=7?'🔴 ':days>=3?'🟡 ':'')+days+'일</td>';
       })()}
       ${(()=>{
-        if(r.reqStatus==='승인완료'||r.reqStatus==='반려'||r.reqStatus==='철회'||r.reqStatus==='철회(잠김)') return '<td style="padding:8px 10px;text-align:center;color:#94a3b8;font-size:.75rem;">-</td>';
+        if(r.reqStatus==='승인완료'||r.reqStatus==='반려'||r.reqStatus==='철회'||r.reqStatus==='철회(잠김)') return '<td style="padding:8px 10px;text-align:left;color:#94a3b8;font-size:.74rem;">-</td>';
         const ref=r.lastApprovalDate||r.requestDate;
         const days=ref?Math.floor((Date.now()-new Date(ref))/86400000):0;
         const color=days>=7?'#b91c1c':days>=3?'#b45309':'#64748b';
         const bg=days>=7?'#fee2e2':days>=3?'#fef3c7':'transparent';
-        return '<td style="padding:8px 10px;text-align:center;font-size:.75rem;font-weight:'+(days>=3?'700':'400')+';color:'+color+';background:'+bg+';">'+(days>=7?'🔴 ':days>=3?'🟡 ':'')+days+'일</td>';
+        return '<td style="padding:8px 10px;text-align:left;font-size:.74rem;font-weight:'+(days>=3?'700':'400')+';color:'+color+';background:'+bg+';">'+(days>=7?'🔴 ':days>=3?'🟡 ':'')+days+'일</td>';
       })()}
     </tr>`;}).join('');
 
@@ -3131,24 +3146,24 @@ function renderAdminTable(resetPage) {
   document.getElementById('admin-table-wrap').innerHTML = `
     <div style="overflow-x:auto;border-radius:8px;border:1px solid #e2e8f0;margin-bottom:12px;">
       <table style="width:100%;border-collapse:collapse;background:#fff;">
-        <thead><tr style="background:#1e3a5f;color:#fff;font-size:.78rem;">
+        <thead><tr style="background:#1e3a5f;color:#fff;font-size:.68rem;">
           <th style="padding:10px;text-align:left;">시스템</th>
-          ${adminThSort('reqId','번호','center')}
+          ${adminThSort('reqId','번호','left')}
           <th style="padding:10px;text-align:left;">제목</th>
           <th style="padding:10px;text-align:left;">신청자</th>
-          ${adminThSort('reqStatus','상태','center')}
-          ${adminThSort('doneCount','결재진행','center')}
+          ${adminThSort('reqStatus','상태','left')}
+          ${adminThSort('doneCount','결재진행','left')}
           <th style="padding:10px;text-align:left;">다음결재자</th>
-          ${adminThSort('requestDate','신청일','center')}
-          ${adminThSort('lastApprovalDate','최근결재일','center')}
-          ${adminThSort('delayDays','지연일수<br><span style="font-weight:400;font-size:.65rem;opacity:.8">(신청일 기준)</span>','center')}
-          ${adminThSort('stagnantDays','정체일수<br><span style="font-weight:400;font-size:.65rem;opacity:.8">(최근결재 기준)</span>','center')}
+          ${adminThSort('requestDate','신청일','left')}
+          ${adminThSort('lastApprovalDate','최근결재일','left')}
+          ${adminThSort('delayDays','지연일수<br><span style="font-weight:400;font-size:.65rem;opacity:.8">(신청일 기준)</span>','left')}
+          ${adminThSort('stagnantDays','정체일수<br><span style="font-weight:400;font-size:.65rem;opacity:.8">(최근결재 기준)</span>','left')}
         </tr></thead>
         <tbody>${trs}</tbody>
       </table>
     </div>
     <div style="display:flex;align-items:center;justify-content:center;gap:4px;padding:8px 0 20px;">
-      <span style="font-size:.78rem;color:#94a3b8;margin-right:8px;">${start+1}–${Math.min(start+ADMIN_PAGE_SIZE,rows.length)} / ${rows.length}건</span>
+      <span style="font-size:.74rem;color:#94a3b8;margin-right:8px;">${start+1}–${Math.min(start+ADMIN_PAGE_SIZE,rows.length)} / ${rows.length}건</span>
       ${pgBtns.join('')}
     </div>`;
 }
