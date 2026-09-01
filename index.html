@@ -246,6 +246,22 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#f5f7f
 .loading-box{background:#fff;border-radius:16px;padding:30px 44px;display:flex;flex-direction:column;align-items:center;gap:14px;box-shadow:0 8px 32px rgba(0,0,0,.12)}
 .spinner{width:32px;height:32px;border:3px solid #e2e8f0;border-top:3px solid #3b82f6;border-radius:50%;animation:spin .7s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
+/* 「도착하는 대로 그리기」 진행 표시.
+   글자만 바뀌면 멈춘 것처럼 보여서, 점과 막대가 계속 움직이게 둔다.
+   막대 안쪽 채움은 실제 진행률(done/total)이고, 그 위를 지나는 빛줄기는
+   진행률이 한동안 그대로여도 아직 받고 있다는 것을 보여 준다. */
+.lp{display:flex;align-items:center;justify-content:center;gap:10px;padding:12px 0;color:#64748b;font-size:.75rem}
+.lp-dots{display:inline-flex;gap:4px}
+.lp-dots i{display:block;width:6px;height:6px;border-radius:50%;background:#3b82f6;animation:lpDot 1s ease-in-out infinite}
+.lp-dots i:nth-child(2){animation-delay:.15s}
+.lp-dots i:nth-child(3){animation-delay:.30s}
+@keyframes lpDot{0%,80%,100%{opacity:.25;transform:translateY(0)}40%{opacity:1;transform:translateY(-3px)}}
+.lp-bar{position:relative;width:150px;height:4px;border-radius:2px;background:#e2e8f0;overflow:hidden}
+.lp-bar>span{position:absolute;left:0;top:0;bottom:0;background:#3b82f6;border-radius:2px;transition:width .35s ease}
+.lp-bar::after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.75),transparent);animation:lpSheen 1.2s linear infinite}
+@keyframes lpSheen{from{transform:translateX(-100%)}to{transform:translateX(100%)}}
+/* 움직임을 꺼 둔 환경에서는 애니메이션을 멈춘다. */
+@media (prefers-reduced-motion:reduce){.lp-dots i,.lp-bar::after{animation:none}.lp-dots i{opacity:.7}}
 .loading-text{font-size:.85rem;color:#475569;font-weight:500}
 
 /* ── Responsive ── */
@@ -2161,15 +2177,25 @@ function purposeOf(rf) {
 function loadProgressNote(wrapId, done, total, empty) {
   const w = document.getElementById(wrapId);
   if (!w) return;
-  const txt = '불러오는 중… (' + done + '/' + total + ' 시스템)';
+  const pct = total ? Math.round((done / total) * 100) : 0;
+  const bar = document.createElement('div');
+  bar.className = 'lp';
+  bar.innerHTML = '<span class="lp-dots"><i></i><i></i><i></i></span>'
+                + '<span class="lp-text"></span>'
+                + '<span class="lp-bar"><span style="width:' + pct + '%"></span></span>';
+  // 건수는 사람이 넣는 값이 아니지만, 문구를 textContent 로 넣어 두면
+  // 나중에 여기에 시스템 이름 같은 값을 붙일 때도 이스케이프를 신경 쓰지 않아도 된다.
+  bar.querySelector('.lp-text').textContent = '불러오는 중… ' + done + '/' + total + ' 시스템';
   if (empty) {
-    w.innerHTML = '<div style="padding:40px;text-align:center;color:#94a3b8;">' + txt + '</div>';
+    // 아직 한 건도 못 받았을 때. 「기록이 없습니다」 가 뜨면 다 받은 줄로 오해한다.
+    w.innerHTML = '';
+    bar.style.padding = '40px 0';
+    w.appendChild(bar);
     return;
   }
-  const d = document.createElement('div');
-  d.style.cssText = 'padding:10px 0;text-align:center;color:#94a3b8;font-size:.75rem';
-  d.textContent = txt;
-  w.appendChild(d);
+  // 표 바로 아래, 페이지 버튼 위에 둔다. 맨 끝에 붙이면 페이지 버튼 아래로
+  // 밀려 표와 떨어져 보인다. (첫 자식이 표 상자, 둘째가 있으면 페이지 버튼)
+  w.insertBefore(bar, w.children[1] || null);
 }
 
 async function loadMyApprovedPage(force=false) {
