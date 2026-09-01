@@ -2094,16 +2094,24 @@ let _myApprovedPage = 1;
 const MYA_PAGE_SIZE = 15;
 
 // 요청의 「무엇을 요청했는가」 한 줄. 시스템마다 필드 이름이 달라 순서대로 찾는다.
+//
+// 「제목」 으로 입력받는 전용 필드를 먼저 본다. 이것이 사용자가 직접 쓴 한 줄 요약이다.
+//   IT   TicketTitle   (상세 화면의 「요청 제목」 — 장애·변경·요청 세 유형 공통)
 //   ACC  PurposeTitle  (전표의 한 줄 요약)
 //   GW   RequestTitle  (신청 제목)
-//   IT   Symptom       (장애) · Detail (그 외)
-//   FA·MC Purpose      ·  BP·GA Description
+//
+// 전용 필드가 없는 시스템만 본문 필드로 내려간다. 본문은 여러 줄이라
+// 앞부분만 잘려 보이므로 차선책이다.
+//   IT   Symptom(장애) · Detail(변경·요청 본문)
+//   FA·MC Purpose · BP·GA·FA Description · FA Reason
+//
 // 어느 것도 없으면 빈 값으로 두고 표에서 「-」 로 보여 준다.
 // Title 은 넣지 않는다 — 옆 칸에 이미 있고, 시스템 생성 번호라 내용이 아니다.
 function purposeOf(rf) {
   if (!rf) return '';
-  const v = rf.PurposeTitle || rf.RequestTitle || rf.Symptom || rf.Detail
-         || rf.Purpose || rf.Reason || rf.Description || rf.Summary || '';
+  const v = rf.TicketTitle || rf.PurposeTitle || rf.RequestTitle          // 제목 전용 필드
+         || rf.Subject || rf.Summary                                       // 그 외 제목성 필드
+         || rf.Symptom || rf.Detail || rf.Purpose || rf.Reason || rf.Description || '';
   // SharePoint 여러 줄 텍스트 열은 리치 텍스트라 값이 HTML 로 온다.
   //   <div class="ExternalClass00A11...">As mentioned in the a…</div>
   // 그대로 두면 표에 태그가 그대로 보인다. 태그를 걷어내고 글자만 남긴다.
