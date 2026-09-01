@@ -2093,6 +2093,22 @@ let _myApprovedData = [];
 let _myApprovedPage = 1;
 const MYA_PAGE_SIZE = 15;
 
+// 요청의 「무엇을 요청했는가」 한 줄. 시스템마다 필드 이름이 달라 순서대로 찾는다.
+//   ACC  PurposeTitle  (전표의 한 줄 요약)
+//   GW   RequestTitle  (신청 제목)
+//   IT   Symptom       (장애) · Detail (그 외)
+//   FA·MC Purpose      ·  BP·GA Description
+// 어느 것도 없으면 빈 값으로 두고 표에서 「-」 로 보여 준다.
+// Title 은 넣지 않는다 — 옆 칸에 이미 있고, 시스템 생성 번호라 내용이 아니다.
+function purposeOf(rf) {
+  if (!rf) return '';
+  const v = rf.PurposeTitle || rf.RequestTitle || rf.Symptom || rf.Detail
+         || rf.Purpose || rf.Reason || rf.Description || rf.Summary || '';
+  const s = String(v).replace(/\s+/g, ' ').trim();
+  // 여러 줄 본문이 들어오는 필드(Detail·Description)는 첫 줄만 쓴다.
+  return s.length > 80 ? s.slice(0, 80) + '…' : s;
+}
+
 async function loadMyApprovedPage(force=false) {
   if (!force && _myApprovedDataTime && (Date.now()-_myApprovedDataTime) < CACHE_TTL_MS) { renderMyApprovedTable(true); return; }
   const wrap = document.getElementById('myapproved-table-wrap');
@@ -2147,6 +2163,7 @@ async function loadMyApprovedPage(force=false) {
             sysLabel:    sys.name,
             reqId:       f.RequestID,
             title:       rf.Title || rf.Subject || '',
+            purpose:     purposeOf(rf),
             requester:   rf.RequesterEmail || rf.RequestorEmail || '',
             requestDate: rf.RequestDate || '',
             approver:    f.ApproverName || (user.name||'').split(' ')[0] || '-',
@@ -2195,7 +2212,7 @@ function renderMyApprovedTable(resetPage) {
   const rows = _myApprovedData.filter(r =>
     (!fSys    || r.sysKey === fSys) &&
     (!fStatus || r.myStatus === fStatus) &&
-    (!fSearch || r.title.toLowerCase().includes(fSearch) || r.requester.toLowerCase().includes(fSearch))
+    (!fSearch || r.title.toLowerCase().includes(fSearch) || (r.purpose||'').toLowerCase().includes(fSearch) || r.requester.toLowerCase().includes(fSearch))
   );
 
   const totalPages = Math.max(1, Math.ceil(rows.length / MYA_PAGE_SIZE));
@@ -2236,6 +2253,7 @@ function renderMyApprovedTable(resetPage) {
       <td style="padding:6px 8px;text-align:center;color:#64748b;font-weight:600">${rowNum}</td>
       <td style="padding:6px 8px;color:#0078d4;font-weight:600;white-space:nowrap">${r.sysLabel}</td>
       <td style="padding:6px 8px;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.75rem">${r.title}</td>
+      <td style="padding:6px 8px;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#334155;font-size:.75rem" title="${escHtml(r.purpose||'')}">${r.purpose ? escHtml(r.purpose) : '<span style="color:#cbd5e1">-</span>'}</td>
       <td style="padding:6px 8px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#374151;font-size:.75rem">${r.requester}</td>
       <td style="padding:6px 8px;max-width:170px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#1e293b;font-size:.75rem">
         <span style="font-weight:600">${r.approver}</span><br><span style="color:#94a3b8;font-size:.7rem">${r.approverEmail}</span>
@@ -2272,6 +2290,7 @@ function renderMyApprovedTable(resetPage) {
             <th style="padding:10px 10px;text-align:center;font-weight:600">번호</th>
             <th style="padding:10px 10px;text-align:left;font-weight:600">결재시스템</th>
             <th style="padding:10px 10px;text-align:left;font-weight:600">제목</th>
+            <th style="padding:10px 10px;text-align:left;font-weight:600">요청 제목</th>
             <th style="padding:10px 10px;text-align:left;font-weight:600">신청자</th>
             <th style="padding:10px 10px;text-align:left;font-weight:600">처리자</th>
             <th style="padding:10px 10px;text-align:center;font-weight:600">결재차수</th>
@@ -2294,12 +2313,12 @@ function exportMyApprovedExcel() {
   const rows = _myApprovedData.filter(r =>
     (!fSys    || r.sysKey === fSys) &&
     (!fStatus || r.myStatus === fStatus) &&
-    (!fSearch || r.title.toLowerCase().includes(fSearch) || r.requester.toLowerCase().includes(fSearch))
+    (!fSearch || r.title.toLowerCase().includes(fSearch) || (r.purpose||'').toLowerCase().includes(fSearch) || r.requester.toLowerCase().includes(fSearch))
   );
   logAction('APS', 'Excel 내보내기', { 화면: 'My Approvals Record', 건수: rows.length, 필터: { 시스템: fSys||'전체', 결과: fStatus||'전체', 검색어: fSearch||'' } });
   const ws = XLSX.utils.json_to_sheet(rows.map((r,i) => ({
     '번호': rows.length - i,
-    '결재시스템': r.sysLabel, '제목': r.title, '신청자': r.requester,
+    '결재시스템': r.sysLabel, '제목': r.title, '요청 제목': r.purpose || '', '신청자': r.requester,
     '처리자': r.approver, '처리자 이메일': r.approverEmail,
     '결재차수': r.aprOrder + (r.totalAprs ? '/'+r.totalAprs : '') + '차',
     '내 결재 결과': r.myStatus,
@@ -2356,6 +2375,7 @@ async function loadMyRequestsPage(force=false) {
             sysKey: sys.key, sysLabel: sys.name,
             reqId: r.id,
             title: rf.Title || '-',
+            purpose: purposeOf(rf),
             reqStatus,
             totalAprs: aprs.length,
             doneCount: doneAprs.length,
@@ -2401,7 +2421,7 @@ function renderMyRequestsTable(resetPage) {
   const rows = _myRequestsData.filter(r =>
     (!fSys    || r.sysKey === fSys) &&
     (!fStatus || r.reqStatus === fStatus) &&
-    (!fSearch || r.title.toLowerCase().includes(fSearch))
+    (!fSearch || r.title.toLowerCase().includes(fSearch) || (r.purpose||'').toLowerCase().includes(fSearch))
   );
 
   const totalPages = Math.max(1, Math.ceil(rows.length / MYR_PAGE_SIZE));
@@ -2439,6 +2459,7 @@ function renderMyRequestsTable(resetPage) {
       <td style="padding:6px 8px;text-align:center;color:#64748b;font-weight:600">${rowNum}</td>
       <td style="padding:6px 8px;color:#0078d4;font-weight:600;white-space:nowrap">${r.sysLabel}</td>
       <td style="padding:6px 8px;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.75rem">${r.title}</td>
+      <td style="padding:6px 8px;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#334155;font-size:.75rem" title="${escHtml(r.purpose||'')}">${r.purpose ? escHtml(r.purpose) : '<span style="color:#cbd5e1">-</span>'}</td>
       <td style="padding:6px 8px;text-align:center">
         <span style="background:${tsBg[r.reqStatus]||'#f1f5f9'};color:${tsColor[r.reqStatus]||'#374151'};border-radius:10px;padding:2px 5px;font-size:.72rem;font-weight:700">${r.reqStatus}</span>
       </td>
@@ -2470,6 +2491,7 @@ function renderMyRequestsTable(resetPage) {
             <th style="padding:10px 10px;text-align:center;font-weight:600">번호</th>
             <th style="padding:10px 10px;text-align:left;font-weight:600">시스템</th>
             <th style="padding:10px 10px;text-align:left;font-weight:600">제목</th>
+            <th style="padding:10px 10px;text-align:left;font-weight:600">요청 제목</th>
             <th style="padding:10px 10px;text-align:center;font-weight:600">상태</th>
             <th style="padding:10px 10px;text-align:center;font-weight:600">결재차수</th>
             <th style="padding:10px 10px;text-align:left;font-weight:600">다음 결재자</th>
@@ -2491,12 +2513,12 @@ function exportMyRequestsExcel() {
   const rows = _myRequestsData.filter(r =>
     (!fSys    || r.sysKey === fSys) &&
     (!fStatus || r.reqStatus === fStatus) &&
-    (!fSearch || r.title.toLowerCase().includes(fSearch))
+    (!fSearch || r.title.toLowerCase().includes(fSearch) || (r.purpose||'').toLowerCase().includes(fSearch))
   );
   logAction('APS', 'Excel 내보내기', { 화면: 'My Requests Record', 건수: rows.length, 필터: { 시스템: fSys||'전체', 결과: fStatus||'전체', 검색어: fSearch||'' } });
   const ws = XLSX.utils.json_to_sheet(rows.map((r,i) => ({
     '번호': rows.length - i,
-    '시스템': r.sysLabel, '제목': r.title,
+    '시스템': r.sysLabel, '제목': r.title, '요청 제목': r.purpose || '',
     '상태': r.reqStatus,
     '결재차수': r.doneCount + (r.totalAprs ? '/'+r.totalAprs : '') + '차',
     '다음 결재자': r.nextApprover, '다음 결재역할': r.nextRole,
