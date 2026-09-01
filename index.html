@@ -2327,7 +2327,7 @@ function renderMyApprovedTable(resetPage) {
     <tr style="border-bottom:1px solid #f1f5f9;font-size:.78rem;cursor:pointer"
         onclick="showDetail('${r.sysKey}',${r.reqId})"
         onmouseover="this.style.background='#f0f6ff'" onmouseout="this.style.background=''">
-      <td style="padding:6px 8px;text-align:center;color:#64748b;font-weight:600">${rowNum}</td>
+      <td style="padding:6px 8px;text-align:left;color:#64748b;font-weight:600">${rowNum}</td>
       <td style="padding:6px 8px;color:#0078d4;font-weight:600;white-space:nowrap">${r.sysLabel}</td>
       <td style="padding:6px 8px;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.75rem">${r.title}</td>
       <td style="padding:6px 8px;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#334155;font-size:.75rem" title="${escHtml(r.purpose||'')}">${r.purpose ? escHtml(r.purpose) : '<span style="color:#cbd5e1">-</span>'}</td>
@@ -2335,13 +2335,13 @@ function renderMyApprovedTable(resetPage) {
       <td style="padding:6px 8px;max-width:170px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#1e293b;font-size:.75rem" title="${escHtml(r.approverEmail||r.approver||'')}">
         ${r.approverEmail ? escHtml(r.approverEmail) : (r.approver ? escHtml(r.approver) : '<span style="color:#cbd5e1">-</span>')}
       </td>
-      <td style="padding:6px 8px;text-align:center;color:#64748b;white-space:nowrap">${r.aprOrder}${r.totalAprs?'/'+r.totalAprs:''}차</td>
-      <td style="padding:6px 8px;text-align:center">
+      <td style="padding:6px 8px;text-align:left;color:#64748b;white-space:nowrap">${r.aprOrder}${r.totalAprs?'/'+r.totalAprs:''}차</td>
+      <td style="padding:6px 8px;text-align:left">
         <span style="background:${stBg[r.myStatus]||'#f1f5f9'};color:${stColor[r.myStatus]||'#374151'};border-radius:10px;padding:2px 5px;font-size:.72rem;font-weight:700">${r.myStatus}</span>
       </td>
       <td style="padding:6px 8px;color:#94a3b8;white-space:nowrap;font-size:.75rem">${fmtDt(r.requestDate)}</td>
       <td style="padding:6px 8px;color:#64748b;white-space:nowrap;font-size:.75rem">${fmtDt(r.processedAt)}</td>
-      <td style="padding:6px 8px;text-align:center">
+      <td style="padding:6px 8px;text-align:left">
         <span style="background:${tsBg[r.ticketStatus]||'#f1f5f9'};color:${tsColor[r.ticketStatus]||'#374151'};border-radius:10px;padding:2px 5px;font-size:.72rem;font-weight:700">${r.ticketStatus}</span>
       </td>
     </tr>`;}).join('');
@@ -2364,17 +2364,17 @@ function renderMyApprovedTable(resetPage) {
       <table style="width:100%;border-collapse:collapse;background:#fff">
         <thead>
           <tr style="background:#f8fafc;border-bottom:2px solid #e2e8f0;font-size:.78rem;color:#64748b">
-            <th style="padding:10px 10px;text-align:center;font-weight:600">번호</th>
+            <th style="padding:10px 10px;text-align:left;font-weight:600">번호</th>
             <th style="padding:10px 10px;text-align:left;font-weight:600">결재시스템</th>
             <th style="padding:10px 10px;text-align:left;font-weight:600">제목</th>
             <th style="padding:10px 10px;text-align:left;font-weight:600">요청 제목</th>
             <th style="padding:10px 10px;text-align:left;font-weight:600">신청자</th>
             <th style="padding:10px 10px;text-align:left;font-weight:600">처리자</th>
-            <th style="padding:10px 10px;text-align:center;font-weight:600">결재차수</th>
-            <th style="padding:10px 10px;text-align:center;font-weight:600">내 결재 결과</th>
+            <th style="padding:10px 10px;text-align:left;font-weight:600">결재차수</th>
+            <th style="padding:10px 10px;text-align:left;font-weight:600">내 결재 결과</th>
             <th style="padding:10px 10px;text-align:left;font-weight:600">신청일시</th>
             <th style="padding:10px 10px;text-align:left;font-weight:600">내 처리일시</th>
-            <th style="padding:10px 10px;text-align:center;font-weight:600">티켓 현재 상태</th>
+            <th style="padding:10px 10px;text-align:left;font-weight:600">티켓 현재 상태</th>
           </tr>
         </thead>
         <tbody>${trs}</tbody>
@@ -2547,14 +2547,14 @@ function renderMyRequestsTable(resetPage) {
     <tr style="border-bottom:1px solid #f1f5f9;font-size:.78rem;cursor:pointer"
         onclick="showDetail('${r.sysKey}',${r.reqId})"
         onmouseover="this.style.background='#f0f6ff'" onmouseout="this.style.background=''">
-      <td style="padding:6px 8px;text-align:center;color:#64748b;font-weight:600">${rowNum}</td>
+      <td style="padding:6px 8px;text-align:left;color:#64748b;font-weight:600">${rowNum}</td>
       <td style="padding:6px 8px;color:#0078d4;font-weight:600;white-space:nowrap">${r.sysLabel}</td>
       <td style="padding:6px 8px;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.75rem">${r.title}</td>
       <td style="padding:6px 8px;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#334155;font-size:.75rem" title="${escHtml(r.purpose||'')}">${r.purpose ? escHtml(r.purpose) : '<span style="color:#cbd5e1">-</span>'}</td>
-      <td style="padding:6px 8px;text-align:center">
+      <td style="padding:6px 8px;text-align:left">
         <span style="background:${tsBg[r.reqStatus]||'#f1f5f9'};color:${tsColor[r.reqStatus]||'#374151'};border-radius:10px;padding:2px 5px;font-size:.72rem;font-weight:700">${r.reqStatus}</span>
       </td>
-      <td style="padding:6px 8px;text-align:center;color:#64748b;white-space:nowrap">${r.doneCount}${r.totalAprs?'/'+r.totalAprs:''}차</td>
+      <td style="padding:6px 8px;text-align:left;color:#64748b;white-space:nowrap">${r.doneCount}${r.totalAprs?'/'+r.totalAprs:''}차</td>
       <td style="padding:6px 8px;max-width:170px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#1e293b;font-size:.75rem" title="${escHtml(r.nextApprover&&r.nextApprover!=='-'?(r.nextRole&&r.nextRole!=='-'?r.nextApprover+' ('+r.nextRole+')':r.nextApprover):'')}">
         ${r.reqStatus==='진행중'||r.reqStatus==='대기' ? nextApproverCell(r) : '-'}
       </td>
@@ -2579,12 +2579,12 @@ function renderMyRequestsTable(resetPage) {
       <table style="width:100%;border-collapse:collapse;background:#fff">
         <thead>
           <tr style="background:#f8fafc;border-bottom:2px solid #e2e8f0;font-size:.78rem;color:#64748b">
-            <th style="padding:10px 10px;text-align:center;font-weight:600">번호</th>
+            <th style="padding:10px 10px;text-align:left;font-weight:600">번호</th>
             <th style="padding:10px 10px;text-align:left;font-weight:600">시스템</th>
             <th style="padding:10px 10px;text-align:left;font-weight:600">제목</th>
             <th style="padding:10px 10px;text-align:left;font-weight:600">요청 제목</th>
-            <th style="padding:10px 10px;text-align:center;font-weight:600">상태</th>
-            <th style="padding:10px 10px;text-align:center;font-weight:600">결재차수</th>
+            <th style="padding:10px 10px;text-align:left;font-weight:600">상태</th>
+            <th style="padding:10px 10px;text-align:left;font-weight:600">결재차수</th>
             <th style="padding:10px 10px;text-align:left;font-weight:600">다음 결재자</th>
             <th style="padding:10px 10px;text-align:left;font-weight:600">신청일</th>
             <th style="padding:10px 10px;text-align:left;font-weight:600">최근결재일</th>
