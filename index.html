@@ -982,6 +982,19 @@ async function loadSystemConfig() {
 // ACC Voucher는 ApproverRole에 "TL"/"MC" 같은 짧은 코드만 저장돼 있어(다른 시스템들은 이미 "1차결재자(CFO)" 형태로 저장됨),
 // 여기서 ACC Voucher 자체 앱의 roleLabelMap과 동일한 매핑으로 변환해서 다른 시스템들과 표시 형식을 통일한다.
 const ACC_ROLE_LABELS = { TL:'Line Manager', MC:'Department Head', CEO:'CEO', RD:'RD', CTRL:'Controlling Head', AMGR:'Accounting Head', CFO:'CFO', ACC_AP:'AP 담당자', ACC_AR:'AR 담당자', ACC_GL:'GL 담당자', ACC:'담당자' };
+// 「다음 결재자」 한 칸. 이름과 역할을 두 줄로 쌓았더니 이 열만 두 줄이라
+// 행 높이가 들쭉날쭉했다. 이름 (역할) 한 줄로 둔다 —
+// Excel 내보내기(3256행)가 이미 쓰던 표기와 같다.
+function nextApproverCell(r) {
+  const nm = (r && r.nextApprover) || '';
+  const ro = (r && r.nextRole) || '';
+  if (!nm || nm === '-') return '<span style="color:#94a3b8">-</span>';
+  const role = (ro && ro !== '-')
+    ? ' <span style="color:#94a3b8">(' + escHtml(ro) + ')</span>'
+    : '';
+  return '<span style="font-weight:600">' + escHtml(nm) + '</span>' + role;
+}
+
 function formatNextRole(sysKey, apr) {
   if (!apr) return '-';
   if (sysKey === 'ACC') {
@@ -1590,7 +1603,7 @@ function formatComment(comment, sysKey) {
   // HTML 태그·엔티티 제거 후 텍스트만
   return escHtml(comment.replace(/&#58;/g,':').replace(/<[^>]+>/g,'').replace(/&[a-z]+;/g,' ').trim());
 }
-function escHtml(str){return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function escHtml(str){return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
 // ──────────────────────────────────────────────────────────────
 
 async function showDetail(sysKey,reqId){
@@ -2284,8 +2297,8 @@ function renderMyApprovedTable(resetPage) {
       <td style="padding:6px 8px;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.75rem">${r.title}</td>
       <td style="padding:6px 8px;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#334155;font-size:.75rem" title="${escHtml(r.purpose||'')}">${r.purpose ? escHtml(r.purpose) : '<span style="color:#cbd5e1">-</span>'}</td>
       <td style="padding:6px 8px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#374151;font-size:.75rem">${r.requester}</td>
-      <td style="padding:6px 8px;max-width:170px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#1e293b;font-size:.75rem">
-        <span style="font-weight:600">${r.approver}</span><br><span style="color:#94a3b8;font-size:.7rem">${r.approverEmail}</span>
+      <td style="padding:6px 8px;max-width:170px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#1e293b;font-size:.75rem" title="${escHtml(r.approverEmail||r.approver||'')}">
+        ${r.approverEmail ? escHtml(r.approverEmail) : (r.approver ? escHtml(r.approver) : '<span style="color:#cbd5e1">-</span>')}
       </td>
       <td style="padding:6px 8px;text-align:center;color:#64748b;white-space:nowrap">${r.aprOrder}${r.totalAprs?'/'+r.totalAprs:''}차</td>
       <td style="padding:6px 8px;text-align:center">
@@ -2493,8 +2506,8 @@ function renderMyRequestsTable(resetPage) {
         <span style="background:${tsBg[r.reqStatus]||'#f1f5f9'};color:${tsColor[r.reqStatus]||'#374151'};border-radius:10px;padding:2px 5px;font-size:.72rem;font-weight:700">${r.reqStatus}</span>
       </td>
       <td style="padding:6px 8px;text-align:center;color:#64748b;white-space:nowrap">${r.doneCount}${r.totalAprs?'/'+r.totalAprs:''}차</td>
-      <td style="padding:6px 8px;max-width:170px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#1e293b;font-size:.75rem">
-        ${r.reqStatus==='진행중'||r.reqStatus==='대기' ? `<span style="font-weight:600">${r.nextApprover}</span><br><span style="color:#94a3b8;font-size:.7rem">${r.nextRole}</span>` : '-'}
+      <td style="padding:6px 8px;max-width:170px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#1e293b;font-size:.75rem" title="${escHtml(r.nextApprover&&r.nextApprover!=='-'?(r.nextRole&&r.nextRole!=='-'?r.nextApprover+' ('+r.nextRole+')':r.nextApprover):'')}">
+        ${r.reqStatus==='진행중'||r.reqStatus==='대기' ? nextApproverCell(r) : '-'}
       </td>
       <td style="padding:6px 8px;color:#94a3b8;white-space:nowrap;font-size:.75rem">${fmtDt(r.requestDate)}</td>
       <td style="padding:6px 8px;color:#64748b;white-space:nowrap;font-size:.75rem">${fmtDt(r.lastApprovalDate)}</td>
@@ -3013,7 +3026,7 @@ function renderAdminTable(resetPage) {
         <span style="background:${stBg[r.reqStatus]||'#f1f5f9'};color:${stMap[r.reqStatus]||'#374151'};border-radius:10px;padding:2px 6px;font-size:.75rem;font-weight:600;">${r.reqStatus}</span>
       </td>
       <td style="padding:8px 10px;text-align:center;color:#64748b;">${r.doneCount} / ${r.totalAprs}차</td>
-      <td style="padding:8px 10px;color:#374151;font-size:.78rem;">${r.nextApprover !== '-' ? r.nextApprover+'<br><span style="color:#94a3b8;font-size:.7rem;">'+r.nextRole+'</span>' : '<span style="color:#94a3b8;">-</span>'}${adminMatchedAprs(r, fApprover)}</td>
+      <td style="padding:8px 10px;color:#374151;font-size:.78rem;white-space:nowrap;" title="${escHtml(r.nextApprover&&r.nextApprover!=='-'?(r.nextRole&&r.nextRole!=='-'?r.nextApprover+' ('+r.nextRole+')':r.nextApprover):'')}">${nextApproverCell(r)}${adminMatchedAprs(r, fApprover)}</td>
       <td style="padding:8px 10px;color:#94a3b8;font-size:.75rem;">${fmt(r.requestDate)}</td>
       <td style="padding:8px 10px;color:#94a3b8;font-size:.75rem;">${fmt(r.lastApprovalDate)}</td>
       ${(()=>{
