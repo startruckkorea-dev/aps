@@ -814,11 +814,14 @@ async function token(){
 async function apiAll(path) {
   // SharePoint 기본 페이지 크기(200건)보다 크게 요청해서 왕복 횟수를 줄임 (데이터 누락 없이 전량은 그대로 다 읽음)
   if (!/[?&]\$top=/.test(path)) path += (path.includes('?') ? '&' : '?') + '$top=999';
-  let items = [], url = path;
+  let items = [], url = path, pages = 0;
   while(url) {
     const d = await api(url);
     items = items.concat(d.value || []);
     url = d['@odata.nextLink'] ? d['@odata.nextLink'].replace('https://graph.microsoft.com/v1.0','') : null;
+    // 목록이 아무리 커도 999건씩 60번이면 6만 건이다. 그 이상이면 nextLink 가
+    // 끊기지 않고 도는 것이므로, 무한히 돌며 브라우저를 잡아먹지 않게 멈춘다.
+    if (++pages > 60) { console.warn('[apiAll] 페이지 상한 초과 — 중단:', path.slice(0,120)); break; }
   }
   return {value: items};
 }
@@ -828,7 +831,15 @@ async function apiAll(path) {
 // GET·PATCH만 사용하고 둘 다 같은 값을 다시 쓰는 형태라 재시도해도 중복 생성 위험이 없다.
 // Prefer 헤더는 인덱스가 없는 컬럼으로 $filter를 걸 때 리스트 임계치(5,000건)에 막히지 않도록 하는 것으로,
 // 다른 APS 시스템(GW·SCC·BP·FA·GA·MC 등)과 동일한 설정이며 필터를 안 쓰는 호출에는 영향이 없다.
+// 한 호출이 재시도로 쓸 수 있는 총 대기 시간과 횟수.
+// 예전에는 3회·최대 3.2초였다. 13개 시스템 × 2개 목록을 한꺼번에 읽으면
+// 429 가 몰려 그 안에 못 넘기고 포기하는 일이 생겼다(전체 920건 중 400건만 표시).
+// 횟수를 늘리되 총 대기 시간에 상한을 둔다 — 오래 멈추지 않으면서 성공률만 올린다.
+const API_RETRY_MAX = 5;
+const API_RETRY_BUDGET = 8000;   // ms
+
 async function api(path,method='GET',body=null){
+  let _spent = 0;                 // 이 호출이 지금까지 기다린 시간
   for(let attempt=0;;attempt++){
     const t=await token();
     const opts={method,headers:{Authorization:'Bearer '+t,'Content-Type':'application/json',Prefer:'HonorNonIndexedQueriesWarningMayFailRandomly'}};
@@ -839,10 +850,18 @@ async function api(path,method='GET',body=null){
     // POST 를 다시 보내면 항목이 두 번 만들어진다. 429 는 처리되지 않은 것이 확실하다.
     // 지금 aps 는 PATCH 만 쓰지만, 나중에 POST 가 추가돼도 안전하도록 규칙을 맞춰 둔다.
     const _idem = method === 'GET' || method === 'PATCH' || method === 'DELETE';
-    if((res.status===429 || (_idem && [503,504].includes(res.status))) && attempt<3){
+    if((res.status===429 || (_idem && [503,504].includes(res.status))) && attempt<API_RETRY_MAX){
       const ra=parseInt(res.headers.get('Retry-After')||'0',10);
-      const wait=ra>0?ra*1000:Math.pow(2,attempt)*800;   // 0.8s → 1.6s → 3.2s
-      console.warn('[api] '+res.status+' 재시도 '+(attempt+1)+'/3 ('+wait+'ms 후) '+method+' '+path.slice(0,120));
+      let wait=ra>0?ra*1000:Math.pow(2,attempt)*600;   // 0.6s → 1.2s → 2.4s → 4.8s
+      // 서버가 「60초 뒤에 오라」 고 하면 그대로 기다릴 수 없다. 화면이 그만큼 멈춘다.
+      // 예산을 넘는 값이 오면 한 번에 오래 자는 대신 예산 남은 만큼만 기다린다.
+      if (_spent + wait > API_RETRY_BUDGET) wait = Math.max(0, API_RETRY_BUDGET - _spent);
+      if (wait <= 0) {
+        console.warn('[api] 재시도 예산 소진 — 중단 '+method+' '+path.slice(0,120));
+        throw new Error('요청이 지연되고 있습니다. 잠시 후 새로고침해 주세요. ('+res.status+')');
+      }
+      _spent += wait;
+      console.warn('[api] '+res.status+' 재시도 '+(attempt+1)+'/'+API_RETRY_MAX+' ('+wait+'ms 후) '+method+' '+path.slice(0,120));
       await new Promise(r=>setTimeout(r,wait));
       continue;
     }
@@ -2491,6 +2510,7 @@ async function loadAdminPage(force=false) {
   document.getElementById('admin-table-wrap').innerHTML = '<div style="padding:40px;text-align:center;color:#94a3b8;">전체 데이터 로딩 중...</div>';
   const _seq = ++_adminLoadSeq;
   const _rows = [];                    // 전역이 아니라 이번 호출 전용 배열에 모은다
+  const _failed = [];                  // 불러오지 못한 시스템 (아래에서 화면에 알린다)
   await Promise.all(visibleSystems().map(async sys => {
     try {
       const [aprData, reqData] = await Promise.all([
@@ -2553,7 +2573,13 @@ async function loadAdminPage(force=false) {
             })),
         });
       });
-    } catch(e) {}
+    } catch(e) {
+      // 예전에는 여기서 오류를 삼켰다. 시스템 하나가 통째로 실패해도
+      // 아무 표시 없이 그 시스템 건수만 빠진 채 화면이 그려졌다.
+      // 「전체 920건」 이 어느 날 400건으로 나오는데 이유를 알 수 없던 원인이다.
+      console.warn('[admin] '+sys.key+' 로딩 실패:', e && e.message);
+      _failed.push({ key: sys.key, label: sys.label || sys.key, msg: (e && e.message) || String(e) });
+    }
   }));
   // 로딩 중에 새로고침이 다시 눌렸다면 이번 결과는 버린다
   if (_seq !== _adminLoadSeq) { console.warn('[admin] 이전 로딩 결과 폐기 (seq '+_seq+' / 최신 '+_adminLoadSeq+')'); return; }
@@ -2566,8 +2592,22 @@ async function loadAdminPage(force=false) {
   });
   if (_adminData.length !== _rows.length)
     console.warn('[admin] 중복 '+(_rows.length-_adminData.length)+'건 제거');
-  document.getElementById('admin-total-count').textContent = '총 '+_adminData.length+'건';
-  _adminDataTime = Date.now();
+  // 일부 시스템을 못 불러왔으면 건수 옆에 그대로 적는다.
+  // 숫자만 보여 주면 그것이 전부인 줄 알게 된다.
+  const _cntEl = document.getElementById('admin-total-count');
+  if (_failed.length) {
+    _cntEl.innerHTML = '총 '+_adminData.length+'건 '
+      + '<span style="color:#c62828;font-weight:700">· '+_failed.length+'개 시스템 불러오기 실패</span>';
+    _cntEl.title = _failed.map(f => f.label+': '+f.msg).join('\n');
+    alert('아래 시스템을 불러오지 못했습니다. 표시된 건수가 전체가 아닙니다.\n\n'
+      + _failed.map(f => '· '+f.label).join('\n')
+      + '\n\n새로고침을 눌러 다시 시도해 주세요.');
+  } else {
+    _cntEl.textContent = '총 '+_adminData.length+'건';
+  }
+  // 일부라도 실패했으면 캐시에 남기지 않는다. 남기면 10분 동안 모자란 데이터를
+  // 그대로 다시 보여 준다(CACHE_TTL_MS).
+  _adminDataTime = _failed.length ? 0 : Date.now();
   renderAdminTable();
 }
 
