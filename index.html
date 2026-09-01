@@ -2098,7 +2098,8 @@ async function loadMyApprovedPage(force=false) {
   const wrap = document.getElementById('myapproved-table-wrap');
   wrap.innerHTML = '<div style="padding:40px;text-align:center;color:#94a3b8;">결재 기록 불러오는 중...</div>';
   const _seq = ++_myApvLoadSeq;
-  const _rows = [];                    // 전역이 아니라 이번 호출 전용 배열에 모은다
+  const _rows = [];
+  const _failed = [];   // 불러오지 못한 시스템                    // 전역이 아니라 이번 호출 전용 배열에 모은다
   const myEmail = (user.email || user.username || '').toLowerCase();
 
   await Promise.all(visibleSystems().map(async sys => {
@@ -2157,7 +2158,12 @@ async function loadMyApprovedPage(force=false) {
             ticketStatus: ticketStatusMap[String(f.RequestID)] || '-',
           });
         });
-    } catch(e) { console.warn('myapproved load error', sys.key, e); }
+    } catch(e) {
+      // 예전에는 경고만 남기고 넘어갔다. 시스템 하나가 실패해도 그 건수만
+      // 빠진 채 화면이 그려지고, 90초 캐시에 남아 새로고침해도 그대로였다.
+      console.warn('myapproved load error', sys.key, e);
+      _failed.push(sys.label || sys.key);
+    }
   }));
 
   // 로딩 중에 다시 호출됐다면 이번 결과는 버린다 (겹치면 건수가 두 배가 된다)
@@ -2169,7 +2175,14 @@ async function loadMyApprovedPage(force=false) {
     _seen.add(k); return true;
   });
   _myApprovedData.sort((a,b) => (b.processedAt > a.processedAt ? 1 : -1));
-  _myApprovedDataTime = Date.now();
+  // 일부라도 실패했으면 캐시에 남기지 않는다. 남기면 90초 동안 모자란 데이터를
+  // 그대로 다시 보여 준다.
+  _myApprovedDataTime = _failed.length ? 0 : Date.now();
+  if (_failed.length) {
+    alert('아래 시스템을 불러오지 못했습니다. 표시된 건수가 전체가 아닙니다.\n\n'
+      + _failed.map(f => '· ' + f).join('\n')
+      + '\n\n새로고침을 눌러 다시 시도해 주세요.');
+  }
   renderMyApprovedTable(true);
 }
 
@@ -2310,6 +2323,7 @@ async function loadMyRequestsPage(force=false) {
   wrap.innerHTML = '<div style="padding:40px;text-align:center;color:#94a3b8;">신청 기록 불러오는 중...</div>';
   const _seq = ++_myReqLoadSeq;
   const _rows = [];
+  const _failed = [];   // 불러오지 못한 시스템
   const myEmail = (user.email || user.username || '').toLowerCase();
 
   await Promise.all(visibleSystems().map(async sys => {
@@ -2351,7 +2365,12 @@ async function loadMyRequestsPage(force=false) {
             lastApprovalDate: pickLastApprovalDate(doneAprs),
           });
         });
-    } catch(e) { console.warn('myrequests load error', sys.key, e); }
+    } catch(e) {
+      // 예전에는 경고만 남기고 넘어갔다. 시스템 하나가 실패해도 그 건수만
+      // 빠진 채 화면이 그려지고, 90초 캐시에 남아 새로고침해도 그대로였다.
+      console.warn('myrequests load error', sys.key, e);
+      _failed.push(sys.label || sys.key);
+    }
   }));
 
   if (_seq !== _myReqLoadSeq) { console.warn('[myrequests] 이전 로딩 결과 폐기'); return; }
@@ -2362,7 +2381,14 @@ async function loadMyRequestsPage(force=false) {
     _seen.add(k); return true;
   });
   _myRequestsData.sort((a,b) => (b.requestDate > a.requestDate ? 1 : -1));
-  _myRequestsDataTime = Date.now();
+  // 일부라도 실패했으면 캐시에 남기지 않는다. 남기면 90초 동안 모자란 데이터를
+  // 그대로 다시 보여 준다.
+  _myRequestsDataTime = _failed.length ? 0 : Date.now();
+  if (_failed.length) {
+    alert('아래 시스템을 불러오지 못했습니다. 표시된 건수가 전체가 아닙니다.\n\n'
+      + _failed.map(f => '· ' + f).join('\n')
+      + '\n\n새로고침을 눌러 다시 시도해 주세요.');
+  }
   renderMyRequestsTable(true);
 }
 
