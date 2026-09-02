@@ -2738,9 +2738,21 @@ async function loadAdminPage(force=false) {
 
   await Promise.all(_sysList.map(async sys => {
     try {
+      // 이 화면이 신청에서 읽는 것은 아래 다섯뿐이다(코드 전수 조사).
+      //   Title · RequesterEmail · Status · RequestDate · SubmittedDate
+      // 전 컬럼(20~40개)과 Created/Modified/Author 같은 시스템 열, Description 처럼
+      // 긴 텍스트까지 받던 것을 여기까지만 받는다.
+      //
+      // 다섯으로 한정한 이유: 13개 시스템이 각기 다른 열을 가지므로 어느 목록에
+      // 없는 이름을 적으면 그 조회가 통째로 실패한다(09-03 에 겪음, 6801626→98e7516).
+      // 이 다섯은 관리자 표의 모든 시스템 행에 값이 나오므로 전부 존재한다고 볼 수 있다.
+      //
+      // 결재 목록은 손대지 않는다. 받은 항목에 _itemId·_aprListId 를 덧붙여 결재자
+      // 교체에 쓰므로, 필드를 자르면 그 기능이 조용히 깨질 수 있다.
+      const _reqSel = '?$expand=fields($select=Title,RequesterEmail,Status,RequestDate,SubmittedDate)';
       const [aprData, reqData] = await Promise.all([
         sys.key==='ACC' ? fetchAllAccApprovals() : apiAll('/sites/'+siteId+'/lists/'+sys.apr+'/items?$expand=fields'),
-        apiAll('/sites/'+siteId+'/lists/'+sys.req+'/items?$expand=fields'),
+        apiAll('/sites/'+siteId+'/lists/'+sys.req+'/items'+_reqSel),
       ]);
       const aprMap = {};
       aprData.value.forEach(i => {
