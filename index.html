@@ -1757,7 +1757,15 @@ async function showDetail(sysKey,reqId){
       info+=sec('첨부파일')+parseFiles(f.AttachedFiles);
     }
     else if(sysKey==='GW'){
-      info+=sec('신청 정보')+row('Company',f.Company)+row('Source',f.Source)+row('Amount',(f.Amount||'').replace(/^(\d+)~$/,(m,n)=>Number(n).toLocaleString()+'~').replace(/^(\d+)~(\d+)$/,(m,a,b)=>Number(a).toLocaleString()+'~'+Number(b).toLocaleString()))+row('Type',f.GoodwillType)+sec('상세 내용')+(f.RequestTitle?row('요청 제목',f.RequestTitle):'')+row('Description',`<span style="white-space:pre-wrap">${f.Description||'-'}</span>`);
+      // Amount 는 구간(결재선을 정하는 값)이고, 실제 금액은 AmountValue 에 따로 있다.
+      // 이름을 「Amount type」으로 바꾸고 실제 금액을 그 아래 줄로 보여 준다.
+      // AmountValue 가 생기기 전의 기존 건은 값이 없어 「-」로 나온다.
+      const _gwAmtType=(f.Amount||'').replace(/^(\d+)~$/,(m,n)=>Number(n).toLocaleString()+'~').replace(/^(\d+)~(\d+)$/,(m,a,b)=>Number(a).toLocaleString()+'~'+Number(b).toLocaleString());
+      const _gwAmtVal=String(f.AmountValue==null?'':f.AmountValue).replace(/[^0-9]/g,'');
+      info+=sec('신청 정보')+row('Company',f.Company)+row('Source',f.Source)
+          +row('Amount type',_gwAmtType||'-')
+          +row('Amount (VAT Excluded)',_gwAmtVal?Number(_gwAmtVal).toLocaleString('ko-KR')+' 원':'-')
+          +row('Type',f.GoodwillType)+sec('상세 내용')+(f.RequestTitle?row('요청 제목',f.RequestTitle):'')+row('Description',`<span style="white-space:pre-wrap">${f.Description||'-'}</span>`);
       info+=sec('첨부파일')+parseFiles(f.AttachedFiles);
     }
     else if(sysKey==='BP'){
