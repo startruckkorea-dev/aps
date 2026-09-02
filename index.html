@@ -1134,24 +1134,22 @@ async function loadAll(force=false){
   _allData={};
   await Promise.all(visibleSystems().map(async sys=>{
     try{
-      // ── $select 시험 적용 (GW 만) ───────────────────────────────────
-      // 목록을 열 때마다 각 시스템의 전 컬럼(20~40개)과 Created/Modified/Author
-      // 같은 시스템 열까지 받는다. 화면이 쓰는 것은 아래가 전부다.
+      // 이 화면이 신청에서 읽는 것은 아래 다섯뿐이다(loadAll·renderAll·summary 전수 조사).
+      //   Title · RequesterEmail · Status · RequestDate · SubmittedDate
+      // 전 컬럼(20~40개)과 Created/Modified/Author 같은 시스템 열, Description 처럼
+      // 긴 텍스트까지 받던 것을 여기까지만 받는다.
       //
-      // 09-03 에 13개 전부에 한 번에 넣었다가 전 시스템 조회가 실패해 되돌렸다
-      // (6801626 → 98e7516). 원인이 확정되지 않았으므로 이번에는 GW 한 곳에만
-      // 넣어 확인한다. 실패해도 GW 행만 빠지고 나머지 12개는 그대로 나온다.
+      // 이 다섯은 관리자 표의 모든 시스템 행에 값이 나오므로 13개 목록에 전부
+      // 존재한다고 볼 수 있다. 09-03 에 실패한 판(6801626)은 13개 시스템의 필드
+      // 후보를 한데 모아 적어, 그 목록에 없는 이름이 섞인 것이 원인이었다.
+      // GW 한 곳에 먼저 넣어(4008099) 문법과 원인을 확인한 뒤 확대한다.
       //
-      // 필드는 GW_Requests / GW_Approvals 의 실제 열(CSV 로 확인)만 적었다.
-      // 지난번에는 13개 시스템의 후보를 한데 모아 적었는데, 그중 그 목록에
-      // 없는 이름이 섞였을 가능성이 가장 크다.
-      const _sel = (sys.key==='GW')
-        ? { req: '?$expand=fields($select=Title,Status,RequesterEmail,RequestDate,RequestTitle)',
-            apr: '?$expand=fields($select=RequestID,Status,ApprovalOrder,ApproverEmail,ApproverName,ApproverRole,ApprovalDate)' }
-        : { req: '?$expand=fields', apr: '?$expand=fields' };
+      // 결재 목록은 손대지 않는다. 시스템마다 결재행 구조가 다르고 ACC 는 별도
+      // 경로(fetchAllAccApprovals)를 쓴다.
+      const _reqSel = '?$expand=fields($select=Title,RequesterEmail,Status,RequestDate,SubmittedDate)';
       const [apprData,reqData]=await Promise.all([
-        sys.key==='ACC' ? fetchAllAccApprovals() : apiAll('/sites/'+siteId+'/lists/'+sys.apr+'/items'+_sel.apr),
-        apiAll('/sites/'+siteId+'/lists/'+sys.req+'/items'+_sel.req),
+        sys.key==='ACC' ? fetchAllAccApprovals() : apiAll('/sites/'+siteId+'/lists/'+sys.apr+'/items?$expand=fields'),
+        apiAll('/sites/'+siteId+'/lists/'+sys.req+'/items'+_reqSel),
       ]);
       const reqMap={};reqData.value.forEach(r=>{const rf=r.fields; if(!rf.RequestDate && rf.SubmittedDate) rf.RequestDate=rf.SubmittedDate; reqMap[r.id]=rf;});
       _allData[sys.key]={apprItems:apprData.value,reqMap};
