@@ -1713,7 +1713,7 @@ async function showDetail(sysKey,reqId){
       });
       info+=row('유형',f.TicketType||'-')+row('우선순위',f.Priority||'-')+row('대상 시스템',f.Systems||'-');
       const t=f.TicketType;
-      if(t==='Incident'||t==='Problem') info+=sec('장애/이슈 상세')+(f.TicketTitle?row('요청 제목',f.TicketTitle):'')+rowFull('발생 일시',f.IncOccurredAt)+rowFull('증상 설명',f.Symptom)+row('영향 범위',f.Scope)+row('임시 해결책',f.Workaround);
+      if(t==='Incident'||t==='Problem') info+=sec('장애/이슈 상세')+(f.TicketTitle?row('요청 제목',f.TicketTitle):'')+rowFull('발생 일시',fmtOccurredAt(f.IncOccurredAt))+rowFull('증상 설명',f.Symptom)+row('영향 범위',f.Scope)+row('임시 해결책',f.Workaround);
       else if(t==='Change') info+=sec('변경 요청 상세')+(f.TicketTitle?row('요청 제목',f.TicketTitle):'')+row('변경 유형',f.ChangeType)+row('예상 영향도',f.Impact)+rowFull('변경 내용',f.Detail)+rowFull('변경 이유',f.ChangeReason);
       else if(t==='Request') info+=sec('서비스 요청 상세')+(f.TicketTitle?row('요청 제목',f.TicketTitle):'')+row('요청 유형',f.ReqType)+row('계정 생성 목적',f.AcctPurpose)+row('권한 환경',f.ReqEnv)+row('신청 기간',f.ReqFrom&&f.ReqTo?f.ReqFrom+' ~ '+f.ReqTo:'-')+rowFull('요청 내용',f.Detail);
       info+=sec('첨부파일')+parseFiles(f.AttachedFiles);
@@ -2182,6 +2182,17 @@ function purposeOf(rf) {
 //
 // 아직 남았을 때 「기록이 없습니다」 가 뜨면 다 받은 줄로 오해한다.
 // 진행 상황을 함께 보여 준다.
+// 발생 일시는 <input type="datetime-local"> 값이 그대로 저장된다.
+// 「2026-08-13T16:34」처럼 T 가 낀 형태라 화면에 그대로 두면 읽기 어렵다.
+// 사용자가 적은 현지 시각이지 UTC 가 아니므로 +9시간 보정을 하면 안 된다.
+// 형태만 다듬는다. 예상 밖의 값이면 손대지 않고 그대로 보여 준다.
+function fmtOccurredAt(v){
+  const s = String(v == null ? '' : v).trim();
+  if (!s) return '-';
+  const m = s.match(/^(\d{4}-\d{2}-\d{2})[T ](\d{2}:\d{2})/);
+  return m ? m[1] + ' ' + m[2] : s;
+}
+
 function loadProgressNote(wrapId, done, total, empty) {
   const w = document.getElementById(wrapId);
   if (!w) return;
