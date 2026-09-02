@@ -1764,7 +1764,7 @@ async function showDetail(sysKey,reqId){
       const _gwAmtVal=String(f.AmountValue==null?'':f.AmountValue).replace(/[^0-9]/g,'');
       info+=sec('신청 정보')+row('Company',f.Company)+row('Source',f.Source)
           +row('Amount type',_gwAmtType||'-')
-          +row('Amount (VAT Excluded)',_gwAmtVal?Number(_gwAmtVal).toLocaleString('ko-KR')+' 원':'-')
+          +row('Amount <span style="font-size:.72em;color:#605e5c;font-weight:400">(VAT Excluded)</span>',_gwAmtVal?Number(_gwAmtVal).toLocaleString('ko-KR')+' 원':'-')
           +row('Type',f.GoodwillType)+sec('상세 내용')+(f.RequestTitle?row('요청 제목',f.RequestTitle):'')+row('Description',`<span style="white-space:pre-wrap">${f.Description||'-'}</span>`);
       info+=sec('첨부파일')+parseFiles(f.AttachedFiles);
     }
