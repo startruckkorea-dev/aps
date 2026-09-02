@@ -1135,8 +1135,8 @@ async function loadAll(force=false){
   await Promise.all(visibleSystems().map(async sys=>{
     try{
       const [apprData,reqData]=await Promise.all([
-        sys.key==='ACC' ? fetchAllAccApprovals() : apiAll('/sites/'+siteId+'/lists/'+sys.apr+'/items?$expand=fields($select='+_aprFields+')'),
-        apiAll('/sites/'+siteId+'/lists/'+sys.req+'/items?$expand=fields($select='+_reqFields+')'),
+        sys.key==='ACC' ? fetchAllAccApprovals() : apiAll('/sites/'+siteId+'/lists/'+sys.apr+'/items?$expand=fields'),
+        apiAll('/sites/'+siteId+'/lists/'+sys.req+'/items?$expand=fields'),
       ]);
       const reqMap={};reqData.value.forEach(r=>{const rf=r.fields; if(!rf.RequestDate && rf.SubmittedDate) rf.RequestDate=rf.SubmittedDate; reqMap[r.id]=rf;});
       _allData[sys.key]={apprItems:apprData.value,reqMap};
@@ -1652,24 +1652,11 @@ async function showDetail(sysKey,reqId){
   try{
     const [r,apprData,clRaw]=await Promise.all([
       (()=>{
-        // 목록 화면이 실제로 읽는 필드만 받는다. $expand=fields 는 각 목록의 전 컬럼
-// (20~40개)과 Created/Modified/Author 같은 시스템 열까지 전부 가져오는데,
-// 화면이 쓰는 것은 아래가 전부다. Description 처럼 긴 텍스트가 특히 크다.
-//
-// 시스템마다 열 이름이 다르다(RequesterEmail / RequestorEmail, 제목은 네 가지).
-// 코드가 이미 후보를 나열해 읽고 있으므로, 그 후보를 전부 적는다.
-// $select 에 없는 이름을 적어도 Graph 는 오류 없이 무시하므로 안전하다.
-//
-// 상세 모달은 항목을 한 건씩 다시 읽으므로 여기 목록에 영향받지 않는다.
-const _reqFields='Title,Status,RequesterEmail,RequestorEmail,RequestDate,SubmittedDate,Subject,TicketTitle,PurposeTitle,RequestTitle,ContractTitle';
-// ApproverName·ApproverRole 은 「다음결재자」 열, ApprovalDate 는 「최근결재일」과
-// 지연·정체일수 계산에 쓰인다.
-const _aprFields='RequestID,Status,ApprovalOrder,ApproverEmail,ApproverName,ApproverRole,ApprovalDate';
-const _gaFields='Title,Company,CostCenter,ItemCount,TotalAmount,ItemsData,Status,RequesterEmail,RequestDate,NameEN,NameKO,JobTitle,JobPosition,Department,Email,Quantity,StickerQty,IssueType,Description,Address,AddressEng,MobileNumber,SalesAgentCompany,OrdName,OrdPhone,StnName,StnDept,PhotoFileName,AttachedFiles';
-        const _sel=(sysKey==='GA_STN'||sysKey==='GA_BC'||sysKey==='GA_IDC')?`?$expand=fields($select=${_gaFields})`:`?$expand=fields($select=${_reqFields})`;
+        const _gaFields='Title,Company,CostCenter,ItemCount,TotalAmount,ItemsData,Status,RequesterEmail,RequestDate,NameEN,NameKO,JobTitle,JobPosition,Department,Email,Quantity,StickerQty,IssueType,Description,Address,AddressEng,MobileNumber,SalesAgentCompany,OrdName,OrdPhone,StnName,StnDept,PhotoFileName,AttachedFiles';
+        const _sel=(sysKey==='GA_STN'||sysKey==='GA_BC'||sysKey==='GA_IDC')?`?$expand=fields($select=${_gaFields})`:'?$expand=fields';
         return api('/sites/'+siteId+'/lists/'+sys.req+'/items/'+reqId+_sel);
       })(),
-      sysKey==='ACC' ? fetchAllAccApprovals() : apiAll('/sites/'+siteId+'/lists/'+sys.apr+'/items?$expand=fields($select='+_aprFields+')'),
+      sysKey==='ACC' ? fetchAllAccApprovals() : apiAll('/sites/'+siteId+'/lists/'+sys.apr+'/items?$expand=fields'),
     ]);
     const clResponses = clRaw||{value:[]};
     const f=r.fields;
@@ -1983,7 +1970,7 @@ async function quickConfirm(apprId,action,reqId,sysKey,apprRole='',apprOrder=0){
   if(sysKey==='ACC' && !isAccAllowed()){ showAccRestrictedPopup(); return; }
   try{
     const sys=SYSTEMS.find(s=>s.key===sysKey);
-    const data = sysKey==='ACC' ? await fetchAllAccApprovals() : await apiAll('/sites/'+siteId+'/lists/'+sys.apr+'/items?$expand=fields($select='+_aprFields+')');
+    const data = sysKey==='ACC' ? await fetchAllAccApprovals() : await apiAll('/sites/'+siteId+'/lists/'+sys.apr+'/items?$expand=fields');
     _currentApprList=data.value.filter(i=>Number(i.fields.RequestID)===Number(reqId))
       .sort((a,b)=>a.fields.ApprovalOrder-b.fields.ApprovalOrder);
   }catch(e){ _currentApprList=[]; }
@@ -2262,8 +2249,8 @@ async function loadMyApprovedPage(force=false) {
   await Promise.all(_sysList.map(async sys => {
     try {
       const [aprData, reqData] = await Promise.all([
-        sys.key==='ACC' ? fetchAllAccApprovals() : apiAll('/sites/'+siteId+'/lists/'+sys.apr+'/items?$expand=fields($select='+_aprFields+')'),
-        apiAll('/sites/'+siteId+'/lists/'+sys.req+'/items?$expand=fields($select='+_reqFields+')'),
+        sys.key==='ACC' ? fetchAllAccApprovals() : apiAll('/sites/'+siteId+'/lists/'+sys.apr+'/items?$expand=fields'),
+        apiAll('/sites/'+siteId+'/lists/'+sys.req+'/items?$expand=fields'),
       ]);
       const reqMap = {};
       reqData.value.forEach(r => { const rf=r.fields; if(!rf.RequestDate && rf.SubmittedDate) rf.RequestDate=rf.SubmittedDate; reqMap[String(r.id)] = rf; });
@@ -2503,8 +2490,8 @@ async function loadMyRequestsPage(force=false) {
   await Promise.all(_sysList.map(async sys => {
     try {
       const [aprData, reqData] = await Promise.all([
-        sys.key==='ACC' ? fetchAllAccApprovals() : apiAll('/sites/'+siteId+'/lists/'+sys.apr+'/items?$expand=fields($select='+_aprFields+')'),
-        apiAll('/sites/'+siteId+'/lists/'+sys.req+'/items?$expand=fields($select='+_reqFields+')'),
+        sys.key==='ACC' ? fetchAllAccApprovals() : apiAll('/sites/'+siteId+'/lists/'+sys.apr+'/items?$expand=fields'),
+        apiAll('/sites/'+siteId+'/lists/'+sys.req+'/items?$expand=fields'),
       ]);
       const aprMap = {};
       aprData.value.forEach(i => {
@@ -2732,8 +2719,8 @@ async function loadAdminPage(force=false) {
   await Promise.all(_sysList.map(async sys => {
     try {
       const [aprData, reqData] = await Promise.all([
-        sys.key==='ACC' ? fetchAllAccApprovals() : apiAll('/sites/'+siteId+'/lists/'+sys.apr+'/items?$expand=fields($select='+_aprFields+')'),
-        apiAll('/sites/'+siteId+'/lists/'+sys.req+'/items?$expand=fields($select='+_reqFields+')'),
+        sys.key==='ACC' ? fetchAllAccApprovals() : apiAll('/sites/'+siteId+'/lists/'+sys.apr+'/items?$expand=fields'),
+        apiAll('/sites/'+siteId+'/lists/'+sys.req+'/items?$expand=fields'),
       ]);
       const aprMap = {};
       aprData.value.forEach(i => {
