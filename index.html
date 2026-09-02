@@ -1134,13 +1134,33 @@ async function loadAll(force=false){
   _allData={};
   await Promise.all(visibleSystems().map(async sys=>{
     try{
+      // ── $select 시험 적용 (GW 만) ───────────────────────────────────
+      // 목록을 열 때마다 각 시스템의 전 컬럼(20~40개)과 Created/Modified/Author
+      // 같은 시스템 열까지 받는다. 화면이 쓰는 것은 아래가 전부다.
+      //
+      // 09-03 에 13개 전부에 한 번에 넣었다가 전 시스템 조회가 실패해 되돌렸다
+      // (6801626 → 98e7516). 원인이 확정되지 않았으므로 이번에는 GW 한 곳에만
+      // 넣어 확인한다. 실패해도 GW 행만 빠지고 나머지 12개는 그대로 나온다.
+      //
+      // 필드는 GW_Requests / GW_Approvals 의 실제 열(CSV 로 확인)만 적었다.
+      // 지난번에는 13개 시스템의 후보를 한데 모아 적었는데, 그중 그 목록에
+      // 없는 이름이 섞였을 가능성이 가장 크다.
+      const _sel = (sys.key==='GW')
+        ? { req: '?$expand=fields($select=Title,Status,RequesterEmail,RequestDate,RequestTitle)',
+            apr: '?$expand=fields($select=RequestID,Status,ApprovalOrder,ApproverEmail,ApproverName,ApproverRole,ApprovalDate)' }
+        : { req: '?$expand=fields', apr: '?$expand=fields' };
       const [apprData,reqData]=await Promise.all([
-        sys.key==='ACC' ? fetchAllAccApprovals() : apiAll('/sites/'+siteId+'/lists/'+sys.apr+'/items?$expand=fields'),
-        apiAll('/sites/'+siteId+'/lists/'+sys.req+'/items?$expand=fields'),
+        sys.key==='ACC' ? fetchAllAccApprovals() : apiAll('/sites/'+siteId+'/lists/'+sys.apr+'/items'+_sel.apr),
+        apiAll('/sites/'+siteId+'/lists/'+sys.req+'/items'+_sel.req),
       ]);
       const reqMap={};reqData.value.forEach(r=>{const rf=r.fields; if(!rf.RequestDate && rf.SubmittedDate) rf.RequestDate=rf.SubmittedDate; reqMap[r.id]=rf;});
       _allData[sys.key]={apprItems:apprData.value,reqMap};
-    }catch(e){_allData[sys.key]={apprItems:[],reqMap:{},error:e.message};}
+    }catch(e){
+      // 어느 시스템이 왜 실패했는지 남긴다. Graph 가 400 을 줄 때 어떤 열이
+      // 문제인지 메시지에 적어 주므로, 이것이 원인 확정의 근거가 된다.
+      console.error('[loadAll 실패]', sys.key, e && e.message);
+      _allData[sys.key]={apprItems:[],reqMap:{},error:e.message};
+    }
   }));
   _allDataTime = Date.now();
   loading(false);
