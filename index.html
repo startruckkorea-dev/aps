@@ -251,6 +251,21 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#f5f7f
    막대 안쪽 채움은 실제 진행률(done/total)이고, 그 위를 지나는 빛줄기는
    진행률이 한동안 그대로여도 아직 받고 있다는 것을 보여 준다. */
 .lp{display:flex;align-items:center;justify-content:center;gap:10px;padding:12px 0;color:#64748b;font-size:.75rem}
+/* 표 위에 두는 진행 띠. 표 아래(페이지 버튼 옆)에 있으면 눈에 안 띄어 다 받은 줄 알고 읽는다. */
+.lp-top{display:none;align-items:center;gap:12px;margin:0 0 12px;padding:9px 14px;border-radius:8px;
+  background:#eff6ff;border:1px solid #bfdbfe;color:#1e40af;font-size:.76rem;font-weight:600;
+  transition:background .3s,border-color .3s,color .3s,opacity .4s}
+.lp-top.on{display:flex}
+.lp-top .lp-bar{flex:1;width:auto;height:5px;background:#dbeafe}
+.lp-top .lp-pct{min-width:38px;text-align:right;font-variant-numeric:tabular-nums;color:#3b82f6;font-weight:700}
+.lp-top .lp-text{white-space:nowrap}
+.lp-top.done{background:#f0fdf4;border-color:#bbf7d0;color:#15803d}
+.lp-top.done .lp-bar{background:#dcfce7}
+.lp-top.done .lp-bar>span{background:#16a34a}
+.lp-top.done .lp-bar::after{animation:none}
+.lp-top.done .lp-dots i{background:#16a34a;animation:none}
+.lp-top.done .lp-pct{color:#16a34a}
+.lp-top.fade{opacity:0}
 .lp-dots{display:inline-flex;gap:4px}
 .lp-dots i{display:block;width:6px;height:6px;border-radius:50%;background:#3b82f6;animation:lpDot 1s ease-in-out infinite}
 .lp-dots i:nth-child(2){animation-delay:.15s}
@@ -460,6 +475,7 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#f5f7f
       <button onclick="exportMyRequestsExcel()" style="background:#1d6f42;color:#fff;display:inline-flex;align-items:center;gap:6px;border:none;border-radius:6px;padding:6px 14px;font-size:.8rem;font-weight:600;cursor:pointer;font-family:inherit;margin-left:8px;line-height:1;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Excel</button>
       <button onclick="switchApsTab('main')" style="background:#fff;color:#374151;border:1px solid #d1d5db;border-radius:6px;padding:5px 13px;font-size:.8rem;cursor:pointer;font-family:inherit;margin-left:8px;box-shadow:0 1px 2px rgba(0,0,0,.06);">← 결재함</button>
     </div>
+    <div id="lp-top-myrequests-table-wrap" class="lp-top"></div>
     <div class="filter-row" style="margin:6px 0 12px;">
       <select id="myr-filter-sys" class="filter-select" onchange="if(guardAccFilter(this))renderMyRequestsTable(true)">
         <option value="">전체 시스템</option>
@@ -515,6 +531,7 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#f5f7f
       <button onclick="switchApsTab('admin')"
         style="padding:5px 12px;border:none;border-radius:6px;background:#0078d4;color:#fff;font-size:.75rem;font-weight:600;cursor:pointer;font-family:inherit">← 전체 결재 관리</button>
     </div>
+    <div id="lp-top-myapproved-table-wrap" class="lp-top"></div>
     <div class="filter-row" style="margin:6px 0 12px;">
       <select id="mya-filter-sys" class="filter-select" onchange="if(guardAccFilter(this))renderMyApprovedTable(true)">
         <option value="">전체 시스템</option>
@@ -560,6 +577,7 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#f5f7f
       <button onclick="generateExecReport()" style="background:#0078d4;color:#fff;display:inline-flex;align-items:center;gap:6px;border:none;border-radius:6px;padding:6px 14px;font-size:.8rem;font-weight:600;cursor:pointer;font-family:inherit;margin-left:8px;line-height:1;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="14" y2="17"/></svg>보고서 출력</button>
       <button onclick="switchApsTab('main')" style="background:#fff;color:#374151;border:1px solid #d1d5db;border-radius:6px;padding:6px 14px;font-size:.8rem;cursor:pointer;font-family:inherit;margin-left:8px;box-shadow:0 1px 2px rgba(0,0,0,.06);">← 결재함</button>
     </div>
+    <div id="lp-top-admin-table-wrap" class="lp-top"></div>
     <div class="filter-row" style="margin:8px 0 12px;">
       <select id="admin-filter-sys" class="filter-select" onchange="if(guardAccFilter(this))renderAdminTable(true)">
         <option value="">전체 시스템</option>
@@ -2244,28 +2262,44 @@ function fmtOccurredAt(v){
   return m ? m[1] + ' ' + m[2] : s;
 }
 
+// 진행 상황은 표 위의 띠(lp-top-<wrapId>) 하나에만 그린다.
+// 예전에는 표 아래·페이지 버튼 옆에 있어 화면을 내려야 보였고, 위쪽 표만 보고
+// 다 받은 줄 아는 일이 생겼다(09-07). 띠는 필터 줄 바로 위라 표를 읽기 전에 눈에 들어온다.
+// done >= total 이면 초록 「완료」 로 바꿨다가 잠시 뒤 사라진다.
+const _lpTimers = {};
 function loadProgressNote(wrapId, done, total, empty) {
+  const strip = document.getElementById('lp-top-' + wrapId);
   const w = document.getElementById(wrapId);
-  if (!w) return;
+  if (!strip) return;
+  clearTimeout(_lpTimers[wrapId]);
   const pct = total ? Math.round((done / total) * 100) : 0;
-  const bar = document.createElement('div');
-  bar.className = 'lp';
-  bar.innerHTML = '<span class="lp-dots"><i></i><i></i><i></i></span>'
-                + '<span class="lp-text"></span>'
-                + '<span class="lp-bar"><span style="width:' + pct + '%"></span></span>';
+  const finished = total > 0 && done >= total;
+  if (!strip.firstChild) {
+    strip.innerHTML = '<span class="lp-dots"><i></i><i></i><i></i></span>'
+                    + '<span class="lp-text"></span>'
+                    + '<span class="lp-bar"><span></span></span>'
+                    + '<span class="lp-pct"></span>';
+  }
+  strip.className = 'lp-top on' + (finished ? ' done' : '');
+  strip.querySelector('.lp-bar>span').style.width = pct + '%';
+  strip.querySelector('.lp-pct').textContent = pct + '%';
   // 건수는 사람이 넣는 값이 아니지만, 문구를 textContent 로 넣어 두면
   // 나중에 여기에 시스템 이름 같은 값을 붙일 때도 이스케이프를 신경 쓰지 않아도 된다.
-  bar.querySelector('.lp-text').textContent = '불러오는 중… ' + done + '/' + total + ' 시스템';
-  if (empty) {
-    // 아직 한 건도 못 받았을 때. 「기록이 없습니다」 가 뜨면 다 받은 줄로 오해한다.
-    w.innerHTML = '';
-    bar.style.padding = '40px 0';
-    w.appendChild(bar);
+  strip.querySelector('.lp-text').textContent = finished
+    ? '불러오기 완료 · ' + total + '개 시스템'
+    : '불러오는 중… ' + done + '/' + total + ' 시스템';
+  if (finished) {
+    // 1.6초 뒤 흐려지고, 그 뒤 자리를 비운다. 새 로딩이 시작되면 위에서 타이머를 지운다.
+    _lpTimers[wrapId] = setTimeout(() => {
+      strip.classList.add('fade');
+      _lpTimers[wrapId] = setTimeout(() => { strip.className = 'lp-top'; }, 450);
+    }, 1600);
     return;
   }
-  // 표 바로 아래, 페이지 버튼 위에 둔다. 맨 끝에 붙이면 페이지 버튼 아래로
-  // 밀려 표와 떨어져 보인다. (첫 자식이 표 상자, 둘째가 있으면 페이지 버튼)
-  w.insertBefore(bar, w.children[1] || null);
+  if (empty && w) {
+    // 아직 한 건도 못 받았을 때. 「기록이 없습니다」 가 뜨면 다 받은 줄로 오해한다.
+    w.innerHTML = '<div style="padding:40px;text-align:center;color:#94a3b8;font-size:.8rem">첫 시스템의 결과를 기다리는 중…</div>';
+  }
 }
 
 async function loadMyApprovedPage(force=false) {
@@ -2275,6 +2309,7 @@ async function loadMyApprovedPage(force=false) {
   if (!force && _myApvLoadedFor === _who && _myApprovedDataTime && (Date.now()-_myApprovedDataTime) < CACHE_TTL_MS) { renderMyApprovedTable(true); return; }
   const wrap = document.getElementById('myapproved-table-wrap');
   wrap.innerHTML = '<div style="padding:40px;text-align:center;color:#94a3b8;">결재 기록 불러오는 중...</div>';
+  loadProgressNote('myapproved-table-wrap', 0, visibleSystems().length, false);
   const _seq = ++_myApvLoadSeq;
   const _rows = [];
   const _failed = [];   // 불러오지 못한 시스템                    // 전역이 아니라 이번 호출 전용 배열에 모은다
@@ -2297,7 +2332,7 @@ async function loadMyApprovedPage(force=false) {
     // 첫 그림에서만 1페이지로 돌린다. 그 뒤에는 보고 있던 페이지를 유지한다.
     renderMyApprovedTable(_firstPaint);
     _firstPaint = false;
-    if (_done < _total) loadProgressNote('myapproved-table-wrap', _done, _total, !_myApprovedData.length);
+    loadProgressNote('myapproved-table-wrap', _done, _total, !_myApprovedData.length);
   };
 
   await Promise.all(_sysList.map(async sys => {
@@ -2588,6 +2623,7 @@ async function loadMyRequestsPage(force=false) {
   if (!force && _myRequestsDataTime && (Date.now()-_myRequestsDataTime) < CACHE_TTL_MS) { renderMyRequestsTable(true); return; }
   const wrap = document.getElementById('myrequests-table-wrap');
   wrap.innerHTML = '<div style="padding:40px;text-align:center;color:#94a3b8;">신청 기록 불러오는 중...</div>';
+  loadProgressNote('myrequests-table-wrap', 0, visibleSystems().length, false);
   const _seq = ++_myReqLoadSeq;
   const _rows = [];
   const _failed = [];   // 불러오지 못한 시스템
@@ -2610,7 +2646,7 @@ async function loadMyRequestsPage(force=false) {
     // 첫 그림에서만 1페이지로 돌린다. 그 뒤에는 보고 있던 페이지를 유지한다.
     renderMyRequestsTable(_firstPaint);
     _firstPaint = false;
-    if (_done < _total) loadProgressNote('myrequests-table-wrap', _done, _total, !_myRequestsData.length);
+    loadProgressNote('myrequests-table-wrap', _done, _total, !_myRequestsData.length);
   };
 
   await Promise.all(_sysList.map(async sys => {
@@ -2818,6 +2854,7 @@ async function loadAdminPage(force=false) {
     return;
   }
   document.getElementById('admin-table-wrap').innerHTML = '<div style="padding:40px;text-align:center;color:#94a3b8;">전체 데이터 로딩 중...</div>';
+  loadProgressNote('admin-table-wrap', 0, visibleSystems().length, false);
   const _seq = ++_adminLoadSeq;
   const _rows = [];                    // 전역이 아니라 이번 호출 전용 배열에 모은다
   const _failed = [];                  // 불러오지 못한 시스템 (아래에서 화면에 알린다)
@@ -2839,7 +2876,7 @@ async function loadAdminPage(force=false) {
     if (_c) _c.textContent = '총 ' + _adminData.length + '건';
     renderAdminTable(_firstPaint);
     _firstPaint = false;
-    if (_done < _total) loadProgressNote('admin-table-wrap', _done, _total, !_adminData.length);
+    loadProgressNote('admin-table-wrap', _done, _total, !_adminData.length);
   };
 
   await Promise.all(_sysList.map(async sys => {
