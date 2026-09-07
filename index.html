@@ -400,7 +400,7 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#f5f7f
       <button id="my-requests-btn" onclick="switchApsTab('myrequests')" title="My Requests Record" style="display:none;align-items:center;gap:5px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);color:#fff;border-radius:6px;padding:6px 9px;font-size:.82rem;cursor:pointer;font-family:inherit;transition:background .15s" onmouseover="this.style.background='rgba(255,255,255,.22)'" onmouseout="this.style.background='rgba(255,255,255,.12)'">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg>
       </button>
-      <button id="my-record-btn" onclick="switchApsTab('myapproved')" title="My Approvals Record" style="display:none;align-items:center;gap:5px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);color:#fff;border-radius:6px;padding:6px 9px;font-size:.82rem;cursor:pointer;font-family:inherit;transition:background .15s" onmouseover="this.style.background='rgba(255,255,255,.22)'" onmouseout="this.style.background='rgba(255,255,255,.12)'">
+      <button id="my-record-btn" onclick="apsClearApvTarget();switchApsTab('myapproved')" title="My Approvals Record" style="display:none;align-items:center;gap:5px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);color:#fff;border-radius:6px;padding:6px 9px;font-size:.82rem;cursor:pointer;font-family:inherit;transition:background .15s" onmouseover="this.style.background='rgba(255,255,255,.22)'" onmouseout="this.style.background='rgba(255,255,255,.12)'">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
       </button>
       <button id="aps-admin-btn" onclick="switchApsTab('admin')" title="APS 전체 결재 관리" style="display:none;align-items:center;justify-content:center;background:#0078d4;color:#fff;border:none;border-radius:6px;padding:6px 10px;font-size:.8rem;font-weight:600;cursor:pointer;font-family:inherit;margin-right:8px;">
@@ -504,6 +504,17 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#f5f7f
       <button onclick="exportMyApprovedExcel()" style="background:#1d6f42;color:#fff;display:inline-flex;align-items:center;gap:6px;border:none;border-radius:6px;padding:6px 14px;font-size:.8rem;font-weight:600;cursor:pointer;font-family:inherit;margin-left:8px;line-height:1;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Excel</button>
       <button onclick="switchApsTab('main')" style="background:#fff;color:#374151;border:1px solid #d1d5db;border-radius:6px;padding:5px 13px;font-size:.8rem;cursor:pointer;font-family:inherit;margin-left:8px;box-shadow:0 1px 2px rgba(0,0,0,.06);">← 결재함</button>
     </div>
+    <!-- 관리자가 다른 사람의 기록을 볼 때만 나타난다 (apsViewApproverHistory) -->
+    <div id="mya-target-banner" style="display:none;align-items:center;flex-wrap:wrap;gap:10px;margin:6px 0 4px;padding:9px 14px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px">
+      <span style="font-size:.78rem;font-weight:700;color:#1e40af">관리자 조회</span>
+      <span id="mya-target-who" style="font-size:.78rem;color:#1e3a8a"></span>
+      <span style="font-size:.7rem;color:#60a5fa">이 사람이 승인·반려한 결재행입니다. 결재 처리는 할 수 없고 보기만 됩니다.</span>
+      <span style="flex:1"></span>
+      <button onclick="apsClearApvTarget();loadMyApprovedPage()"
+        style="padding:5px 12px;border:1px solid #d1d5db;border-radius:6px;background:#fff;color:#374151;font-size:.75rem;cursor:pointer;font-family:inherit">내 기록으로</button>
+      <button onclick="switchApsTab('admin')"
+        style="padding:5px 12px;border:none;border-radius:6px;background:#0078d4;color:#fff;font-size:.75rem;font-weight:600;cursor:pointer;font-family:inherit">← 전체 결재 관리</button>
+    </div>
     <div class="filter-row" style="margin:6px 0 12px;">
       <select id="mya-filter-sys" class="filter-select" onchange="if(guardAccFilter(this))renderMyApprovedTable(true)">
         <option value="">전체 시스템</option>
@@ -536,6 +547,11 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#f5f7f
       <span class="topbar-title"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:4px"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>APS 전체 결재 관리</span>
       <span class="topbar-cnt" id="admin-total-count"></span>
       <div class="topbar-space"></div>
+      <button id="apr-history-btn" onclick="apsToggleApvHistoryBar()" title="특정 결재자가 승인·반려한 기록을 My Approvals Record 형식으로 봅니다"
+        style="background:#fff;color:#1e40af;display:inline-flex;align-items:center;gap:6px;border:1px solid #93c5fd;border-radius:6px;padding:6px 14px;font-size:.8rem;font-weight:600;cursor:pointer;font-family:inherit;margin-left:8px;line-height:1;">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        결재자 이력 조회
+      </button>
       <button class="btn-refresh" onclick="loadAdminPage(true)">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
         새로고침
@@ -578,6 +594,19 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#f5f7f
         oninput="renderAdminTable(true)" />
       <button onclick="pickAllMatched()" title="검색에 걸린 결재행을 모두 선택합니다"
         style="padding:6px 12px;border:1px solid #cbd5e1;border-radius:6px;background:#fff;color:#475569;font-size:.75rem;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap">검색결과 전체선택</button>
+    </div>
+
+    <!-- 결재자 이력 조회 — 「결재자 이력 조회」 버튼을 눌렀을 때만 나타난다 -->
+    <div id="apr-history-bar" style="display:none;align-items:center;flex-wrap:wrap;gap:10px;margin:0 0 12px;padding:10px 14px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px">
+      <span style="font-size:.78rem;font-weight:700;color:#1e40af">결재자 이력 조회</span>
+      <input id="apr-hist-email" list="apr-emp-list" placeholder="이름 또는 이메일" onfocus="loadApsEmployees().then(fillEmpList).catch(e=>console.warn(e.message))"
+        onkeydown="if(event.key==='Enter'){event.preventDefault();apsViewApproverHistory();}"
+        style="min-width:260px;padding:6px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:.75rem;font-family:inherit" />
+      <button onclick="apsViewApproverHistory()"
+        style="padding:6px 16px;border:none;border-radius:6px;background:#0078d4;color:#fff;font-size:.75rem;font-weight:700;cursor:pointer;font-family:inherit">조회</button>
+      <button onclick="apsToggleApvHistoryBar(false)"
+        style="padding:6px 12px;border:1px solid #d1d5db;border-radius:6px;background:#fff;color:#64748b;font-size:.75rem;cursor:pointer;font-family:inherit">닫기</button>
+      <span style="font-size:.7rem;color:#3b82f6">그 사람이 승인·반려한 결재행을 My Approvals Record 와 같은 표로 보여줍니다. 읽기 전용이며 조회 사실은 로그에 남습니다.</span>
     </div>
 
     <!-- 결재자 교체 — 선택한 결재행이 있을 때만 나타난다 -->
@@ -2147,6 +2176,10 @@ function switchApsTab(tab) {
 let _myApprovedData = [];
 let _myApprovedPage = 1;
 const MYA_PAGE_SIZE = 15;
+// 관리자가 「결재자 이력 조회」로 다른 사람의 기록을 볼 때 채워진다. null 이면 본인 기록.
+// 표·Excel·캐시가 모두 이 값을 기준으로 「누구의 기록인지」를 판단한다.
+let _myApvTarget = null;      // {email, name}
+let _myApvLoadedFor = '';     // _myApprovedData 가 누구 것인지(이메일). 대상이 바뀌면 캐시를 쓰지 않는다.
 
 // 요청의 「무엇을 요청했는가」 한 줄. 시스템마다 필드 이름이 달라 순서대로 찾는다.
 //
@@ -2236,13 +2269,16 @@ function loadProgressNote(wrapId, done, total, empty) {
 }
 
 async function loadMyApprovedPage(force=false) {
-  if (!force && _myApprovedDataTime && (Date.now()-_myApprovedDataTime) < CACHE_TTL_MS) { renderMyApprovedTable(true); return; }
+  // 본인 기록과 관리자 조회 기록이 같은 배열을 쓰므로, 대상이 바뀌었으면 90초 캐시라도 다시 읽는다.
+  const _who = (_myApvTarget ? _myApvTarget.email : (user.email || user.username || '')).toLowerCase();
+  apsSetApvBanner();
+  if (!force && _myApvLoadedFor === _who && _myApprovedDataTime && (Date.now()-_myApprovedDataTime) < CACHE_TTL_MS) { renderMyApprovedTable(true); return; }
   const wrap = document.getElementById('myapproved-table-wrap');
   wrap.innerHTML = '<div style="padding:40px;text-align:center;color:#94a3b8;">결재 기록 불러오는 중...</div>';
   const _seq = ++_myApvLoadSeq;
   const _rows = [];
   const _failed = [];   // 불러오지 못한 시스템                    // 전역이 아니라 이번 호출 전용 배열에 모은다
-  const myEmail = (user.email || user.username || '').toLowerCase();
+  const myEmail = _who;   // 본인 또는 관리자 조회 대상
 
   const _sysList = visibleSystems();
   const _total = _sysList.length;
@@ -2312,8 +2348,8 @@ async function loadMyApprovedPage(force=false) {
             purpose:     purposeOf(rf),
             requester:   rf.RequesterEmail || rf.RequestorEmail || '',
             requestDate: rf.RequestDate || '',
-            approver:    f.ApproverName || (user.name||'').split(' ')[0] || '-',
-            approverEmail: f.ApproverEmail || user.email || '',
+            approver:    f.ApproverName || (_myApvTarget ? (_myApvTarget.name||'') : (user.name||'').split(' ')[0]) || '-',
+            approverEmail: f.ApproverEmail || myEmail,
             myStatus:    s,
             aprOrder:    f.ApprovalOrder || '',
             totalAprs:   totalMap[String(f.RequestID)] || '',
@@ -2336,6 +2372,7 @@ async function loadMyApprovedPage(force=false) {
   // 일부라도 실패했으면 캐시에 남기지 않는다. 남기면 90초 동안 모자란 데이터를
   // 그대로 다시 보여 준다.
   _myApprovedDataTime = _failed.length ? 0 : Date.now();
+  _myApvLoadedFor = _who;
   if (_failed.length) {
     alert('아래 시스템을 불러오지 못했습니다. 표시된 건수가 전체가 아닙니다.\n\n'
       + _failed.map(f => '· ' + f).join('\n')
@@ -2367,7 +2404,7 @@ function renderMyApprovedTable(resetPage) {
 
   const wrap = document.getElementById('myapproved-table-wrap');
   if (!rows.length) {
-    wrap.innerHTML = '<div style="padding:40px;text-align:center;color:#94a3b8;">처리한 결재 기록이 없습니다.</div>';
+    wrap.innerHTML = '<div style="padding:40px;text-align:center;color:#94a3b8;">' + (_myApvTarget ? '이 결재자가 처리한 결재 기록이 없습니다.' : '처리한 결재 기록이 없습니다.') + '</div>';
     return;
   }
 
@@ -2434,9 +2471,9 @@ function renderMyApprovedTable(resetPage) {
             <th style="padding:10px 10px;text-align:left;font-weight:600">신청자</th>
             <th style="padding:10px 10px;text-align:left;font-weight:600">처리자</th>
             <th style="padding:10px 10px;text-align:left;font-weight:600">결재차수</th>
-            <th style="padding:10px 10px;text-align:left;font-weight:600">내 결재 결과</th>
+            <th style="padding:10px 10px;text-align:left;font-weight:600">${_myApvTarget ? '결재 결과' : '내 결재 결과'}</th>
             <th style="padding:10px 10px;text-align:left;font-weight:600">신청일시</th>
-            <th style="padding:10px 10px;text-align:left;font-weight:600">내 처리일시</th>
+            <th style="padding:10px 10px;text-align:left;font-weight:600">${_myApvTarget ? '처리일시' : '내 처리일시'}</th>
             <th style="padding:10px 10px;text-align:left;font-weight:600">티켓 현재 상태</th>
           </tr>
         </thead>
@@ -2455,19 +2492,90 @@ function exportMyApprovedExcel() {
     (!fStatus || r.myStatus === fStatus) &&
     (!fSearch || r.title.toLowerCase().includes(fSearch) || (r.purpose||'').toLowerCase().includes(fSearch) || r.requester.toLowerCase().includes(fSearch))
   );
-  logAction('APS', 'Excel 내보내기', { 화면: 'My Approvals Record', 건수: rows.length, 필터: { 시스템: fSys||'전체', 결과: fStatus||'전체', 검색어: fSearch||'' } });
+  logAction('APS', 'Excel 내보내기', { 화면: 'My Approvals Record', 대상: _myApvTarget ? _myApvTarget.email : '본인', 건수: rows.length, 필터: { 시스템: fSys||'전체', 결과: fStatus||'전체', 검색어: fSearch||'' } });
+  const _lbl = _myApvTarget ? '' : '내 ';
   const ws = XLSX.utils.json_to_sheet(rows.map((r,i) => ({
     '번호': rows.length - i,
     '결재시스템': r.sysLabel, '제목': r.title, '요청 제목': r.purpose || '', '신청자': r.requester,
     '처리자': r.approver, '처리자 이메일': r.approverEmail,
     '결재차수': r.aprOrder + (r.totalAprs ? '/'+r.totalAprs : '') + '차',
-    '내 결재 결과': r.myStatus,
-    '신청일시': fmt(r.requestDate), '내 처리일시': fmt(r.processedAt),
+    [_lbl+'결재 결과']: r.myStatus,
+    '신청일시': fmt(r.requestDate), [_lbl+'처리일시']: fmt(r.processedAt),
     '티켓 현재 상태': r.ticketStatus,
   })));
   const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'My Approvals Record');
-  XLSX.writeFile(wb, 'My_Approvals_Record_'+new Date(new Date().getTime()+9*3600*1000).toISOString().slice(0,10)+'.xlsx');
+  XLSX.utils.book_append_sheet(wb, ws, _myApvTarget ? 'Approvals Record' : 'My Approvals Record');
+  const _fnWho = _myApvTarget ? 'Approvals_Record_' + _myApvTarget.email.split('@')[0].replace(/[^\w.-]/g,'_') + '_' : 'My_Approvals_Record_';
+  XLSX.writeFile(wb, _fnWho+new Date(new Date().getTime()+9*3600*1000).toISOString().slice(0,10)+'.xlsx');
+}
+
+// ── 관리자: 결재자 이력 조회 ──────────────────────────────────────────
+// 「내 결재 기록」 화면과 로더를 그대로 쓰고, 대상 이메일만 바꿔 넣는다.
+// 별도 표를 만들지 않는 이유: 같은 화면을 두 벌 두면 한쪽만 고쳐지는 일이 생긴다
+// (ACC Voucher 관리자 탭의 RD 승인 제외 박스가 그렇게 빠졌다).
+// 읽기만 한다. 결재 처리 버튼은 이 표에 원래 없고, 행 클릭은 상세 보기만 연다.
+
+function apsToggleApvHistoryBar(show) {
+  const bar = document.getElementById('apr-history-bar');
+  if (!bar) return;
+  const on = show === undefined ? bar.style.display === 'none' : !!show;
+  bar.style.display = on ? 'flex' : 'none';
+  if (on) {
+    const inp = document.getElementById('apr-hist-email');
+    // 결재자 검색란에 적어 둔 것이 있으면 그대로 가져온다 — 다시 치지 않아도 된다.
+    const kw = ((document.getElementById('admin-search-approver')||{}).value || '').trim();
+    if (inp && !inp.value && kw) inp.value = kw;
+    if (inp) inp.focus();
+  }
+}
+
+// 입력값을 직원 명부와 맞춰 {email, name} 으로 확정한다.
+// 이메일이면 그대로, 이름이면 명부에서 한 명으로 좁혀질 때만 받는다.
+// 명부에 없는 이메일도 허용한다 — 퇴사자·외부 계정의 옛 결재 기록을 봐야 할 때가 있다.
+function apsResolveApvTarget(raw, emps) {
+  const q = (raw||'').trim().toLowerCase();
+  if (!q) return { err: '이름 또는 이메일을 입력해 주세요.' };
+  const list = emps || [];
+  const byEmail = list.find(e => e.email === q);
+  if (byEmail) return { email: byEmail.email, name: byEmail.name || '' };
+  if (q.includes('@')) return { email: q, name: '' };
+  const byName = list.filter(e => (e.name||'').toLowerCase().includes(q));
+  if (byName.length === 1) return { email: byName[0].email, name: byName[0].name || '' };
+  if (byName.length > 1) return { err: '「' + raw.trim() + '」 에 해당하는 사람이 ' + byName.length + '명입니다.\n목록에서 골라 주세요.\n\n' + byName.slice(0,8).map(e => '· ' + e.name + ' <' + e.email + '>').join('\n') + (byName.length > 8 ? '\n…' : '') };
+  return { err: '직원 명부에서 찾지 못했습니다.\n이메일 전체를 입력하면 명부에 없어도 조회합니다.' };
+}
+
+async function apsViewApproverHistory() {
+  // 버튼 숨김만으로는 콘솔 호출을 막지 못한다. 다른 사람의 기록을 여는 일이므로 실행 직전에 다시 확인한다.
+  if (!_isApsAdmin) { alert('권한이 없습니다.'); return; }
+  const inp = document.getElementById('apr-hist-email');
+  let emps = _apsEmployees;
+  if (!emps) { try { emps = await loadApsEmployees(); } catch(e) { console.warn('[APS] 직원 명부 없이 조회:', e.message); emps = []; } }
+  const t = apsResolveApvTarget(inp ? inp.value : '', emps);
+  if (t.err) { alert(t.err); return; }
+  _myApvTarget = { email: t.email, name: t.name };
+  _myApprovedPage = 1;
+  // 누가 누구의 기록을 봤는지 남긴다. 결재 처리와 같은 로그(SharePoint) 에 쌓인다.
+  logAction('APS', '결재자 이력 조회', { 대상: t.email, 이름: t.name || '', 조회자: (user.email||user.username||'') });
+  switchApsTab('myapproved');
+}
+
+function apsClearApvTarget() {
+  if (_myApvTarget) { _myApvTarget = null; _myApprovedPage = 1; }
+  apsSetApvBanner();
+}
+
+// 화면 위 「관리자 조회」 띠. 대상이 있을 때만 보인다.
+function apsSetApvBanner() {
+  const b = document.getElementById('mya-target-banner');
+  const w = document.getElementById('mya-target-who');
+  if (!b) return;
+  if (_myApvTarget) {
+    if (w) w.textContent = (_myApvTarget.name ? _myApvTarget.name + ' ' : '') + '<' + _myApvTarget.email + '>';
+    b.style.display = 'flex';
+  } else {
+    b.style.display = 'none';
+  }
 }
 
 // ── 내가 신청한 건 기록 (My Requests Record) ──
