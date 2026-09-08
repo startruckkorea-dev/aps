@@ -1489,14 +1489,14 @@ function renderApvPopup(){
     var oldTag=isOld?'<span class="apv-old-label">7일 초과</span>':'';
     var btnHtml=isSCC||isBP||isFAAccountant
       ?('<a href="'+sys.url+'" target="_blank" style="font-size:.72rem;color:#0078d4;text-decoration:none;border:1px solid #bfdbfe;border-radius:4px;padding:3px 10px;white-space:nowrap">'+(sysKey==='FA'?'FA에서 결재 →':sysKey==='BP'?'BP에서 결재 →':'SCC에서 결재 →')+'</a>')
-      :('<button class="btn-approve" onclick="closeApvPopup();quickConfirm('+apprId+',\'승인\','+reqId+',\''+sysKey+'\',\''+role.replace(/'/g,'')+'\','+apprOrder+')">승인</button>'
-        +'<button class="btn-reject" onclick="closeApvPopup();quickConfirm('+apprId+',\'반려\','+reqId+',\''+sysKey+'\',\''+role.replace(/'/g,'')+'\','+apprOrder+')">반려</button>');
+      :('<button class="btn-approve" onclick="closeApvPopup();quickConfirm('+apprId+',\'승인\','+reqId+',\''+sysKey+'\',\''+escHtml(role.replace(/'/g,''))+'\','+apprOrder+')">승인</button>'
+        +'<button class="btn-reject" onclick="closeApvPopup();quickConfirm('+apprId+',\'반려\','+reqId+',\''+sysKey+'\',\''+escHtml(role.replace(/'/g,''))+'\','+apprOrder+')">반려</button>');
     html+='<div class="'+itemCls+'" onclick="closeApvPopup();showDetail(\''+sysKey+'\',' +reqId+')" style="cursor:pointer">'
       +'<div class="apv-item-top">'
       +'<span class="apv-item-sys">'+sys.name+'</span>'
       +'<span class="apv-item-id">#'+reqId+'</span>'
-      +(role?'<span class="apv-item-role">'+role+'</span>':'')
-      +'<span class="apv-item-summary" title="'+sumText+'">'+sumText+'</span>'
+      +(role?'<span class="apv-item-role">'+escHtml(role)+'</span>':'')
+      +'<span class="apv-item-summary" title="'+escHtml(sumText)+'">'+escHtml(sumText)+'</span>'
       +'</div>'
       +'<div style="display:flex;align-items:center;justify-content:space-between">'
       +'<span class="apv-item-meta">'+email+' · '+dateStr+'</span>'
@@ -1604,8 +1604,8 @@ function renderAll(){
       rows+=`<div class="item-row" onclick="showDetail('${sys.key}',${f.RequestID})">
         <span class="item-no">·</span>
         <div class="item-body">
-          <div class="item-summary">${sumText}</div>
-          <div class="item-meta">${email} · ${dateStr}</div>
+          <div class="item-summary">${escHtml(sumText)}</div>
+          <div class="item-meta">${escHtml(email)} · ${dateStr}</div>
         </div>
         <div class="item-right" onclick="event.stopPropagation()">
           ${stBadge(f.Status)}
@@ -1613,7 +1613,7 @@ function renderAll(){
             ?(()=>{
               const _blockSys=sys.key==='FA'||sys.key==='BP'||sys.key==='SCC';
               const _label=sys.key==='FA'?'FA에서 결재 →':sys.key==='BP'?'BP에서 결재 →':'SCC에서 결재 →';
-              return _blockSys?`<a href="${sys.url}" target="_blank" style="font-size:.72rem;color:#0078d4;text-decoration:none;border:1px solid #bfdbfe;border-radius:4px;padding:3px 10px;white-space:nowrap">${_label}</a>`:`<button class="btn-approve" onclick="quickConfirm(${item.id},'승인',${f.RequestID},'${sys.key}','${(f.ApproverRole||'').replace(/'/g,'')}',${f.ApprovalOrder||0})">승인</button><button class="btn-reject" onclick="quickConfirm(${item.id},'반려',${f.RequestID},'${sys.key}','${(f.ApproverRole||'').replace(/'/g,'')}',${f.ApprovalOrder||0})">반려</button>`;
+              return _blockSys?`<a href="${sys.url}" target="_blank" style="font-size:.72rem;color:#0078d4;text-decoration:none;border:1px solid #bfdbfe;border-radius:4px;padding:3px 10px;white-space:nowrap">${_label}</a>`:`<button class="btn-approve" onclick="quickConfirm(${item.id},'승인',${f.RequestID},'${sys.key}','${escHtml((f.ApproverRole||'').replace(/'/g,''))}',${f.ApprovalOrder||0})">승인</button><button class="btn-reject" onclick="quickConfirm(${item.id},'반려',${f.RequestID},'${sys.key}','${escHtml((f.ApproverRole||'').replace(/'/g,''))}',${f.ApprovalOrder||0})">반려</button>`;
             })()
             :`<span class="done-label">완료</span>`}
         </div>
@@ -1729,7 +1729,16 @@ async function showDetail(sysKey,reqId){
     const apprList=apprData.value.filter(i=>Number(i.fields.RequestID)===Number(reqId)).sort((a,b)=>a.fields.ApprovalOrder-b.fields.ApprovalOrder);
     const sc={'대기':'#b45309','승인':'#15803d','반려':'#b91c1c','대기(잠김)':'#718096','승인완료':'#15803d'};
     const sec=t=>`<div class="modal-sec">${t}</div>`;
-    const row=(l,v)=>`<div class="modal-row"><div class="modal-label">${l}</div><div class="modal-val">${v||'-'}</div></div>`;
+    // 값은 기본적으로 글자만 남기고 이스케이프한다 — 13개 시스템의 사용자 입력이 그대로 들어오는 자리다(09-08).
+    // SharePoint 여러 줄 열은 리치 텍스트(ExternalClass 래퍼 태그)로 오므로 먼저 DOMParser 로 글자만 남긴다.
+    // (purposeOf 와 같은 방식 — innerHTML 로 파싱하지 않는다. DOMParser 문서는 불활성이라 스크립트가 돌지 않는다)
+    // 배지·링크·<br> 처럼 이미 HTML 로 만든 값만 rowRaw()/rowFullRaw() 로 넘긴다.
+    const toText=v=>{ let s=String(v); if(!/[<&]/.test(s)) return s;
+      s=s.replace(/<br\s*\/?>/gi,'\n').replace(/<\/(div|p|li|tr|h[1-6])>/gi,'\n');
+      try{ s=new DOMParser().parseFromString(s,'text/html').body.textContent||''; }catch(e){}
+      return s.replace(/\u00a0/g,' ').replace(/\n{3,}/g,'\n\n').trim(); };
+    const rowRaw=(l,v)=>`<div class="modal-row"><div class="modal-label">${l}</div><div class="modal-val">${v||'-'}</div></div>`;
+    const row=(l,v)=>rowRaw(l, (v===undefined||v===null||v==='') ? '' : escHtml(toText(v)));
 
     // ── 첨부파일 공통 파서 ──
     const parseFiles=(raw)=>{
@@ -1740,23 +1749,24 @@ async function showDetail(sysKey,reqId){
       return entries.map(entry=>{
         entry=entry.trim();
         // SCC 형식: name||CONTRACT_DOC||driveId||itemId
-        if(entry.includes('||CONTRACT_DOC||')){const p=entry.split('||CONTRACT_DOC||');const name=p[0];const p2=p[1].split('||');if(p2.length>=2){const di=p2[0],ii=p2.slice(1).join('||');return`<div style="padding:3px 0;font-size:.82rem">📎 <a href="#" class="aps-file-dl" data-drive="${encodeURIComponent(di)}" data-id="${encodeURIComponent(ii)}" data-name="${encodeURIComponent(name)}" style="color:#0078d4;cursor:pointer">${name} <span style="font-size:11px;color:#107c10;font-weight:600">[Contract Doc]</span></a></div>`;}}
+        if(entry.includes('||CONTRACT_DOC||')){const p=entry.split('||CONTRACT_DOC||');const name=p[0];const p2=p[1].split('||');if(p2.length>=2){const di=p2[0],ii=p2.slice(1).join('||');return`<div style="padding:3px 0;font-size:.82rem">📎 <a href="#" class="aps-file-dl" data-drive="${encodeURIComponent(di)}" data-id="${encodeURIComponent(ii)}" data-name="${encodeURIComponent(name)}" style="color:#0078d4;cursor:pointer">${escHtml(name)} <span style="font-size:11px;color:#107c10;font-weight:600">[Contract Doc]</span></a></div>`;}}
         // ENC 형식: name||ENC||base64
-        if(entry.includes('||ENC||')){const fi=entry.indexOf('||ENC||');const name=entry.substring(0,fi);const b64=entry.substring(fi+7);try{const dec=decodeURIComponent(escape(atob(b64)));const si=dec.indexOf('###');if(si>=0){const di=dec.substring(0,si),ii=dec.substring(si+3);return`<div style="padding:3px 0;font-size:.82rem">📎 <a href="#" class="aps-file-dl" data-drive="${encodeURIComponent(di)}" data-id="${encodeURIComponent(ii)}" data-name="${encodeURIComponent(name)}" style="color:#0078d4;cursor:pointer">${name}</a></div>`;}}catch(ex){}}
+        if(entry.includes('||ENC||')){const fi=entry.indexOf('||ENC||');const name=entry.substring(0,fi);const b64=entry.substring(fi+7);try{const dec=decodeURIComponent(escape(atob(b64)));const si=dec.indexOf('###');if(si>=0){const di=dec.substring(0,si),ii=dec.substring(si+3);return`<div style="padding:3px 0;font-size:.82rem">📎 <a href="#" class="aps-file-dl" data-drive="${encodeURIComponent(di)}" data-id="${encodeURIComponent(ii)}" data-name="${encodeURIComponent(name)}" style="color:#0078d4;cursor:pointer">${escHtml(name)}</a></div>`;}}catch(ex){}}
         // 신형 형식: name||driveId||itemId
-        if(entry.includes('||')){const fi=entry.indexOf('||');const name=entry.substring(0,fi),rest=entry.substring(fi+2);const parts=rest.split('||');if(parts.length>=2){const di=parts[0],ii=parts.slice(1).join('||');return`<div style="padding:3px 0;font-size:.82rem">📎 <a href="#" class="aps-file-dl" data-drive="${encodeURIComponent(di)}" data-id="${encodeURIComponent(ii)}" data-name="${encodeURIComponent(name)}" style="color:#0078d4;cursor:pointer">${name}</a></div>`;}}
+        if(entry.includes('||')){const fi=entry.indexOf('||');const name=entry.substring(0,fi),rest=entry.substring(fi+2);const parts=rest.split('||');if(parts.length>=2){const di=parts[0],ii=parts.slice(1).join('||');return`<div style="padding:3px 0;font-size:.82rem">📎 <a href="#" class="aps-file-dl" data-drive="${encodeURIComponent(di)}" data-id="${encodeURIComponent(ii)}" data-name="${encodeURIComponent(name)}" style="color:#0078d4;cursor:pointer">${escHtml(name)}</a></div>`;}}
         // FA 구형 형식: name|webUrl (파이프 1개)
-        if(entry.includes('|')){const sp=entry.indexOf('|');const name=entry.substring(0,sp).trim();const url=entry.substring(sp+1).trim();if(url)return`<div style="padding:3px 0;font-size:.82rem">📎 <a href="${url}" target="_blank" style="color:#0078d4;cursor:pointer">${name}</a></div>`;}
+        if(entry.includes('|')){const sp=entry.indexOf('|');const name=entry.substring(0,sp).trim();const url=entry.substring(sp+1).trim();if(url)return`<div style="padding:3px 0;font-size:.82rem">📎 <a href="${url}" target="_blank" style="color:#0078d4;cursor:pointer">${escHtml(name)}</a></div>`;}
         return'';
       }).filter(Boolean).join('')||'<div style="font-size:.82rem;color:#a19f9d">첨부파일 없음</div>';
     };
-    const rowFull=(l,v)=>`<div style="padding:7px 0;border-bottom:0.5px solid #edebe9;font-size:13px"><div style="font-size:11px;color:#605e5c;margin-bottom:3px">${l}</div><div style="white-space:pre-wrap;color:#323130">${v||'-'}</div></div>`;
+    const rowFullRaw=(l,v)=>`<div style="padding:7px 0;border-bottom:0.5px solid #edebe9;font-size:13px"><div style="font-size:11px;color:#605e5c;margin-bottom:3px">${l}</div><div style="white-space:pre-wrap;color:#323130">${v||'-'}</div></div>`;
+    const rowFull=(l,v)=>rowFullRaw(l, (v===undefined||v===null||v==='') ? '' : escHtml(toText(v)));
 
     const _baseTitle = (['GW','IT','SCC','BP','FA','MC','RR','GA_STN','GA_BC','GA_IDC','CTR_PR','ACC'].includes(sys.key)?f.Title:('#'+reqId));
     // 요청 제목(IT: TicketTitle, GW: RequestTitle)은 각 시스템의 상세 섹션에서 이미 표시되므로
     // 기본 정보에서는 제외한다. 두 곳에 같은 값이 나와 화면이 중복돼 보이던 문제 해소.
     let info=sec('기본 정보')+row('제목',_baseTitle||'-')+row('신청자',f.RequesterEmail)+
-      row('상태',stBadge(f.Status))+row('신청일',fmt(f.RequestDate));
+      rowRaw('상태',stBadge(f.Status))+row('신청일',fmt(f.RequestDate));
 
     if(sysKey==='IT'){
       // IT_Requests 의 일부 열은 SharePoint 내부 이름이 만들 때 붙은 그대로다.
@@ -1813,11 +1823,11 @@ async function showDetail(sysKey,reqId){
         // 라벨은 SCC 상세 화면과 동일하게 유지한다. 감사·법무 대응 문구라 임의로 줄이지 않는다.
         const yn=v=>v?`<span style="font-weight:600;color:${v.toLowerCase()==='yes'?'#107c10':'#a4262c'}">${escHtml(v.toUpperCase())}</span>`:'-';
         info += sec('4. Compliance / Final Check');
-        if(f.BizTermsReviewed) info += row('Business / commercial terms reviewed', yn(f.BizTermsReviewed));
-        if(f.DDPerformed)      info += row('Is Compliance Due Diligence performed?', yn(f.DDPerformed)+(f.DDId?` &nbsp;(DD ID: ${escHtml(f.DDId)})`:''));
-        if(f.PersonalInfo)     info += row('Is personal Information disclosed?', yn(f.PersonalInfo)+(f.PersonalInfoStd?`  →  Standard contract: ${escHtml(String(f.PersonalInfoStd).toUpperCase())}`:''));
-        if(f.SMRCompliance)    info += row('Signing Party Designation (SMR)', yn(f.SMRCompliance));
-        if(f.FinalSignOff)     info += row('Final signing off', escHtml(f.FinalSignOff));
+        if(f.BizTermsReviewed) info += rowRaw('Business / commercial terms reviewed', yn(f.BizTermsReviewed));
+        if(f.DDPerformed)      info += rowRaw('Is Compliance Due Diligence performed?', yn(f.DDPerformed)+(f.DDId?` &nbsp;(DD ID: ${escHtml(f.DDId)})`:''));
+        if(f.PersonalInfo)     info += rowRaw('Is personal Information disclosed?', yn(f.PersonalInfo)+(f.PersonalInfoStd?`  →  Standard contract: ${escHtml(String(f.PersonalInfoStd).toUpperCase())}`:''));
+        if(f.SMRCompliance)    info += rowRaw('Signing Party Designation (SMR)', yn(f.SMRCompliance));
+        if(f.FinalSignOff)     info += row('Final signing off', f.FinalSignOff);
       }
       info+=sec('첨부파일')+parseFiles(f.AttachedFiles);
     }
@@ -1830,7 +1840,7 @@ async function showDetail(sysKey,reqId){
       info+=sec('신청 정보')+row('Company',f.Company)+row('Source',f.Source)
           +row('Amount type',_gwAmtType||'-')
           +row('Total Amount <span style="font-size:.72em;color:#605e5c;font-weight:400">(VAT Excluded)</span>',_gwAmtVal?Number(_gwAmtVal).toLocaleString('ko-KR')+' 원':'-')
-          +row('Type',f.GoodwillType)+sec('상세 내용')+(f.RequestTitle?row('요청 제목',f.RequestTitle):'')+row('Description',`<span style="white-space:pre-wrap">${f.Description||'-'}</span>`);
+          +row('Type',f.GoodwillType)+sec('상세 내용')+(f.RequestTitle?row('요청 제목',f.RequestTitle):'')+rowRaw('Description',`<span style="white-space:pre-wrap">${escHtml(toText(f.Description||'-'))}</span>`);
       info+=sec('첨부파일')+parseFiles(f.AttachedFiles);
     }
     else if(sysKey==='BP'){
@@ -1838,7 +1848,7 @@ async function showDetail(sysKey,reqId){
       info+=sec('첨부파일')+parseFiles(f.AttachedFiles);
     }
     else if(sysKey==='FA'){
-      info+=row('FA 유형',`<span style="background:#e8f4ff;color:#0078d4;padding:2px 8px;border-radius:10px;font-size:12px">${f.FAType||''}</span>`)+(f.FACode?row('FA Code',`<strong style="color:#107c10">${f.FACode}</strong>`):'');
+      info+=rowRaw('FA 유형',`<span style="background:#e8f4ff;color:#0078d4;padding:2px 8px;border-radius:10px;font-size:12px">${escHtml(f.FAType||'')}</span>`)+(f.FACode?rowRaw('FA Code',`<strong style="color:#107c10">${escHtml(f.FACode)}</strong>`):'');
       if(f.FAType==='Registration') info+=sec('고정자산 정보')+row('자산명',f.Description)+row('Acquisition Date',f.AcquisitionDate)+row('CCTR',f.CCTR)+row('GL Account',f.GLAccount)+row('Asset Class',f.AssetClass)+row('Useful Life',f.UsefulLife)+row('Location',f.Location)+row('Asset Value',f.AssetValue?Number(f.AssetValue).toLocaleString()+' 원':'-')+row('Vendor Code/Name',f.VendorInfo)+row('Model/Serial No.',f.SerialNumber||'-')+sec('신청사유')+rowFull('Purpose',f.Purpose);
       else if(f.FAType==='Disposal') info+=sec('처분 정보')+row('Disposal Date',f.DisposalDate)+row('Location',f.Location)+row('Type',f.DisposalType)+row('Disposal Method',f.DisposalMethod)+rowFull('Reason',f.Reason);
       else if(f.FAType==='Transfer') info+=sec('이동 부서정보')+row('Submission Date',f.SubmissionDate)+row('Transfer Date',f.TransferDate)+row('이동전 팀',f.OutTeam)+row('이동전 CCTR',f.PrevCCTR)+row('이동전 Location',f.PrevLocation)+row('이동후 팀',f.InTeam)+row('이동후 CCTR',f.NewCCTR)+row('이동후 Location',f.NewLocation)+rowFull('이동 사유',f.Reason);
@@ -1857,8 +1867,8 @@ async function showDetail(sysKey,reqId){
       info+=sec('주문자 정보')+row('주문자',f.OrdName||'-')+row('주문자 연락처',f.OrdPhone||'-');
       if(f.StnName) info+=row('수령자',f.StnName);
       if(f.StnDept) info+=row('수령자 부서',f.StnDept);
-      if(f.Address) info+=row('수령 주소 (국문)',f.Address.replace(/\r\n|\n/g,'<br>'));
-      if(f.AddressEng) info+=row('수령 주소 (영문)',f.AddressEng.replace(/\r\n|\n/g,'<br>'));
+      if(f.Address) info+=rowRaw('수령 주소 (국문)',escHtml(f.Address).replace(/\r\n|\n/g,'<br>'));
+      if(f.AddressEng) info+=rowRaw('수령 주소 (영문)',escHtml(f.AddressEng).replace(/\r\n|\n/g,'<br>'));
       if(f.Description) info+=row('Description',f.Description);
       info+=row('항목 수',f.ItemCount+'건')+row('Total',f.TotalAmount?Number(f.TotalAmount).toLocaleString()+'원':'-');
       // 주문 항목 테이블
@@ -1870,13 +1880,13 @@ async function showDetail(sysKey,reqId){
           info+=sec('주문 항목')+'<div style="overflow-x:auto;margin-top:4px"><table style="width:100%;border-collapse:collapse;font-size:.78rem"><thead><tr style="background:#4472C4;color:#fff">'+
             '<th style="padding:6px 8px;text-align:left">상품명</th><th style="padding:6px 8px;text-align:center">코드</th><th style="padding:6px 8px;text-align:center">단위</th><th style="padding:6px 8px;text-align:center">Q&#39;ty</th><th style="padding:6px 8px;text-align:right">단가</th><th style="padding:6px 8px;text-align:right">소계</th>'+
             '</tr></thead><tbody>'+
-            items.map(i=>`<tr style="border-bottom:1px solid #edebe9"><td style="padding:5px 8px">${i.name}</td><td style="padding:5px 8px;text-align:center;color:#605e5c">${i.code}</td><td style="padding:5px 8px;text-align:center">${i.unit}</td><td style="padding:5px 8px;text-align:center">${i.qty}</td><td style="padding:5px 8px;text-align:right">${Number(i.price).toLocaleString()}</td><td style="padding:5px 8px;text-align:right;font-weight:600">${Number(i.rowTotal).toLocaleString()}</td></tr>`).join('')+
+            items.map(i=>`<tr style="border-bottom:1px solid #edebe9"><td style="padding:5px 8px">${escHtml(i.name||'')}</td><td style="padding:5px 8px;text-align:center;color:#605e5c">${escHtml(i.code||'')}</td><td style="padding:5px 8px;text-align:center">${escHtml(i.unit||'')}</td><td style="padding:5px 8px;text-align:center">${i.qty}</td><td style="padding:5px 8px;text-align:right">${Number(i.price).toLocaleString()}</td><td style="padding:5px 8px;text-align:right;font-weight:600">${Number(i.rowTotal).toLocaleString()}</td></tr>`).join('')+
             `</tbody><tfoot><tr style="background:#4472C4;color:#fff"><td colspan="5" style="padding:6px 8px;text-align:right;font-weight:700">Total Sum</td><td style="padding:6px 8px;text-align:right;font-weight:700">${tot.toLocaleString()}원</td></tr></tfoot></table></div>`;
         }catch(e){}
       }
     }
     else if(sysKey==='GA_BC'){
-      info+=sec('명함 정보')+row('Name (EN)',f.NameEN)+row('Name (KO)',f.NameKO)+(f.JobTitle?row('Job Title',f.JobTitle):'')+(f.JobPosition?row('Job Position',f.JobPosition):'')+row('Department',f.Department)+row('Email',f.Email)+row('Quantity',f.Quantity+'매')+(f.StickerQty?row('Sticker Qty',f.StickerQty+'매'):'')+row('Cost Center',f.CostCenter)+(f.Description?row('Description',f.Description):'')+(f.Address?row('주소 (국문)',f.Address.replace(/\r\n|\n/g,'<br>')):'')+( f.AddressEng?row('Address (EN)',f.AddressEng.replace(/\r\n|\n/g,'<br>')):'')+( f.MobileNumber?row('Mobile Number',f.MobileNumber):'')+( f.SalesAgentCompany?row('세일즈 에이전트 상호명<br><span style="font-size:.88em;opacity:.72;white-space:nowrap">(사업자등록증에 기재된)</span>',f.SalesAgentCompany):'');
+      info+=sec('명함 정보')+row('Name (EN)',f.NameEN)+row('Name (KO)',f.NameKO)+(f.JobTitle?row('Job Title',f.JobTitle):'')+(f.JobPosition?row('Job Position',f.JobPosition):'')+row('Department',f.Department)+row('Email',f.Email)+row('Quantity',f.Quantity+'매')+(f.StickerQty?row('Sticker Qty',f.StickerQty+'매'):'')+row('Cost Center',f.CostCenter)+(f.Description?row('Description',f.Description):'')+(f.Address?rowRaw('주소 (국문)',escHtml(f.Address).replace(/\r\n|\n/g,'<br>')):'')+( f.AddressEng?rowRaw('Address (EN)',escHtml(f.AddressEng).replace(/\r\n|\n/g,'<br>')):'')+( f.MobileNumber?row('Mobile Number',f.MobileNumber):'')+( f.SalesAgentCompany?row('세일즈 에이전트 상호명<br><span style="font-size:.88em;opacity:.72;white-space:nowrap">(사업자등록증에 기재된)</span>',f.SalesAgentCompany):'');
     }
     else if(sysKey==='GA_IDC'){
       info+=sec('신청 정보')+row('Issue Type',f.IssueType)+row('Cost Center',f.CostCenter)+row('Description',f.Description||'-');
@@ -1898,7 +1908,7 @@ async function showDetail(sysKey,reqId){
         }).join('');
         if(_links)_idcFiles=_links;
       } else if(f.PhotoFileName){
-        _idcFiles=`<div style="padding:3px 0;font-size:.82rem">📎 <a href="#" onclick="apsDownloadIDCPhoto('${f.PhotoFileName.replace(/'/g,"\\'")}',${reqId});return false;" style="color:#0078d4;cursor:pointer">${f.PhotoFileName}</a></div>`;
+        _idcFiles=`<div style="padding:3px 0;font-size:.82rem">📎 <a href="#" onclick="apsDownloadIDCPhoto('${f.PhotoFileName.replace(/'/g,"\\'")}',${reqId});return false;" style="color:#0078d4;cursor:pointer">${escHtml(f.PhotoFileName)}</a></div>`;
       }
       info+=sec('첨부파일')+_idcFiles;
     }
@@ -1920,12 +1930,12 @@ async function showDetail(sysKey,reqId){
         const _r=af.ApproverRole||'';
         const _rc=_r.startsWith(_o+'차')?_r.slice(_o.length+1).trim():_r;
         const _rp=_rc.replace(/^결재자\s*/,'').replace(/^\((.+)\)$/,'$1').trim();
-        const _dr=_rp?`<b>${_o}차</b> 결재자(${_rp})`:`<b>${_o}차</b> 결재자`;
+        const _dr=_rp?`<b>${_o}차</b> 결재자(${escHtml(_rp)})`:`<b>${_o}차</b> 결재자`;
         return`<div class="appr-item">
         <div style="display:flex;align-items:flex-start;flex:1">
           <div class="appr-info">
             <div class="appr-role" style="font-size:.85rem">${_dr}</div>
-            <div class="appr-person">${af.ApproverName||''} · ${af.ApproverEmail||''}</div>
+            <div class="appr-person">${escHtml(af.ApproverName||'')} · ${escHtml(af.ApproverEmail||'')}</div>
             ${af.ApprovalDate?`<div class="appr-date">${fmt(af.ApprovalDate)}</div>`:''}
             ${af.Comment?`<div class="appr-comment">💬 ${formatComment(af.Comment,sysKey)}</div>`:''}
             ${(()=>{
@@ -1989,8 +1999,8 @@ async function showDetail(sysKey,reqId){
       : '';
     document.getElementById('detail-content').innerHTML=info+apprHtml+rdExemptHtml+
       (myPending?`<div class="modal-action">
-        <button onclick="showConfirm(${myPending.id},'승인',${reqId},'${sysKey}','${(myPending.fields.ApproverRole||'').replace(/'/g,'')}',${myPending.fields.ApprovalOrder||0})" class="btn-approve">✅ 승인</button>
-        <button onclick="showConfirm(${myPending.id},'반려',${reqId},'${sysKey}','${(myPending.fields.ApproverRole||'').replace(/'/g,'')}',${myPending.fields.ApprovalOrder||0})" class="btn-reject">❌ 반려</button>
+        <button onclick="showConfirm(${myPending.id},'승인',${reqId},'${sysKey}','${escHtml((myPending.fields.ApproverRole||'').replace(/'/g,''))}',${myPending.fields.ApprovalOrder||0})" class="btn-approve">✅ 승인</button>
+        <button onclick="showConfirm(${myPending.id},'반려',${reqId},'${sysKey}','${escHtml((myPending.fields.ApproverRole||'').replace(/'/g,''))}',${myPending.fields.ApprovalOrder||0})" class="btn-reject">❌ 반려</button>
       </div>`:'');
   }catch(e){document.getElementById('detail-content').innerHTML=`<p style="color:#e53e3e;padding:16px">오류: ${e.message}</p>`;}
 }
@@ -2464,9 +2474,9 @@ function renderMyApprovedTable(resetPage) {
         onmouseover="this.style.background='#f0f6ff'" onmouseout="this.style.background=''">
       <td style="padding:6px 8px;text-align:left;color:#64748b;font-weight:600">${rowNum}</td>
       <td style="padding:6px 8px;color:#0078d4;font-weight:600;white-space:nowrap">${r.sysLabel}</td>
-      <td style="padding:6px 8px;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.74rem">${r.title}</td>
+      <td style="padding:6px 8px;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.74rem" title="${escHtml(r.title||'')}">${escHtml(r.title||'')}</td>
       <td style="padding:6px 8px;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#334155;font-size:.74rem" title="${escHtml(r.purpose||'')}">${r.purpose ? escHtml(r.purpose) : '<span style="color:#cbd5e1">-</span>'}</td>
-      <td style="padding:6px 8px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#374151;font-size:.74rem">${r.requester}</td>
+      <td style="padding:6px 8px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#374151;font-size:.74rem" title="${escHtml(r.requester||'')}">${escHtml(r.requester||'')}</td>
       <td style="padding:6px 8px;max-width:170px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#1e293b;font-size:.74rem" title="${escHtml(r.approverEmail||r.approver||'')}">
         ${r.approverEmail ? escHtml(r.approverEmail) : (r.approver ? escHtml(r.approver) : '<span style="color:#cbd5e1">-</span>')}
       </td>
@@ -2756,7 +2766,7 @@ function renderMyRequestsTable(resetPage) {
         onmouseover="this.style.background='#f0f6ff'" onmouseout="this.style.background=''">
       <td style="padding:6px 8px;text-align:left;color:#64748b;font-weight:600">${rowNum}</td>
       <td style="padding:6px 8px;color:#0078d4;font-weight:600;white-space:nowrap">${r.sysLabel}</td>
-      <td style="padding:6px 8px;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.74rem">${r.title}</td>
+      <td style="padding:6px 8px;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.74rem" title="${escHtml(r.title||'')}">${escHtml(r.title||'')}</td>
       <td style="padding:6px 8px;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#334155;font-size:.74rem" title="${escHtml(r.purpose||'')}">${r.purpose ? escHtml(r.purpose) : '<span style="color:#cbd5e1">-</span>'}</td>
       <td style="padding:6px 8px;text-align:left">
         <span style="background:${tsBg[r.reqStatus]||'#f1f5f9'};color:${tsColor[r.reqStatus]||'#374151'};border-radius:10px;padding:2px 5px;font-size:.72rem;font-weight:700">${r.reqStatus}</span>
@@ -3304,8 +3314,8 @@ function renderAdminTable(resetPage) {
     <tr style="border-bottom:1px solid #f1f5f9;font-size:.74rem;cursor:pointer" onclick="showDetail('${r.sysKey}',${r.reqId})" onmouseover="this.style.background='#f0f6ff'" onmouseout="this.style.background=''">
       <td style="padding:8px 10px;color:#0078d4;font-weight:600;">${r.sysLabel}</td>
       <td style="padding:8px 10px;text-align:left;color:#64748b;font-weight:600;">${rowNum}</td>
-      <td style="padding:8px 10px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.title}</td>
-      <td style="padding:8px 10px;color:#374151;">${r.requester}</td>
+      <td style="padding:8px 10px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${escHtml(r.title||'')}">${escHtml(r.title||'')}</td>
+      <td style="padding:8px 10px;color:#374151;">${escHtml(r.requester||'')}</td>
       <td style="padding:8px 10px;text-align:left;">
         <span style="background:${stBg[r.reqStatus]||'#f1f5f9'};color:${stMap[r.reqStatus]||'#374151'};border-radius:10px;padding:2px 6px;font-size:.74rem;font-weight:600;">${r.reqStatus}</span>
       </td>
