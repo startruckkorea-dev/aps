@@ -1044,6 +1044,25 @@ async function loadSystemConfig() {
 }
 // ACC Voucher는 ApproverRole에 "TL"/"MC" 같은 짧은 코드만 저장돼 있어(다른 시스템들은 이미 "1차결재자(CFO)" 형태로 저장됨),
 // 여기서 ACC Voucher 자체 앱의 roleLabelMap과 동일한 매핑으로 변환해서 다른 시스템들과 표시 형식을 통일한다.
+// FA 결재 역할 → 화면 표기 (ACC 와 같은 「N차 결재자(역할)」 형식). 저장값은 바꾸지 않는다 —
+// 옛 기록도 같은 표기가 되고, 「회계담당자」 로 FA Code 입력을 여는 판정(processApproval)도 그대로다.
+// Transfer 는 이동 전/후 팀장·부서장이 나뉘어 Transfer-out / Transfer-in 으로 구분한다.
+const FA_ROLE_LABELS = {
+  '1차결재자':'Line Manager', '2차결재자':'Department Head', '회계담당자':'GL 담당자', '최종결재자':'CFO',
+  '1차결재자(이동전 Line Manager)':'Transfer-out Line Manager', '2차결재자(이동전 부서장)':'Transfer-out Department Head',
+  '3차결재자(이동후 Line Manager)':'Transfer-in Line Manager', '4차결재자(이동후 부서장)':'Transfer-in Department Head' };
+function faRoleLabel(role){
+  const r=String(role||'').trim();
+  if(FA_ROLE_LABELS[r]) return FA_ROLE_LABELS[r];
+  // 저장 문구가 조금 달라도(공백·「결재자」 유무) 뜻으로 맞춘다
+  if(/이동\s*전.*(Line|팀장)/i.test(r)) return 'Transfer-out Line Manager';
+  if(/이동\s*전.*(부서장|Dept)/i.test(r)) return 'Transfer-out Department Head';
+  if(/이동\s*후.*(Line|팀장)/i.test(r)) return 'Transfer-in Line Manager';
+  if(/이동\s*후.*(부서장|Dept)/i.test(r)) return 'Transfer-in Department Head';
+  if(/회계/.test(r)) return 'GL 담당자';
+  if(/최종|CFO/i.test(r)) return 'CFO';
+  return r.replace(/^\d+차\s*결재자\s*/,'').replace(/^\((.+)\)$/,'$1').trim();
+}
 const ACC_ROLE_LABELS = { TL:'Line Manager', MC:'Department Head', CEO:'CEO', RD:'RD', CTRL:'Controlling Head', AMGR:'Accounting Head', CFO:'CFO', ACC_AP:'AP 담당자', ACC_AR:'AR 담당자', ACC_GL:'GL 담당자', ACC:'담당자' };
 // 「다음 결재자」 한 칸. 이름과 역할을 두 줄로 쌓았더니 이 열만 두 줄이라
 // 행 높이가 들쭉날쭉했다. 이름 (역할) 한 줄로 둔다 —
@@ -1060,6 +1079,10 @@ function nextApproverCell(r) {
 
 function formatNextRole(sysKey, apr) {
   if (!apr) return '-';
+  if (sysKey === 'FA') {
+    const label = faRoleLabel(apr.ApproverRole);
+    return label ? `${apr.ApprovalOrder||'?'}차결재자(${label})` : (apr.ApproverRole || '-');
+  }
   if (sysKey === 'ACC') {
     const label = ACC_ROLE_LABELS[apr.ApproverRole] || apr.ApproverRole || '-';
     return `${apr.ApprovalOrder||'?'}차결재자(${label})`;
@@ -1930,7 +1953,9 @@ async function showDetail(sysKey,reqId){
         const _r=af.ApproverRole||'';
         const _rc=_r.startsWith(_o+'차')?_r.slice(_o.length+1).trim():_r;
         const _rp=_rc.replace(/^결재자\s*/,'').replace(/^\((.+)\)$/,'$1').trim();
-        const _dr=_rp?`<b>${_o}차</b> 결재자(${escHtml(_rp)})`:`<b>${_o}차</b> 결재자`;
+        // FA 는 저장 역할(1차결재자·회계담당자·이동전/후…)을 ACC 처럼 영문 라벨로 바꿔 보여준다
+        const _lab = sysKey==='FA' ? faRoleLabel(_r) : _rp;
+        const _dr=_lab?`<b>${_o}차</b> 결재자(${escHtml(_lab)})`:`<b>${_o}차</b> 결재자`;
         return`<div class="appr-item">
         <div style="display:flex;align-items:flex-start;flex:1">
           <div class="appr-info">
