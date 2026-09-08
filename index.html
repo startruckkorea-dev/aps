@@ -1847,8 +1847,8 @@ async function showDetail(sysKey,reqId){
         const yn=v=>v?`<span style="font-weight:600;color:${v.toLowerCase()==='yes'?'#107c10':'#a4262c'}">${escHtml(v.toUpperCase())}</span>`:'-';
         info += sec('4. Compliance / Final Check');
         if(f.BizTermsReviewed) info += rowRaw('Business / commercial terms reviewed', yn(f.BizTermsReviewed));
-        if(f.DDPerformed)      info += rowRaw('Is Compliance Due Diligence performed?', yn(f.DDPerformed)+(f.DDId?` &nbsp;(DD ID: ${escHtml(f.DDId)})`:''));
-        if(f.PersonalInfo)     info += rowRaw('Is personal Information disclosed?', yn(f.PersonalInfo)+(f.PersonalInfoStd?`  →  Standard contract: ${escHtml(String(f.PersonalInfoStd).toUpperCase())}`:''));
+        if(f.DDPerformed)      info += rowRaw('Is Compliance Due Diligence performed?', yn(f.DDPerformed)+(f.DDId?` &nbsp;(DD ID: ${escHtml(toText(f.DDId))})`:''));
+        if(f.PersonalInfo)     info += rowRaw('Is personal Information disclosed?', yn(f.PersonalInfo)+(f.PersonalInfoStd?`  →  Standard contract: ${escHtml(toText(String(f.PersonalInfoStd).toUpperCase()))}`:''));
         if(f.SMRCompliance)    info += rowRaw('Signing Party Designation (SMR)', yn(f.SMRCompliance));
         if(f.FinalSignOff)     info += row('Final signing off', f.FinalSignOff);
       }
@@ -1871,7 +1871,7 @@ async function showDetail(sysKey,reqId){
       info+=sec('첨부파일')+parseFiles(f.AttachedFiles);
     }
     else if(sysKey==='FA'){
-      info+=rowRaw('FA 유형',`<span style="background:#e8f4ff;color:#0078d4;padding:2px 8px;border-radius:10px;font-size:12px">${escHtml(f.FAType||'')}</span>`)+(f.FACode?rowRaw('FA Code',`<strong style="color:#107c10">${escHtml(f.FACode)}</strong>`):'');
+      info+=rowRaw('FA 유형',`<span style="background:#e8f4ff;color:#0078d4;padding:2px 8px;border-radius:10px;font-size:12px">${escHtml(f.FAType||'')}</span>`)+(f.FACode?rowRaw('FA Code',`<strong style="color:#107c10">${escHtml(toText(f.FACode))}</strong>`):'');
       if(f.FAType==='Registration') info+=sec('고정자산 정보')+row('자산명',f.Description)+row('Acquisition Date',f.AcquisitionDate)+row('CCTR',f.CCTR)+row('GL Account',f.GLAccount)+row('Asset Class',f.AssetClass)+row('Useful Life',f.UsefulLife)+row('Location',f.Location)+row('Asset Value',f.AssetValue?Number(f.AssetValue).toLocaleString()+' 원':'-')+row('Vendor Code/Name',f.VendorInfo)+row('Model/Serial No.',f.SerialNumber||'-')+sec('신청사유')+rowFull('Purpose',f.Purpose);
       else if(f.FAType==='Disposal') info+=sec('처분 정보')+row('Disposal Date',f.DisposalDate)+row('Location',f.Location)+row('Type',f.DisposalType)+row('Disposal Method',f.DisposalMethod)+rowFull('Reason',f.Reason);
       else if(f.FAType==='Transfer') info+=sec('이동 부서정보')+row('Submission Date',f.SubmissionDate)+row('Transfer Date',f.TransferDate)+row('이동전 팀',f.OutTeam)+row('이동전 CCTR',f.PrevCCTR)+row('이동전 Location',f.PrevLocation)+row('이동후 팀',f.InTeam)+row('이동후 CCTR',f.NewCCTR)+row('이동후 Location',f.NewLocation)+rowFull('이동 사유',f.Reason);
@@ -1890,8 +1890,8 @@ async function showDetail(sysKey,reqId){
       info+=sec('주문자 정보')+row('주문자',f.OrdName||'-')+row('주문자 연락처',f.OrdPhone||'-');
       if(f.StnName) info+=row('수령자',f.StnName);
       if(f.StnDept) info+=row('수령자 부서',f.StnDept);
-      if(f.Address) info+=rowRaw('수령 주소 (국문)',escHtml(f.Address).replace(/\r\n|\n/g,'<br>'));
-      if(f.AddressEng) info+=rowRaw('수령 주소 (영문)',escHtml(f.AddressEng).replace(/\r\n|\n/g,'<br>'));
+      if(f.Address) info+=rowRaw('수령 주소 (국문)',escHtml(toText(f.Address)).replace(/\r\n|\n/g,'<br>'));
+      if(f.AddressEng) info+=rowRaw('수령 주소 (영문)',escHtml(toText(f.AddressEng)).replace(/\r\n|\n/g,'<br>'));
       if(f.Description) info+=row('Description',f.Description);
       info+=row('항목 수',f.ItemCount+'건')+row('Total',f.TotalAmount?Number(f.TotalAmount).toLocaleString()+'원':'-');
       // 주문 항목 테이블
@@ -1909,7 +1909,7 @@ async function showDetail(sysKey,reqId){
       }
     }
     else if(sysKey==='GA_BC'){
-      info+=sec('명함 정보')+row('Name (EN)',f.NameEN)+row('Name (KO)',f.NameKO)+(f.JobTitle?row('Job Title',f.JobTitle):'')+(f.JobPosition?row('Job Position',f.JobPosition):'')+row('Department',f.Department)+row('Email',f.Email)+row('Quantity',f.Quantity+'매')+(f.StickerQty?row('Sticker Qty',f.StickerQty+'매'):'')+row('Cost Center',f.CostCenter)+(f.Description?row('Description',f.Description):'')+(f.Address?rowRaw('주소 (국문)',escHtml(f.Address).replace(/\r\n|\n/g,'<br>')):'')+( f.AddressEng?rowRaw('Address (EN)',escHtml(f.AddressEng).replace(/\r\n|\n/g,'<br>')):'')+( f.MobileNumber?row('Mobile Number',f.MobileNumber):'')+( f.SalesAgentCompany?row('세일즈 에이전트 상호명<br><span style="font-size:.88em;opacity:.72;white-space:nowrap">(사업자등록증에 기재된)</span>',f.SalesAgentCompany):'');
+      info+=sec('명함 정보')+row('Name (EN)',f.NameEN)+row('Name (KO)',f.NameKO)+(f.JobTitle?row('Job Title',f.JobTitle):'')+(f.JobPosition?row('Job Position',f.JobPosition):'')+row('Department',f.Department)+row('Email',f.Email)+row('Quantity',f.Quantity+'매')+(f.StickerQty?row('Sticker Qty',f.StickerQty+'매'):'')+row('Cost Center',f.CostCenter)+(f.Description?row('Description',f.Description):'')+(f.Address?rowRaw('주소 (국문)',escHtml(toText(f.Address)).replace(/\r\n|\n/g,'<br>')):'')+( f.AddressEng?rowRaw('Address (EN)',escHtml(toText(f.AddressEng)).replace(/\r\n|\n/g,'<br>')):'')+( f.MobileNumber?row('Mobile Number',f.MobileNumber):'')+( f.SalesAgentCompany?row('세일즈 에이전트 상호명<br><span style="font-size:.88em;opacity:.72;white-space:nowrap">(사업자등록증에 기재된)</span>',f.SalesAgentCompany):'');
     }
     else if(sysKey==='GA_IDC'){
       info+=sec('신청 정보')+row('Issue Type',f.IssueType)+row('Cost Center',f.CostCenter)+row('Description',f.Description||'-');
@@ -1931,7 +1931,7 @@ async function showDetail(sysKey,reqId){
         }).join('');
         if(_links)_idcFiles=_links;
       } else if(f.PhotoFileName){
-        _idcFiles=`<div style="padding:3px 0;font-size:.82rem">📎 <a href="#" onclick="apsDownloadIDCPhoto('${f.PhotoFileName.replace(/'/g,"\\'")}',${reqId});return false;" style="color:#0078d4;cursor:pointer">${escHtml(f.PhotoFileName)}</a></div>`;
+        _idcFiles=`<div style="padding:3px 0;font-size:.82rem">📎 <a href="#" onclick="apsDownloadIDCPhoto('${f.PhotoFileName.replace(/'/g,"\\'")}',${reqId});return false;" style="color:#0078d4;cursor:pointer">${escHtml(toText(f.PhotoFileName))}</a></div>`;
       }
       info+=sec('첨부파일')+_idcFiles;
     }
@@ -2017,7 +2017,7 @@ async function showDetail(sysKey,reqId){
         + '<div style="font-size:.68rem;color:#8a6116;line-height:1.65">'
         + _rdLbl('Requester') + '<span style="font-weight:600">' + escHtml(f.RequesterEmail || f.RequesterName || '-') + '</span><br>'
         + _rdLbl('Reason') + '<span style="font-weight:700">'
-        + escHtml(String(f.RDExemptReason).replace(/^RD\s*승인\s*제외\s*[—\-:]?\s*/,'').trim()) + '</span>'
+        + escHtml(toText(String(f.RDExemptReason)).replace(/^RD\s*승인\s*제외\s*[—\-:]?\s*/,'').trim()) + '</span>'
         + '</div>'
         + '<div style="font-size:10px;color:#a19f9d;margin-top:5px">(Requested by the requester; the RD approval step was excluded for this voucher)</div>'
         + '</div>'
