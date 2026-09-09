@@ -1092,8 +1092,15 @@ function cfgVal(cfg, key, defaultObj) {
   const v = cfg[key];
   return { ...defaultObj, name: v.name || defaultObj.name, email: v.email || defaultObj.email };
 }
-// ACC Voucher는 회계 데이터라 접근을 제한함 — system_config_final.xlsx에서 "ACC-Voucher_"로 시작하는 모든 키의 이메일을 화이트리스트로 자동 구성
-// (config 시트에 사람이 추가/제거되면 여기도 자동으로 반영됨, 하드코딩 없음)
+// ── ACC Voucher 접근 규칙 (09-10 정정) ──
+// 07-22 편입 때 system_config 의 "ACC-Voucher_*" 이메일을 「조회 허용 명단」으로 썼다.
+// 그 키들은 ACC Voucher 사이트에서 AP/AR/GL 담당·관리자·IT·CEO/CFO 를 정하는 「역할 배정」 명단이지
+// 접근 제한이 아니다 — ACC 사이트 자체는 전 직원이 들어가고, 본인 전표·본인 결재만 보이며, 관리 기능만 역할로 막는다.
+// APS 만 이 명단으로 ACC 를 조회 대상에서 빼는 바람에 역할이 없는 결재자(팀장·부서장)와 일반 직원은
+// 자기 ACC 결재 건·신청 건이 결재함·배지·기록에 안 보였고, 스캔 대상이 12개로 나왔다.
+// 이제 ACC 도 다른 12개 시스템과 같다: 항상 조회하고, 화면에는 본인이 결재자·신청자인 건만 나온다.
+// 관리자 탭(전체 목록)은 원래대로 APS ADMIN 게이트(_isApsAdmin)만 적용된다.
+// getAccAllowedEmails / isAccAllowed 는 다른 용도로 쓸 수 있어 남겨 두되, 조회·상세·결재 경로에서는 더 이상 쓰지 않는다.
 function getAccAllowedEmails() {
   if (!_sysConfig) return [];
   return Object.keys(_sysConfig)
@@ -1110,19 +1117,11 @@ function isAccAllowed() {
 function showAccRestrictedPopup() {
   alert('🔒 접근 권한이 없습니다\n\nACC Voucher(회계 전표) 데이터는 관련 담당자만 조회할 수 있습니다.\n권한이 필요하시면 IT팀에 문의해주세요.');
 }
-// 시스템 필터에서 "ACC Voucher"를 선택했을 때 권한 체크 - 없으면 팝업 띄우고 필터를 원래대로 되돌림
-function guardAccFilter(sel) {
-  if (sel.value === 'ACC' && !isAccAllowed()) {
-    showAccRestrictedPopup();
-    sel.value = '';
-    return false;
-  }
-  return true;
-}
-// 데이터 조회 시 사용할 시스템 목록 — ACC Voucher는 권한 없는 사용자에겐 아예 제외해서 데이터 자체를 안 불러옴
-function visibleSystems() {
-  return isAccAllowed() ? SYSTEMS : SYSTEMS.filter(s => s.key !== 'ACC');
-}
+// 시스템 필터 선택 시 호출된다. 예전엔 ACC 를 고르면 명단 밖 사용자에게 팝업을 띄우고 되돌렸다(195420f).
+// 접근 규칙 정정(위)으로 막을 이유가 없어졌다 — 항상 통과. 호출부 4곳의 형태를 지키려고 함수는 남긴다.
+function guardAccFilter(sel) { return true; }
+// 데이터 조회 시 사용할 시스템 목록 — 13개 전부. ACC 도 예외가 아니다(위 주석).
+function visibleSystems() { return SYSTEMS; }
 function openKriLink() {
   window.open('https://kri.startruckkorea.com/', '_blank');
 }
@@ -1708,7 +1707,6 @@ function escHtml(str){return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt
 // ──────────────────────────────────────────────────────────────
 
 async function showDetail(sysKey,reqId){
-  if(sysKey==='ACC' && !isAccAllowed()){ showAccRestrictedPopup(); return; }
   // 유의사항: BP/FA/SCC만 표시
   var _noticeEl=document.getElementById('detail-notice');
   var _noticeTxt=document.getElementById('detail-notice-text');
@@ -2064,7 +2062,6 @@ document.addEventListener('click', async function(e){
 });
 
 async function quickConfirm(apprId,action,reqId,sysKey,apprRole='',apprOrder=0){
-  if(sysKey==='ACC' && !isAccAllowed()){ showAccRestrictedPopup(); return; }
   try{
     const sys=SYSTEMS.find(s=>s.key===sysKey);
     const data = sysKey==='ACC' ? await fetchAllAccApprovals() : await apiAll('/sites/'+siteId+'/lists/'+sys.apr+'/items?$expand=fields');
