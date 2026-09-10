@@ -2558,8 +2558,10 @@ function exportMyApprovedExcel() {
   );
   logAction('APS', 'Excel 내보내기', { 화면: 'My Approvals Record', 대상: _myApvTarget ? _myApvTarget.email : '본인', 건수: rows.length, 필터: { 시스템: fSys||'전체', 결과: fStatus||'전체', 검색어: fSearch||'' } });
   const _lbl = _myApvTarget ? '' : '내 ';
+  // 번호 = 신청 순서(가장 오래된 건이 1). 화면 정렬과 무관하게 신청일 오름차순으로 매긴다(09-10).
+  const _xlRank = (() => { const m = new Map(); rows.map((r,i) => i).sort((a,b) => new Date(rows[a].requestDate||0) - new Date(rows[b].requestDate||0)).forEach((ri,k) => m.set(ri,k+1)); return i => m.get(i); })();
   const ws = XLSX.utils.json_to_sheet(rows.map((r,i) => ({
-    '번호': i + 1,   // 내보낸 순서(09-10) — 목록 ID 가 아님
+    '번호': _xlRank(i),
     '결재시스템': r.sysLabel, '제목': r.title, '요청 제목': r.purpose || '', '신청자': r.requester,
     '처리자': r.approver, '처리자 이메일': r.approverEmail,
     '결재차수': r.aprOrder + (r.totalAprs ? '/'+r.totalAprs : '') + '차',
@@ -2843,8 +2845,10 @@ function exportMyRequestsExcel() {
     (!fSearch || r.title.toLowerCase().includes(fSearch) || (r.purpose||'').toLowerCase().includes(fSearch))
   );
   logAction('APS', 'Excel 내보내기', { 화면: 'My Requests Record', 건수: rows.length, 필터: { 시스템: fSys||'전체', 결과: fStatus||'전체', 검색어: fSearch||'' } });
+  // 번호 = 신청 순서(가장 오래된 건이 1). 화면 정렬과 무관하게 신청일 오름차순으로 매긴다(09-10).
+  const _xlRank = (() => { const m = new Map(); rows.map((r,i) => i).sort((a,b) => new Date(rows[a].requestDate||0) - new Date(rows[b].requestDate||0)).forEach((ri,k) => m.set(ri,k+1)); return i => m.get(i); })();
   const ws = XLSX.utils.json_to_sheet(rows.map((r,i) => ({
-    '번호': i + 1,   // 내보낸 순서(09-10) — 목록 ID 가 아님
+    '번호': _xlRank(i),
     '시스템': r.sysLabel, '제목': r.title, '요청 제목': r.purpose || '',
     '상태': r.reqStatus,
     '결재차수': r.doneCount + (r.totalAprs ? '/'+r.totalAprs : '') + '차',
@@ -3720,14 +3724,16 @@ function exportAdminExcel() {
              || (a.role||'').toLowerCase().includes(fApprover)));
   });
   logAction('APS', 'Excel 내보내기', { 화면: '전체 결재관리', 건수: rows.length, 필터: { 시스템: fSys||'전체', 상태: fStatus||'전체', 검색어: fSearch||'', 결재자검색: fApprover||'' } });
-  const ws = XLSX.utils.json_to_sheet(rows.map(r => {
+  // 번호 = 신청 순서(가장 오래된 건이 1). 다른 화면·시스템의 Excel 과 같은 규칙(09-10). 신청번호(목록 ID)는 그대로 둔다.
+  const _xlRank = (() => { const m = new Map(); rows.map((r,i) => i).sort((a,b) => new Date(rows[a].requestDate||0) - new Date(rows[b].requestDate||0)).forEach((ri,k) => m.set(ri,k+1)); return i => m.get(i); })();
+  const ws = XLSX.utils.json_to_sheet(rows.map((r, _i) => {
     const now = Date.now();
     const inProgress = r.reqStatus==='진행중';
     const delayDays = inProgress && r.requestDate ? Math.floor((now-new Date(r.requestDate))/86400000) : '';
     const stagRef = r.lastApprovalDate || r.requestDate;
     const stagnantDays = inProgress && stagRef ? Math.floor((now-new Date(stagRef))/86400000) : '';
     return {
-    '시스템': r.sysLabel, '신청번호': r.reqId, '제목': r.title,
+    '번호': _xlRank(_i), '시스템': r.sysLabel, '신청번호': r.reqId, '제목': r.title,
     '신청자': r.requester, '상태': r.reqStatus,
     '결재진행': r.doneCount+'/'+r.totalAprs+'차',
     '다음결재자': r.nextApprover, '다음결재역할': r.nextRole,
