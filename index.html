@@ -2559,7 +2559,7 @@ function exportMyApprovedExcel() {
   logAction('APS', 'Excel 내보내기', { 화면: 'My Approvals Record', 대상: _myApvTarget ? _myApvTarget.email : '본인', 건수: rows.length, 필터: { 시스템: fSys||'전체', 결과: fStatus||'전체', 검색어: fSearch||'' } });
   const _lbl = _myApvTarget ? '' : '내 ';
   const ws = XLSX.utils.json_to_sheet(rows.map((r,i) => ({
-    '번호': rows.length - i,
+    '번호': i + 1,   // 내보낸 순서(09-10) — 목록 ID 가 아님
     '결재시스템': r.sysLabel, '제목': r.title, '요청 제목': r.purpose || '', '신청자': r.requester,
     '처리자': r.approver, '처리자 이메일': r.approverEmail,
     '결재차수': r.aprOrder + (r.totalAprs ? '/'+r.totalAprs : '') + '차',
@@ -2844,7 +2844,7 @@ function exportMyRequestsExcel() {
   );
   logAction('APS', 'Excel 내보내기', { 화면: 'My Requests Record', 건수: rows.length, 필터: { 시스템: fSys||'전체', 결과: fStatus||'전체', 검색어: fSearch||'' } });
   const ws = XLSX.utils.json_to_sheet(rows.map((r,i) => ({
-    '번호': rows.length - i,
+    '번호': i + 1,   // 내보낸 순서(09-10) — 목록 ID 가 아님
     '시스템': r.sysLabel, '제목': r.title, '요청 제목': r.purpose || '',
     '상태': r.reqStatus,
     '결재차수': r.doneCount + (r.totalAprs ? '/'+r.totalAprs : '') + '차',
