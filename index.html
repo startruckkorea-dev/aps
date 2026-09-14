@@ -1194,9 +1194,44 @@ async function boot(account){
   loadAnnouncements();
 }
 
+/* ── 결재 대리(AAC) — 내가 대리인으로 받은 위임 ─────────────────────────
+   대리 지정 기간에는 「이미 대기 중인 결재」도 대리인이 처리할 수 있어야 한다(09-14 요청).
+   상신 시점 치환(각 시스템)은 그 뒤에 올라오는 건만 바꾸므로, 이미 만들어진 대기 행은
+   여기서 "내 결재"로 함께 보여주고 처리할 수 있게 한다.
+   처리하는 순간 그 행의 결재자를 나(대리인)로 바꿔 기록을 남긴다 — 대리인 본인의 결재로 남긴다는 규칙과 같다.
+   조회가 실패하면 대리 건 없이 평소대로 동작한다(대리는 편의 기능이라 실패로 화면을 막지 않는다). */
+const LIST_AAC = 'AAC_Requests';
+let _aacDelegated = new Map();   // 위임자 이메일(소문자) → { name, title }
+async function loadMyDelegations(){
+  _aacDelegated = new Map();
+  try{
+    const me=[(user&&user.email||'').toLowerCase(),(user&&user.username||'').toLowerCase()].filter(Boolean);
+    if(!me.length) return;
+    const now=new Date(Date.now()+9*3600*1000).toISOString().slice(0,19);
+    const res=await apiAll('/sites/'+siteId+'/lists/'+LIST_AAC+"/items?$expand=fields&$top=500&$filter=fields/Status eq '승인완료'");
+    (res.value||[]).map(x=>x.fields).forEach(f=>{
+      if(!me.includes(String(f.DeputyEmail||'').trim().toLowerCase())) return;
+      const s=String(f.StartDate||'').slice(0,19), e=String(f.EndDate||'').slice(0,19);
+      if(!s||!e||s>now||e<now) return;
+      const dg=String(f.RequesterEmail||'').trim().toLowerCase();
+      if(dg) _aacDelegated.set(dg,{name:f.RequesterName||dg,title:f.Title||''});
+    });
+    if(_aacDelegated.size) console.log('[AAC] 대리 결재 가능:',[..._aacDelegated.keys()].join(', '));
+  }catch(e){ console.warn('[AAC] 위임 조회 실패 — 내 결재만 표시:',e&&e.message); }
+}
+// 이 결재행이 내가 처리할 수 있는 건인가 (내 것이거나, 내가 대리인으로 받은 사람의 것)
+function isMyAppr(email){
+  const e=String(email||'').toLowerCase();
+  if(!e) return false;
+  if(e===(user&&user.email||'').toLowerCase()||e===(user&&user.username||'').toLowerCase()) return true;
+  return _aacDelegated.has(e);
+}
+function aacDelegatorOf(email){ return _aacDelegated.get(String(email||'').toLowerCase())||null; }
+
 async function loadAll(force=false){
   if (!force && _allDataTime && (Date.now()-_allDataTime) < CACHE_TTL_MS) { renderAll(); return; }
   loading(true,'전체 결재 데이터 불러오는 중...');
+  await loadMyDelegations();   // 대리로 받은 위임 — 결재함 판정에 쓴다
   _allData={};
   await Promise.all(visibleSystems().map(async sys=>{
     try{
@@ -1464,7 +1499,7 @@ function renderApvPopup(){
       var f=i.fields;
       var st=(f.Status||'').trim();
       if(st!=='대기')return;
-      var _ae=(f.ApproverEmail||'').toLowerCase();if(_ae!==myEmail&&_ae!==myUPN)return;
+      if(!isMyAppr(f.ApproverEmail))return;
       if(wids.has(String(f.RequestID)))return;
       var rf=d.reqMap[String(f.RequestID)]||{};
       items.push({sys:sys,item:i,f:f,rf:rf});
@@ -1541,7 +1576,7 @@ function updateApvBadge(){
     d.apprItems.forEach(function(i){
       var f=i.fields;
       if((f.Status||'').trim()!=='대기')return;
-      var _ae2=(f.ApproverEmail||'').toLowerCase();if(_ae2!==myEmail&&_ae2!==myUPN)return;
+      if(!isMyAppr(f.ApproverEmail))return;
       if(wids.has(String(f.RequestID)))return;
       totalCnt++;
       var rf=d.reqMap[String(f.RequestID)]||{};
@@ -1587,8 +1622,7 @@ function renderAll(){
     const _myAll = d.apprItems.filter(i=>{
       const st=(i.fields.Status||'').trim();
       if(st==='철회(잠김)')return false;
-      const _e=(i.fields.ApproverEmail||'').toLowerCase();
-      return (_e===myEmail||_e===myUPN) && !_withdrawnIds.has(String(i.fields.RequestID));
+      return isMyAppr(i.fields.ApproverEmail) && !_withdrawnIds.has(String(i.fields.RequestID));
     });
     const _reqIdMap = {};
     _myAll.forEach(i=>{
@@ -1999,7 +2033,7 @@ async function showDetail(sysKey,reqId){
             })()
           : '');
 
-    const myPending=apprList.find(a=>(a.fields.ApproverEmail||'').toLowerCase()===(user.email||'').toLowerCase()&&(a.fields.Status||'').trim()==='대기');
+    const myPending=apprList.find(a=>isMyAppr(a.fields.ApproverEmail)&&(a.fields.Status||'').trim()==='대기');
     _currentApprList = apprList; // 전역 저장 — showConfirm onclick에서 참조
     // RD 승인 제외는 전표 내용이 아니라 '결재선이 왜 한 단계 짧은지'에 대한 설명이므로
     // 결재 이력 바로 아래에 둔다. 저장값에 옛 접두어가 붙어 있을 수 있어 제거 후 표시한다.
@@ -2137,7 +2171,17 @@ async function doApproval(){
       alert('이미 처리된 결재 항목입니다.\n다른 창에서 처리되었거나 이미 완료된 항목입니다.');
       await loadAll(true); return;
     }
-    await api('/sites/'+siteId+'/lists/'+aprListId+'/items/'+apprId,'PATCH',{fields:{Status:action==='승인'?'승인':action,ApprovalDate:new Date().toISOString(),Comment:comment}});
+    // 대리로 처리하는 건이면 결재자를 나로 바꿔 기록한다(원래 결재자는 역할 문구에 남긴다).
+    const _origEmail=(_cur.fields.ApproverEmail||''); const _dgi=aacDelegatorOf(_origEmail);
+    const _patch={Status:action==='승인'?'승인':action,ApprovalDate:new Date().toISOString(),Comment:comment};
+    if(_dgi){
+      _patch.ApproverEmail=(user.email||user.username||'');
+      _patch.ApproverName=(user.name||user.email||'');
+      const _r=String(_cur.fields.ApproverRole||'');
+      if(!/·\s*대리\(/.test(_r)) _patch.ApproverRole=_r+' · 대리('+(_cur.fields.ApproverName||_dgi.name||_origEmail)+')';
+      console.log('[AAC] 대리 결재 처리:',_origEmail,'→',_patch.ApproverEmail);
+    }
+    await api('/sites/'+siteId+'/lists/'+aprListId+'/items/'+apprId,'PATCH',{fields:_patch});
     if(action==='반려'){
       await api('/sites/'+siteId+'/lists/'+sys.req+'/items/'+reqId,'PATCH',{fields:{Status:'반려'}});
     }else{
