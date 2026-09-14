@@ -1988,11 +1988,16 @@ async function showDetail(sysKey,reqId){
         const af=a.fields;
         const _o=String(af.ApprovalOrder||'');
         const _r=af.ApproverRole||'';
-        const _rc=_r.startsWith(_o+'차')?_r.slice(_o.length+1).trim():_r;
+        // ' · 대리(원 결재자)' 꼬리를 먼저 떼어 낸다. 남겨 두면 아래 괄호 조립이
+        // '결재자(· 대리(Jimmy Lee))' 처럼 통째로 괄호에 넣어 버린다(대리 처리된 건에서 발생).
+        const _dm=_r.match(/\s*·\s*대리\((.+)\)\s*$/);
+        const _rb=_dm?_r.slice(0,_dm.index):_r;
+        const _rc=_rb.startsWith(_o+'차')?_rb.slice(_o.length+1).trim():_rb;
         const _rp=_rc.replace(/^결재자\s*/,'').replace(/^\((.+)\)$/,'$1').trim();
         // FA 는 저장 역할(1차결재자·회계담당자·이동전/후…)을 ACC 처럼 영문 라벨로 바꿔 보여준다
-        const _lab = sysKey==='FA' ? faRoleLabel(_r) : _rp;
-        const _dr=_lab?`<b>${_o}차</b> 결재자(${escHtml(_lab)})`:`<b>${_o}차</b> 결재자`;
+        const _lab = sysKey==='FA' ? faRoleLabel(_rb) : _rp;
+        const _db=_dm?` <span style="font-size:11px;font-weight:600;color:#7719aa;background:#f6f0fb;border:1px solid #e5d6f2;border-radius:10px;padding:1px 7px;margin-left:4px;white-space:nowrap">대리 · ${escHtml(_dm[1])}</span>`:'';
+        const _dr=(_lab?`<b>${_o}차</b> 결재자(${escHtml(_lab)})`:`<b>${_o}차</b> 결재자`)+_db;
         return`<div class="appr-item">
         <div style="display:flex;align-items:flex-start;flex:1">
           <div class="appr-info">
