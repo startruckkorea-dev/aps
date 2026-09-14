@@ -1996,8 +1996,11 @@ async function showDetail(sysKey,reqId){
         const _rp=_rc.replace(/^결재자\s*/,'').replace(/^\((.+)\)$/,'$1').trim();
         // FA 는 저장 역할(1차결재자·회계담당자·이동전/후…)을 ACC 처럼 영문 라벨로 바꿔 보여준다
         const _lab = sysKey==='FA' ? faRoleLabel(_rb) : _rp;
-        const _db=_dm?` <span style="font-size:11px;font-weight:600;color:#7719aa;background:#f6f0fb;border:1px solid #e5d6f2;border-radius:10px;padding:1px 7px;margin-left:4px;white-space:nowrap">대리 · ${escHtml(_dm[1])}</span>`:'';
-        const _dr=(_lab?`<b>${_o}차</b> 결재자(${escHtml(_lab)})`:`<b>${_o}차</b> 결재자`)+_db;
+        // 저장값은 'Name <mail>' 또는 예전 'Name' 두 형태다 — 양쪽을 읽는다.
+        const _dp=_dm?(()=>{const _m=String(_dm[1]).match(/^(.*?)\s*<([^>]+)>\s*$/);return {n:(_m?_m[1]:_dm[1]).trim(),e:_m?_m[2].trim():''};})():null;
+        const _db=_dp?` <span style="font-size:10px;font-weight:700;letter-spacing:.3px;color:#7719aa;background:#f6f0fb;border:1px solid #e5d6f2;border-radius:10px;padding:1px 8px;margin-left:6px;white-space:nowrap;vertical-align:1px">Delegated</span>`:'';
+        const _dl=_dp?`<div style="font-size:11px;color:#8a6fa8;margin-top:2px">on behalf of <b style="font-weight:600">${escHtml(_dp.n)}</b>${_dp.e?' &middot; '+escHtml(_dp.e):''}</div>`:'';
+        const _dr=(_lab?`<b>${_o}차</b> 결재자(${escHtml(_lab)})`:`<b>${_o}차</b> 결재자`)+_db+_dl;
         return`<div class="appr-item">
         <div style="display:flex;align-items:flex-start;flex:1">
           <div class="appr-info">
@@ -2191,7 +2194,9 @@ async function doApproval(){
       _patch.ApproverEmail=(user.email||user.username||'');
       _patch.ApproverName=(user.name||user.email||'');
       const _r=String(_cur.fields.ApproverRole||'');
-      if(!/·\s*대리\(/.test(_r)) _patch.ApproverRole=_r+' · 대리('+(_cur.fields.ApproverName||_dgi.name||_origEmail)+')';
+      // 원 결재자를 이름 + 메일로 남긴다(치환 뒤 ApproverEmail 은 대리인 것이 되므로
+        // 원 결재자 메일이 사라진다). 표시 쪽은 'Name <mail>' 과 예전 'Name' 양쪽을 읽는다.
+        if(!/·\s*대리\(/.test(_r)) _patch.ApproverRole=_r+' · 대리('+(_cur.fields.ApproverName||_dgi.name||_origEmail)+(_origEmail?' <'+_origEmail+'>':'')+')';
       console.log('[AAC] 대리 결재 처리:',_origEmail,'→',_patch.ApproverEmail);
     }
     await api('/sites/'+siteId+'/lists/'+aprListId+'/items/'+apprId,'PATCH',{fields:_patch});
