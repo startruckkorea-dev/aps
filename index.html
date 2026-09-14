@@ -1999,7 +1999,9 @@ async function showDetail(sysKey,reqId){
         // 저장값은 'Name <mail>' 또는 예전 'Name' 두 형태다 — 양쪽을 읽는다.
         const _dp=_dm?(()=>{const _m=String(_dm[1]).match(/^(.*?)\s*<([^>]+)>\s*$/);return {n:(_m?_m[1]:_dm[1]).trim(),e:_m?_m[2].trim():''};})():null;
         // 한 줄짜리 알약 하나로 합친다. 예전에는 배지 + 아래 별도 줄이라 3줄이 됐다.
-        const _db=_dp?` <span title="on behalf of ${escHtml(_dp.n)}${_dp.e?' ('+escHtml(_dp.e)+')':''}" style="background:#fff4ce;border:1px solid #f2d68c;color:#8a5a00;font-size:10px;font-weight:700;letter-spacing:.2px;border-radius:10px;padding:1px 8px;margin-left:6px;white-space:nowrap;vertical-align:1px">Delegated &middot; ${escHtml(_dp.n)}${_dp.e?`<span style="font-weight:400;opacity:.75"> &middot; ${escHtml(_dp.e)}</span>`:''}</span>`:'';
+        // 상태에 따라 문구를 바꾼다 — 반려 건에 Approved 가 붙으면 안 된다.
+        const _dv=(()=>{const _s=String(af.Status||'').trim();return _s==='승인'||_s==='승인완료'?'Approved on behalf of':_s==='반려'?'Rejected on behalf of':_s.indexOf('철회')===0?'Withdrawn on behalf of':'On behalf of';})();
+        const _db=_dp?` <span title="${_dv} ${escHtml(_dp.n)}${_dp.e?' ('+escHtml(_dp.e)+')':''}" style="background:#fff4ce;border:1px solid #f2d68c;color:#8a5a00;font-size:10px;font-weight:600;letter-spacing:.1px;border-radius:10px;padding:1px 9px;margin-left:6px;white-space:nowrap;vertical-align:1px"><span style="font-weight:400;opacity:.8">${_dv} </span><b style="font-weight:700">${escHtml(_dp.n)}</b>${_dp.e?`<span style="font-weight:400;opacity:.75"> &middot; ${escHtml(_dp.e)}</span>`:''}</span>`:'';
         const _dr=(_lab?`<b>${_o}차</b> 결재자(${escHtml(_lab)})`:`<b>${_o}차</b> 결재자`)+_db;
         return`<div class="appr-item">
         <div style="display:flex;align-items:flex-start;flex:1">
