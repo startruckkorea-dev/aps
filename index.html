@@ -1201,17 +1201,25 @@ async function boot(account){
    처리하는 순간 그 행의 결재자를 나(대리인)로 바꿔 기록을 남긴다 — 대리인 본인의 결재로 남긴다는 규칙과 같다.
    조회가 실패하면 대리 건 없이 평소대로 동작한다(대리는 편의 기능이라 실패로 화면을 막지 않는다). */
 const LIST_AAC = 'AAC_Requests';
+// 날짜 값이 「날짜 및 시간」 열(UTC ISO)로 와도, 텍스트('YYYY-MM-DD HH:mm')로 와도 KST 문자열로 맞춘다.
+function _aacKst(v){
+  const t=String(v==null?'':v).trim(); if(!t) return '';
+  if(/^\d{4}-\d{2}-\d{2}([ T]\d{2}:\d{2})?$/.test(t)) return t.replace('T',' ');
+  const d=new Date(t); if(isNaN(d)) return t;
+  const k=new Date(d.getTime()+9*3600*1000), p2=n=>String(n).padStart(2,'0');
+  return k.getUTCFullYear()+'-'+p2(k.getUTCMonth()+1)+'-'+p2(k.getUTCDate())+' '+p2(k.getUTCHours())+':'+p2(k.getUTCMinutes());
+}
 let _aacDelegated = new Map();   // 위임자 이메일(소문자) → { name, title }
 async function loadMyDelegations(){
   _aacDelegated = new Map();
   try{
     const me=[(user&&user.email||'').toLowerCase(),(user&&user.username||'').toLowerCase()].filter(Boolean);
     if(!me.length) return;
-    const now=new Date(Date.now()+9*3600*1000).toISOString().slice(0,19);
+    const now=new Date(Date.now()+9*3600*1000).toISOString().slice(0,16).replace('T',' ');   // KST 'YYYY-MM-DD HH:mm'
     const res=await apiAll('/sites/'+siteId+'/lists/'+LIST_AAC+"/items?$expand=fields&$top=500&$filter=fields/Status eq '승인완료'");
     (res.value||[]).map(x=>x.fields).forEach(f=>{
       if(!me.includes(String(f.DeputyEmail||'').trim().toLowerCase())) return;
-      const s=String(f.StartDate||'').slice(0,19), e=String(f.EndDate||'').slice(0,19);
+      const s=_aacKst(f.StartDate), e=_aacKst(f.EndDate);
       if(!s||!e||s>now||e<now) return;
       const dg=String(f.RequesterEmail||'').trim().toLowerCase();
       if(dg) _aacDelegated.set(dg,{name:f.RequesterName||dg,title:f.Title||''});
