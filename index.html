@@ -2459,10 +2459,18 @@ async function loadMyApprovedPage(force=false) {
         ticketStatusMap[rid] = st;
       });
 
+      /* 대리 처리된 건도 내 기록에 포함한다.
+         AAC 대리 결재는 ApproverEmail 을 대리인 것으로 치환하고, 원래 결재자(=나)를
+         ApproverRole 뒤에 '· 대리(이름 <메일>)' 로 남긴다. 그래서 ApproverEmail 만
+         보면 「내가 없는 동안 내 권한으로 처리된 건」이 어디에도 나오지 않았다.
+         권한을 맡긴 사람이 그 권한으로 무엇이 처리됐는지 볼 수 없는 것은
+         위임 기능에서 빠지면 안 되는 부분이다. */
       aprData.value
         .filter(i => {
           const s = (i.fields.Status && i.fields.Status.Value ? i.fields.Status.Value : i.fields.Status || '').trim();
-          return (i.fields.ApproverEmail||'').toLowerCase() === myEmail && (s === '승인' || s === '반려');
+          if (s !== '승인' && s !== '반려') return false;
+          const own = (i.fields.ApproverEmail||'').toLowerCase() === myEmail;
+          return own || apsDelegatedFor(i.fields.ApproverRole) === myEmail;
         })
         .forEach(i => {
           const f = i.fields;
@@ -2478,6 +2486,9 @@ async function loadMyApprovedPage(force=false) {
             requestDate: rf.RequestDate || '',
             approver:    f.ApproverName || (_myApvTarget ? (_myApvTarget.name||'') : (user.name||'').split(' ')[0]) || '-',
             approverEmail: f.ApproverEmail || myEmail,
+            // 대리 처리된 건이면 누가 대신 처리했는지 남긴다(표기·필터에 쓴다).
+            byDeputy:    apsDelegatedFor(f.ApproverRole) === myEmail
+                           ? (f.ApproverName || f.ApproverEmail || '') : '',
             myStatus:    s,
             aprOrder:    f.ApprovalOrder || '',
             totalAprs:   totalMap[String(f.RequestID)] || '',
@@ -2506,6 +2517,17 @@ async function loadMyApprovedPage(force=false) {
       + _failed.map(f => '· ' + f).join('\n')
       + '\n\n새로고침을 눌러 다시 시도해 주세요.');
   }
+}
+
+/* ApproverRole 의 '· 대리(이름 <메일>)' 꼬리에서 원래 결재자 메일을 꺼낸다.
+   메일이 없는 옛 형식('· 대리(이름)')은 빈 문자열을 돌려주므로 매칭되지 않는다.
+   서버 필터로는 부분 문자열을 거를 수 없어 클라이언트에서 판정한다 —
+   이 화면은 이미 전 시스템 결재행을 받아 오므로 추가 조회가 없다. */
+function apsDelegatedFor(role) {
+  const m = String(role == null ? '' : role).match(/\u00B7\s*대리\(([\s\S]+)\)\s*$/);
+  if (!m) return '';
+  const im = m[1].match(/<([^>]+)>\s*$/);
+  return im ? im[1].trim().toLowerCase() : '';
 }
 
 function renderMyApprovedTable(resetPage) {
@@ -2560,8 +2582,8 @@ function renderMyApprovedTable(resetPage) {
       <td style="padding:6px 8px;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.74rem" title="${escHtml(r.title||'')}">${escHtml(r.title||'')}</td>
       <td style="padding:6px 8px;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#334155;font-size:.74rem" title="${escHtml(r.purpose||'')}">${r.purpose ? escHtml(r.purpose) : '<span style="color:#cbd5e1">-</span>'}</td>
       <td style="padding:6px 8px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#374151;font-size:.74rem" title="${escHtml(r.requester||'')}">${escHtml(r.requester||'')}</td>
-      <td style="padding:6px 8px;max-width:170px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#1e293b;font-size:.74rem" title="${escHtml(r.approverEmail||r.approver||'')}">
-        ${r.approverEmail ? escHtml(r.approverEmail) : (r.approver ? escHtml(r.approver) : '<span style="color:#cbd5e1">-</span>')}
+      <td style="padding:6px 8px;max-width:210px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#1e293b;font-size:.74rem" title="${escHtml(r.approverEmail||r.approver||'')}${r.byDeputy ? ' — ' + escHtml(r.byDeputy) + ' 님이 대리로 처리' : ''}">
+        ${r.byDeputy ? `<span style="margin-right:5px;background:#fff4ce;border:1px solid #f2d68c;color:#8a5a00;border-radius:9px;padding:0 6px;font-size:.6rem;font-weight:700">대리</span>` : ''}${r.approverEmail ? escHtml(r.approverEmail) : (r.approver ? escHtml(r.approver) : '<span style="color:#cbd5e1">-</span>')}
       </td>
       <td style="padding:6px 8px;text-align:left;color:#64748b;white-space:nowrap">${r.aprOrder}${r.totalAprs?'/'+r.totalAprs:''}차</td>
       <td style="padding:6px 8px;text-align:left">
