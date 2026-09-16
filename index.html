@@ -1228,7 +1228,7 @@ async function loadMyDelegations(){
       const s=_aacKst(f.StartDate), e=_aacKst(f.EndDate);
       if(!s||!e||s>now||e<now) return;
       const dg=String(f.RequesterEmail||'').trim().toLowerCase();
-      if(dg) _aacDelegated.set(dg,{name:f.RequesterName||dg,title:f.Title||''});
+      if(dg) _aacDelegated.set(dg,{name:f.RequesterName||dg,title:f.Title||'',from:s,to:e});
     });
     if(_aacDelegated.size) console.log('[AAC] 대리 결재 가능:',[..._aacDelegated.keys()].join(', '));
   }catch(e){ console.warn('[AAC] 위임 조회 실패 — 내 결재만 표시:',e&&e.message); }
@@ -1238,7 +1238,15 @@ function isMyAppr(email){
   const e=String(email||'').toLowerCase();
   if(!e) return false;
   if(e===(user&&user.email||'').toLowerCase()||e===(user&&user.username||'').toLowerCase()) return true;
-  return _aacDelegated.has(e);
+  /* 맵에 있어도 기간이 지났으면 내 것이 아니다. 로그인 후 오래 열어 둔 탭에서
+     만료된 위임이 결재함에 남아 보이던 것을 막는다(쓰기는 aacPatchWith 가 다시 막는다). */
+  const d=_aacDelegated.get(e);
+  if(!d) return false;
+  if(d.from && d.to){
+    const _n=new Date(Date.now()+9*3600*1000).toISOString().slice(0,16).replace('T',' ');
+    if(d.from > _n || d.to < _n) return false;
+  }
+  return true;
 }
 function aacDelegatorOf(email){ return _aacDelegated.get(String(email||'').toLowerCase())||null; }
 
@@ -1751,6 +1759,17 @@ function formatComment(comment, sysKey) {
   // HTML 태그·엔티티 제거 후 텍스트만
   return escHtml(comment.replace(/&#58;/g,':').replace(/<[^>]+>/g,'').replace(/&[a-z]+;/g,' ').trim());
 }
+/* FA 의 Location 은 선택값과 직접입력 주소가 두 열로 나뉘어 저장된다.
+   '직접입력' 을 고르면 Location='직접입력' 이고 실제 주소는 LocationManual 에 들어간다.
+   예전에는 f.Location 만 보여줘 APS 상세에 「직접입력」 네 글자만 떴다 —
+   결재자가 어디에 설치되는 자산인지 알 수 없었다. FA 화면은 두 줄로 나눠 보여주는데
+   APS 는 요약 한 줄이라 괄호로 붙인다. */
+function _faLoc(f){
+  const loc=String(f.Location||'').trim(), man=String(f.LocationManual||'').trim();
+  if(!loc) return man || '-';
+  if(!man) return loc;
+  return loc === '직접입력' ? man : (loc + ' (' + man + ')');
+}
 function escHtml(str){return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
 // ──────────────────────────────────────────────────────────────
 
@@ -1915,7 +1934,7 @@ async function showDetail(sysKey,reqId){
     }
     else if(sysKey==='FA'){
       info+=rowRaw('FA 유형',`<span style="background:#e8f4ff;color:#0078d4;padding:2px 8px;border-radius:10px;font-size:12px">${escHtml(f.FAType||'')}</span>`)+(f.FACode?rowRaw('FA Code',`<strong style="color:#107c10">${escHtml(toText(f.FACode))}</strong>`):'');
-      if(f.FAType==='Registration') info+=sec('고정자산 정보')+row('자산명',f.Description)+row('Acquisition Date',f.AcquisitionDate)+row('CCTR',f.CCTR)+row('GL Account',f.GLAccount)+row('Asset Class',f.AssetClass)+row('Useful Life',f.UsefulLife)+row('Location',f.Location)+row('Asset Value',f.AssetValue?Number(f.AssetValue).toLocaleString()+' 원':'-')+row('Vendor Code/Name',f.VendorInfo)+row('Model/Serial No.',f.SerialNumber||'-')+sec('신청사유')+rowFull('Purpose',f.Purpose);
+      if(f.FAType==='Registration') info+=sec('고정자산 정보')+row('자산명',f.Description)+row('Acquisition Date',f.AcquisitionDate)+row('CCTR',f.CCTR)+row('GL Account',f.GLAccount)+row('Asset Class',f.AssetClass)+row('Useful Life',f.UsefulLife)+row('Location',_faLoc(f))+row('Asset Value',f.AssetValue?Number(f.AssetValue).toLocaleString()+' 원':'-')+row('Vendor Code/Name',f.VendorInfo)+row('Model/Serial No.',f.SerialNumber||'-')+sec('신청사유')+rowFull('Purpose',f.Purpose);
       else if(f.FAType==='Disposal') info+=sec('처분 정보')+row('Disposal Date',f.DisposalDate)+row('Location',f.Location)+row('Type',f.DisposalType)+row('Disposal Method',f.DisposalMethod)+rowFull('Reason',f.Reason);
       else if(f.FAType==='Transfer') info+=sec('이동 부서정보')+row('Submission Date',f.SubmissionDate)+row('Transfer Date',f.TransferDate)+row('이동전 팀',f.OutTeam)+row('이동전 CCTR',f.PrevCCTR)+row('이동전 Location',f.PrevLocation)+row('이동후 팀',f.InTeam)+row('이동후 CCTR',f.NewCCTR)+row('이동후 Location',f.NewLocation)+rowFull('이동 사유',f.Reason);
       info+=sec('첨부파일')+parseFiles(f.AttachedFiles);
