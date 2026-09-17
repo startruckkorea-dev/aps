@@ -164,6 +164,8 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#f5f7f
 .st-반려{background:#fee2e2;color:#991b1b}.st-반려::before{background:#ef4444}
 .st-대기잠김{background:#f1f5f9;color:#64748b}.st-대기잠김::before{background:#94a3b8}
 .st-철회{background:#f1f5f9;color:#64748b}.st-철회::before{background:#94a3b8}
+/* BP 처리중 — 관리자가 처리 이력을 남긴 진행 건. 진행중 배지와 같은 파랑 */
+.st-처리중{background:#dbeafe;color:#1d4ed8}.st-처리중::before{background:#3b82f6}
 
 /* ── Action buttons ── */
 .btn-approve{background:#16a34a;color:#fff;border:none;border-radius:20px;padding:5px 14px;font-size:.73rem;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s;white-space:nowrap}
@@ -1302,7 +1304,7 @@ function summary(sysKey,rf){
 }
 
 function stBadge(st){
-  const map={'대기':'st-대기','승인':'st-승인','반려':'st-반려','대기(잠김)':'st-대기잠김','승인완료':'st-승인','철회':'st-철회','철회(잠김)':'st-철회'};
+  const map={'대기':'st-대기','처리중':'st-처리중','승인':'st-승인','반려':'st-반려','대기(잠김)':'st-대기잠김','승인완료':'st-승인','철회':'st-철회','철회(잠김)':'st-철회'};
   return`<span class="st-pill ${map[st]||'st-대기잠김'}">${st||'대기'}</span>`;
 }
 
@@ -1939,6 +1941,21 @@ async function showDetail(sysKey,reqId){
     else if(sysKey==='BP'){
       info+=sec('BP 신청 정보')+row('Type',f.BPType)+row('Sub Category',f.SubCategory)+row('BP Code',f.BPCode||'-')+row('BP Name',f.BPName||'-')+(f.Description?rowFull('Description',f.Description):'');
       info+=sec('첨부파일')+parseFiles(f.AttachedFiles);
+      // 처리 이력 — BP Master 관리자 탭에서 남긴 ProcessLog(JSON 배열)를 열람만 한다. 입력은 BP Master 에서.
+      {
+        let _pl=[];
+        const _tp=v=>{ try{ const a=JSON.parse(v); return Array.isArray(a)?a:null; }catch(e){ return null; } };
+        if(f.ProcessLog) _pl=_tp(f.ProcessLog)||_tp(toText(f.ProcessLog))||[];
+        info+=sec('처리 이력')+(_pl.length
+          ? '<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;max-height:240px;overflow-y:auto">'
+            +_pl.map((l,i)=>'<div style="padding:8px 12px;'+(i===_pl.length-1?'':'border-bottom:1px solid #e2e8f0')+'">'
+              +'<div style="display:flex;justify-content:space-between;gap:8px;font-size:11px;color:#a19f9d">'
+              +'<span style="color:#1d4ed8;font-weight:600">'+escHtml(l.name||l.email||'')+(l.name&&l.email?' <span style="color:#a19f9d;font-weight:400">'+escHtml(l.email)+'</span>':'')+'</span>'
+              +'<span>'+escHtml(l.at||'')+'</span></div>'
+              +'<div style="font-size:13px;color:#323130;white-space:pre-wrap;word-break:break-word;margin-top:3px">'+escHtml(l.text||'')+'</div></div>').join('')
+            +'</div>'
+          : '<div style="padding:12px;text-align:center;color:#a19f9d;font-size:.78rem">등록된 처리 이력이 없습니다.</div>');
+      }
     }
     else if(sysKey==='FA'){
       info+=rowRaw('FA 유형',`<span style="background:#e8f4ff;color:#0078d4;padding:2px 8px;border-radius:10px;font-size:12px">${escHtml(f.FAType||'')}</span>`)+(f.FACode?rowRaw('FA Code',`<strong style="color:#107c10">${escHtml(toText(f.FACode))}</strong>`):'');
@@ -2487,7 +2504,8 @@ async function loadMyApprovedPage(force=false) {
       Object.keys(aprByReq).forEach(rid => {
         const aprStatuses = aprByReq[rid].map(a => (a.Status && a.Status.Value ? a.Status.Value : a.Status || '').trim());
         const rf = reqMap[rid] || {};
-        let st = rf.Status || '대기';
+        // BP 처리중(관리자 처리 이력 등록)은 결재가 끝난 것이 아니므로 결재행을 못 읽은 예외 경로에서도 진행중으로 본다
+        let st = (String(rf.Status||'').trim()==='처리중' ? '진행중' : rf.Status) || '대기';
         if (aprStatuses.some(s => s === '반려')) st = '반려';
         else if (aprStatuses.length && aprStatuses.every(s => s === '승인')) st = '승인완료';
         else if (aprStatuses.some(s => s === '대기')) st = '진행중';
@@ -2861,7 +2879,7 @@ async function loadMyRequestsPage(force=false) {
           const rid = String(r.id);
           const aprs = aprMap[rid] || [];
           const aprStatuses = aprs.map(a => (a.Status && a.Status.Value ? a.Status.Value : a.Status || '').trim());
-          let reqStatus = rf.Status || '대기';
+          let reqStatus = (String(rf.Status||'').trim()==='처리중' ? '진행중' : rf.Status) || '대기';
           if (aprStatuses.some(s => s === '반려')) reqStatus = '반려';
           else if (aprStatuses.length && aprStatuses.every(s => s === '승인')) reqStatus = '승인완료';
           else if (aprStatuses.some(s => s === '대기')) reqStatus = '진행중';
@@ -3107,7 +3125,7 @@ async function loadAdminPage(force=false) {
         const rid = String(r.id);
         const aprs = aprMap[rid] || [];
         const aprStatuses = aprs.map(a => (a.Status && a.Status.Value ? a.Status.Value : a.Status || '').trim());
-        let reqStatus = rf.Status || '대기';
+        let reqStatus = (String(rf.Status||'').trim()==='처리중' ? '진행중' : rf.Status) || '대기';
         if (aprStatuses.some(s => s === '반려')) reqStatus = '반려';
         else if (aprStatuses.length && aprStatuses.every(s => s === '승인')) reqStatus = '승인완료';
         else if (aprStatuses.some(s => s === '대기')) reqStatus = '진행중';
