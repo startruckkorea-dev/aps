@@ -1946,15 +1946,16 @@ async function showDetail(sysKey,reqId){
         let _pl=[];
         const _tp=v=>{ try{ const a=JSON.parse(v); return Array.isArray(a)?a:null; }catch(e){ return null; } };
         if(f.ProcessLog) _pl=_tp(f.ProcessLog)||_tp(toText(f.ProcessLog))||[];
+        // BP Master 와 같은 SSC 「업무 처리 의견」 모양(날짜 · 작성자 · 내용 카드)
         info+=sec('처리 이력')+(_pl.length
-          ? '<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;max-height:240px;overflow-y:auto">'
-            +_pl.map((l,i)=>'<div style="padding:8px 12px;'+(i===_pl.length-1?'':'border-bottom:1px solid #e2e8f0')+'">'
-              +'<div style="display:flex;justify-content:space-between;gap:8px;font-size:11px;color:#a19f9d">'
-              +'<span style="color:#1d4ed8;font-weight:600">'+escHtml(l.name||l.email||'')+(l.name&&l.email?' <span style="color:#a19f9d;font-weight:400">'+escHtml(l.email)+'</span>':'')+'</span>'
-              +'<span>'+escHtml(l.at||'')+'</span></div>'
-              +'<div style="font-size:13px;color:#323130;white-space:pre-wrap;word-break:break-word;margin-top:3px">'+escHtml(l.text||'')+'</div></div>').join('')
+          ? '<div style="max-height:200px;overflow-y:auto">'
+            +_pl.map(l=>'<div style="background:#f0f6ff;border:1px solid #c7e0f4;border-radius:6px;padding:8px 12px;margin-bottom:8px">'
+              +'<div style="font-size:11px;color:#a19f9d;margin-bottom:3px">'+escHtml(l.at||'')+'</div>'
+              +'<div style="font-size:12px;color:#605e5c;margin-bottom:3px">작성자: <span style="font-weight:600;color:#0078d4">'+escHtml(l.email||l.name||'')+' (관리자)</span></div>'
+              +'<div style="font-size:12px;color:#605e5c;margin-bottom:2px">내용:</div>'
+              +'<div style="font-size:13px;color:#323130;white-space:pre-wrap;word-break:break-word;padding-left:8px">'+escHtml(l.text||'')+'</div></div>').join('')
             +'</div>'
-          : '<div style="padding:12px;text-align:center;color:#a19f9d;font-size:.78rem">등록된 처리 이력이 없습니다.</div>');
+          : '<div style="font-size:12px;color:#a19f9d;padding:6px 0">등록된 처리 이력이 없습니다.</div>');
       }
     }
     else if(sysKey==='FA'){
