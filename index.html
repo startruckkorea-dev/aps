@@ -164,8 +164,8 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#f5f7f
 .st-반려{background:#fee2e2;color:#991b1b}.st-반려::before{background:#ef4444}
 .st-대기잠김{background:#f1f5f9;color:#64748b}.st-대기잠김::before{background:#94a3b8}
 .st-철회{background:#f1f5f9;color:#64748b}.st-철회::before{background:#94a3b8}
-/* BP 처리중 — 관리자가 처리 이력을 남긴 진행 건. 진행중 배지와 같은 파랑 */
-.st-처리중{background:#dbeafe;color:#1d4ed8}.st-처리중::before{background:#3b82f6}
+/* BP 접수됨 — 관리자가 처리 이력을 남긴 진행 건(SSC 접수됨과 같은 색). 예전 값 처리중도 같은 모양 */
+.st-접수됨{background:#e0e7ff;color:#4338ca}.st-접수됨::before{background:#6366f1}
 
 /* ── Action buttons ── */
 .btn-approve{background:#16a34a;color:#fff;border:none;border-radius:20px;padding:5px 14px;font-size:.73rem;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s;white-space:nowrap}
@@ -1304,7 +1304,7 @@ function summary(sysKey,rf){
 }
 
 function stBadge(st){
-  const map={'대기':'st-대기','처리중':'st-처리중','승인':'st-승인','반려':'st-반려','대기(잠김)':'st-대기잠김','승인완료':'st-승인','철회':'st-철회','철회(잠김)':'st-철회'};
+  const map={'대기':'st-대기','접수됨':'st-접수됨','처리중':'st-접수됨','승인':'st-승인','반려':'st-반려','대기(잠김)':'st-대기잠김','승인완료':'st-승인','철회':'st-철회','철회(잠김)':'st-철회'};
   return`<span class="st-pill ${map[st]||'st-대기잠김'}">${st||'대기'}</span>`;
 }
 
@@ -2505,8 +2505,8 @@ async function loadMyApprovedPage(force=false) {
       Object.keys(aprByReq).forEach(rid => {
         const aprStatuses = aprByReq[rid].map(a => (a.Status && a.Status.Value ? a.Status.Value : a.Status || '').trim());
         const rf = reqMap[rid] || {};
-        // BP 처리중(관리자 처리 이력 등록)은 결재가 끝난 것이 아니므로 결재행을 못 읽은 예외 경로에서도 진행중으로 본다
-        let st = (String(rf.Status||'').trim()==='처리중' ? '진행중' : rf.Status) || '대기';
+        // BP 접수됨(관리자 처리 이력 등록 · 예전 값 처리중)은 결재가 끝난 것이 아니므로 결재행을 못 읽은 예외 경로에서도 진행중으로 본다
+        let st = (['접수됨','처리중'].includes(String(rf.Status||'').trim()) ? '진행중' : rf.Status) || '대기';
         if (aprStatuses.some(s => s === '반려')) st = '반려';
         else if (aprStatuses.length && aprStatuses.every(s => s === '승인')) st = '승인완료';
         else if (aprStatuses.some(s => s === '대기')) st = '진행중';
@@ -2880,7 +2880,7 @@ async function loadMyRequestsPage(force=false) {
           const rid = String(r.id);
           const aprs = aprMap[rid] || [];
           const aprStatuses = aprs.map(a => (a.Status && a.Status.Value ? a.Status.Value : a.Status || '').trim());
-          let reqStatus = (String(rf.Status||'').trim()==='처리중' ? '진행중' : rf.Status) || '대기';
+          let reqStatus = (['접수됨','처리중'].includes(String(rf.Status||'').trim()) ? '진행중' : rf.Status) || '대기';
           if (aprStatuses.some(s => s === '반려')) reqStatus = '반려';
           else if (aprStatuses.length && aprStatuses.every(s => s === '승인')) reqStatus = '승인완료';
           else if (aprStatuses.some(s => s === '대기')) reqStatus = '진행중';
@@ -3126,7 +3126,7 @@ async function loadAdminPage(force=false) {
         const rid = String(r.id);
         const aprs = aprMap[rid] || [];
         const aprStatuses = aprs.map(a => (a.Status && a.Status.Value ? a.Status.Value : a.Status || '').trim());
-        let reqStatus = (String(rf.Status||'').trim()==='처리중' ? '진행중' : rf.Status) || '대기';
+        let reqStatus = (['접수됨','처리중'].includes(String(rf.Status||'').trim()) ? '진행중' : rf.Status) || '대기';
         if (aprStatuses.some(s => s === '반려')) reqStatus = '반려';
         else if (aprStatuses.length && aprStatuses.every(s => s === '승인')) reqStatus = '승인완료';
         else if (aprStatuses.some(s => s === '대기')) reqStatus = '진행중';
