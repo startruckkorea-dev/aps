@@ -713,7 +713,7 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#f5f7f
       <div style="font-size:.83rem;color:#854d0e;margin-bottom:12px">
         ⚠️ STK Contract 결재는 계약서 전문 검토 · 체크리스트 작성 · PDF 워터마크 및 전자서명 암호화 처리가 포함되어 있어 APS 요약 화면에서 결재를 진행할 수 없습니다.<br><br>반드시 SCC 시스템에서 직접 확인 후 승인해 주세요.
       </div>
-      <button onclick="openSccFromConfirm()"
+      <button onclick="openSysFromConfirm('SCC')"
         style="width:100%;padding:10px;background:#0078d4;color:#fff;border:none;border-radius:6px;font-size:.88rem;font-weight:700;cursor:pointer">
         🔗 SCC 결재 시스템으로 이동
       </button>
@@ -722,7 +722,7 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#f5f7f
       <div style="font-size:.83rem;color:#854d0e;margin-bottom:12px">
         ⚠️ BP Master Data 결재는 추가 Code 검증, 입력 등의 작업으로 반드시 해당 시스템에서 직접 확인 후 승인해주세요.
       </div>
-      <button onclick="window.open('https://bp-master.startruckkorea.com','_blank');closeConfirm();"
+      <button onclick="openSysFromConfirm('BP')"
         style="width:100%;padding:10px;background:#0078d4;color:#fff;border:none;border-radius:6px;font-size:.88rem;font-weight:700;cursor:pointer">
         🔗 BP Master 결재 시스템으로 이동
       </button>
@@ -731,7 +731,7 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#f5f7f
       <div style="font-size:.83rem;color:#92400e;margin-bottom:12px">
         ⚠️ FA Registration 결재는 추가 Code 검증, 입력 등의 작업으로 반드시 해당 시스템에서 직접 확인 후 승인해주세요.
       </div>
-      <button onclick="window.location.href='https://fa.startruckkorea.com';closeConfirm();"
+      <button onclick="openSysFromConfirm('FA')"
         style="width:100%;padding:10px;background:#0078d4;color:#fff;border:none;border-radius:6px;font-size:.88rem;font-weight:700;cursor:pointer">
         🔗 FA Registration 결재 시스템으로 이동
       </button>
@@ -781,14 +781,18 @@ const SYSTEMS=[
 /* 결재하러 넘어가는 주소. SCC 는 특정 건으로 바로 들어가게 ?tab=approval&id=<신청 ID> 를 붙인다.
    예전에는 루트로만 보내 SCC 첫 화면(신청서 작성 = Contract Checklist)이 떠서, 대표님이 결재하려다
    매번 체크리스트 작성 화면으로 가셨다(2026-09-21 신고). SCC 가 이 값을 받아 결재함 · 상세를 연다. */
-/* 시스템 카드의 「바로가기」 — SCC 에 내가 결재할 건이 있으면 결재함으로 연다(없으면 첫 화면=신청서 작성). */
+/* 딥링크(?tab=approval&id=)를 받아 결재함 · 상세를 여는 시스템.
+   SCC(d5737d8)에 이어 BP · FA 도 받는 쪽을 넣었다(2026-09-21). 셋 다 APS 에서 승인을 막고
+   해당 시스템으로 보내는 곳이라, 첫 화면(작성 화면)에 떨어지면 결재자가 건을 다시 찾아야 했다. */
+const DEEPLINK_SYS = ['SCC','BP','FA'];
+/* 시스템 카드의 「바로가기」 — 내가 결재할 건이 있으면 결재함으로 연다(없으면 첫 화면). */
 function sysCardUrl(sys, pendingCnt){
-  if(sys && sys.key==='SCC' && pendingCnt>0) return sys.url.replace(/\/?$/,'/')+'?tab=approval';
+  if(sys && DEEPLINK_SYS.includes(sys.key) && pendingCnt>0) return sys.url.replace(/\/?$/,'/')+'?tab=approval';
   return sys ? sys.url : '#';
 }
 function sysApproveUrl(sys, reqId){
   if(!sys) return '#';
-  if(sys.key==='SCC' && reqId){
+  if(DEEPLINK_SYS.includes(sys.key) && reqId){
     return sys.url.replace(/\/?$/,'/')+'?tab=approval&id='+encodeURIComponent(reqId);
   }
   return sys.url;
@@ -2244,10 +2248,11 @@ function showConfirm(apprId,action,reqId,sysKey,apprRole='',apprOrder=0){
   document.getElementById('confirm-modal').classList.add('open');
 }
 function closeConfirm(){document.getElementById('confirm-modal').classList.remove('open');_pending=null;}
-/* 승인을 누른 그 건으로 SCC 를 연다. closeConfirm 이 _pending 을 비우므로 먼저 읽는다. */
-function openSccFromConfirm(){
+/* 승인을 누른 그 건으로 해당 시스템(SCC · BP · FA)을 연다. closeConfirm 이 _pending 을 비우므로 먼저 읽는다.
+   모두 새 탭으로 연다 — FA 만 같은 탭(location.href)으로 열어 APS 화면이 사라지던 것도 맞췄다. */
+function openSysFromConfirm(key){
   var reqId=_pending&&_pending.reqId;
-  window.open(sysApproveUrl(SYSTEMS.find(function(s){return s.key==='SCC';}),reqId),'_blank');
+  window.open(sysApproveUrl(SYSTEMS.find(function(s){return s.key===key;}),reqId),'_blank');
   closeConfirm();
 }
 
