@@ -2070,6 +2070,11 @@ async function showDetail(sysKey,reqId){
       const cur=String(f.Currency||'KRW').toUpperCase();
       const rate=(cur!=='KRW' && Number(f.ExchangeRate)>0) ? Number(f.ExchangeRate) : 1;
       const n0=v=>Math.round(Number(v)||0).toLocaleString();
+      // CTR PR 과 같은 자릿수 — 통화 금액은 KRW 정수 · 외화 소수 둘째 자리, 수량은 소수 둘째 자리까지(09-22)
+      const _d=cur==='KRW'?0:2, _f=Math.pow(10,_d);
+      const rc=x=>Math.round(((Number(x)||0)+Number.EPSILON)*_f)/_f;
+      const fc=x=>(Number(x)||0).toLocaleString('en-US',{minimumFractionDigits:_d,maximumFractionDigits:_d});
+      const fq=q=>{const v=parseFloat(q);return (isNaN(v)||!v?1:v).toLocaleString('en-US',{maximumFractionDigits:2});};
       const goods=_json(f.GoodsJSON), accL=_json(f.AccountLinesJSON);
       const TH='padding:7px 9px;font-weight:600;color:#334155;background:#EEF2F7;border-bottom:1px solid #d9dee6;white-space:nowrap';
       const TD='padding:6px 9px;border-bottom:1px solid #edf0f4;vertical-align:top';
@@ -2089,12 +2094,12 @@ async function showDetail(sysKey,reqId){
       if(goods.length){
         let origTotal=0;
         const body=goods.map(g=>{
-          const sub=(Number(g.amount)||0)*(Number(g.qty)||1); origTotal+=sub;
+          const sub=rc((Number(g.amount)||0)*(parseFloat(g.qty)||1)); origTotal=rc(origTotal+sub);
           const krw=cur!=='KRW'?`<div style="color:#a19f9d;font-size:.7rem">≈ ${n0(sub*rate)} KRW</div>`:'';
-          return `<tr><td style="${TD}">${escHtml(toText(g.desc||'-'))}</td><td style="${TD};text-align:center">${escHtml(String(g.qty||1))}</td>`
-            +`<td style="${TD};text-align:right">${(Number(g.amount)||0).toLocaleString()}</td><td style="${TD};text-align:right;white-space:nowrap">${sub.toLocaleString()} ${cur}${krw}</td></tr>`;
+          return `<tr><td style="${TD}">${escHtml(toText(g.desc||'-'))}</td><td style="${TD};text-align:center">${fq(g.qty)}</td>`
+            +`<td style="${TD};text-align:right">${fc(g.amount)}</td><td style="${TD};text-align:right;white-space:nowrap">${fc(sub)} ${cur}${krw}</td></tr>`;
         }).join('');
-        const foot=`<tr><td colspan="3" style="${TF};text-align:right">TOTAL</td><td style="${TF};text-align:right;white-space:nowrap">${origTotal.toLocaleString()} ${cur}${cur!=='KRW'?`<div style="font-weight:400;color:#605e5c;font-size:.7rem">＝ ${n0(f.TotalAmount)} KRW</div>`:''}</td></tr>`;
+        const foot=`<tr><td colspan="3" style="${TF};text-align:right">TOTAL</td><td style="${TF};text-align:right;white-space:nowrap">${fc(origTotal)} ${cur}${cur!=='KRW'?`<div style="font-weight:400;color:#605e5c;font-size:.7rem">＝ ${n0(f.TotalAmount)} KRW</div>`:''}</td></tr>`;
         info+=sec('Description of Goods')+tbl([['Description of Goods'],['Quantity','center'],['Unit Price','right'],['Sub Total (Excl. VAT)','right']],body,foot);
       } else info+=sec('Description of Goods')+empty;
 
