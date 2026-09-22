@@ -1336,6 +1336,33 @@ function stBadge(st){
 function resetPages(){_pages={};}
 function goPage(sysKey,p){_pages[sysKey]=p;renderAll();}
 
+// ── 페이지 이동 (APS 공통 — IT Ticket 과 같은 함수) ───────────────────────
+// My Approvals Record · My Requests 는 쪽 번호를 전부 늘어놓아 292건이면 1 … 20 이 한 줄에 나왔다(09-22 지적).
+// 관리자 탭은 앞뒤 2칸(5칸)이라 화면마다 달랐다. 최대 7칸을 이어서 보이는 창 + 처음(«) · 이전(‹) · 다음(›) · 마지막(»)으로 통일한다.
+// 창은 끝에 가까워도 7칸을 채워 버튼 위치가 흔들리지 않는다. cur 는 0 부터, mk(쪽) 은 onclick 에 넣을 코드.
+function apsPagerHtml(cur, pages, mk) {
+  if (!pages || pages <= 1) return '';
+  cur = Math.max(0, Math.min(cur, pages - 1));
+  const b = (on, act, label, page, title) =>
+    '<button ' + (on ? 'onclick="' + mk(page) + '"' : 'disabled') +
+    (title ? ' title="' + title + '"' : '') +
+    ' style="min-width:30px;padding:4px 9px;border-radius:4px;font-size:.8rem;font-family:inherit;' +
+    'border:1px solid ' + (act ? '#0078d4' : on ? '#d2d0ce' : '#edebe9') + ';' +
+    'background:' + (act ? '#0078d4' : on ? '#fff' : '#f3f2f1') + ';' +
+    'color:' + (act ? '#fff' : on ? '#323130' : '#a19f9d') + ';' +
+    'font-weight:' + (act ? '700' : '400') + ';' +
+    'cursor:' + (on ? 'pointer' : 'default') + '">' + label + '</button>';
+  const start = Math.max(0, Math.min(cur - 3, pages - 7));
+  const end   = Math.min(pages, start + 7);
+  let h = b(cur > 0, false, '&laquo;',  0,        '처음으로')
+        + b(cur > 0, false, '&lsaquo;', cur - 1,  '이전');
+  for (let p = start; p < end; p++) h += b(true, p === cur, String(p + 1), p, '');
+  h += b(cur < pages - 1, false, '&rsaquo;', cur + 1,   '다음')
+     + b(cur < pages - 1, false, '&raquo;',  pages - 1, '마지막으로');
+  return h;
+}
+
+
 
 
 
@@ -1938,7 +1965,7 @@ async function showDetail(sysKey,reqId){
           + row2(isChecked('- Contract was drafted by Legal'),'- Contract was drafted by Legal',true)
           + row2(isChecked('Government template'),'Government template')
           + '</div>';
-      }
+  }
       if(f.BizTermsReviewed||f.DDPerformed||f.PersonalInfo||f.SMRCompliance||f.FinalSignOff){
         // 라벨은 SCC 상세 화면과 동일하게 유지한다. 감사·법무 대응 문구라 임의로 줄이지 않는다.
         const yn=v=>v?`<span style="font-weight:600;color:${v.toLowerCase()==='yes'?'#107c10':'#a4262c'}">${escHtml(v.toUpperCase())}</span>`:'-';
@@ -2796,14 +2823,9 @@ function renderMyApprovedTable(resetPage) {
   // pagination
   let pgHtml = '';
   if (totalPages > 1) {
-    pgHtml = '<div style="display:flex;justify-content:center;align-items:center;gap:6px;padding:14px 0">';
-    pgHtml += `<button onclick="_myApprovedPage=Math.max(1,_myApprovedPage-1);renderMyApprovedTable(false)" style="padding:4px 10px;border:1px solid #d1d5db;border-radius:4px;cursor:pointer;background:#fff">‹</button>`;
-    for (let p=1; p<=totalPages; p++) {
-      const active = p === _myApprovedPage;
-      pgHtml += `<button onclick="_myApprovedPage=${p};renderMyApprovedTable(false)" style="padding:4px 10px;border:1px solid ${active?'#0078d4':'#d1d5db'};border-radius:4px;cursor:pointer;background:${active?'#0078d4':'#fff'};color:${active?'#fff':'#374151'}">${p}</button>`;
-    }
-    pgHtml += `<button onclick="_myApprovedPage=Math.min(${totalPages},_myApprovedPage+1);renderMyApprovedTable(false)" style="padding:4px 10px;border:1px solid #d1d5db;border-radius:4px;cursor:pointer;background:#fff">›</button>`;
-    pgHtml += '</div>';
+    pgHtml = '<div style="display:flex;justify-content:center;align-items:center;gap:6px;padding:14px 0" data-pager="myapproved">'
+      + apsPagerHtml(_myApprovedPage - 1, totalPages, (p) => `_myApprovedPage=${p + 1};renderMyApprovedTable(false)`)
+      + '</div>';
   }
 
   wrap.innerHTML = `
@@ -3085,14 +3107,9 @@ function renderMyRequestsTable(resetPage) {
 
   let pgHtml = '';
   if (totalPages > 1) {
-    pgHtml = '<div style="display:flex;justify-content:center;align-items:center;gap:6px;padding:14px 0">';
-    pgHtml += `<button onclick="_myRequestsPage=Math.max(1,_myRequestsPage-1);renderMyRequestsTable(false)" style="padding:4px 10px;border:1px solid #d1d5db;border-radius:4px;cursor:pointer;background:#fff">‹</button>`;
-    for (let p=1; p<=totalPages; p++) {
-      const active = p === _myRequestsPage;
-      pgHtml += `<button onclick="_myRequestsPage=${p};renderMyRequestsTable(false)" style="padding:4px 10px;border:1px solid ${active?'#0078d4':'#d1d5db'};border-radius:4px;cursor:pointer;background:${active?'#0078d4':'#fff'};color:${active?'#fff':'#374151'}">${p}</button>`;
-    }
-    pgHtml += `<button onclick="_myRequestsPage=Math.min(${totalPages},_myRequestsPage+1);renderMyRequestsTable(false)" style="padding:4px 10px;border:1px solid #d1d5db;border-radius:4px;cursor:pointer;background:#fff">›</button>`;
-    pgHtml += '</div>';
+    pgHtml = '<div style="display:flex;justify-content:center;align-items:center;gap:6px;padding:14px 0" data-pager="myrequests">'
+      + apsPagerHtml(_myRequestsPage - 1, totalPages, (p) => `_myRequestsPage=${p + 1};renderMyRequestsTable(false)`)
+      + '</div>';
   }
 
   wrap.innerHTML = `
@@ -3650,12 +3667,8 @@ function renderAdminTable(resetPage) {
       })()}
     </tr>`;}).join('');
 
-  const pgBtns = [];
-  if (_adminPage > 1) pgBtns.push(`<button onclick="adminGoPage(1)" style="${pgBtnStyle()}">«</button><button onclick="adminGoPage(${_adminPage-1})" style="${pgBtnStyle()}">‹</button>`);
-  for (let p = Math.max(1,_adminPage-2); p <= Math.min(totalPages,_adminPage+2); p++) {
-    pgBtns.push(`<button onclick="adminGoPage(${p})" style="${pgBtnStyle(p===_adminPage)}">${p}</button>`);
-  }
-  if (_adminPage < totalPages) pgBtns.push(`<button onclick="adminGoPage(${_adminPage+1})" style="${pgBtnStyle()}">›</button><button onclick="adminGoPage(${totalPages})" style="${pgBtnStyle()}">»</button>`);
+  // 앞뒤 2칸(5칸)이던 것을 APS 공통 7칸 창으로(09-22).
+  const pgBtns = [apsPagerHtml(_adminPage - 1, totalPages, (p) => `adminGoPage(${p + 1})`)];
 
   document.getElementById('admin-table-wrap').innerHTML = `
     <div style="overflow-x:auto;border-radius:8px;border:1px solid #e2e8f0;margin-bottom:12px;">
