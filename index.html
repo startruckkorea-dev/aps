@@ -2061,6 +2061,69 @@ async function showDetail(sysKey,reqId){
         ;
       info+=sec('첨부파일')+parseFiles(f.AttachmentRef);
     }
+    else if(sysKey==='CTR_PR'){
+      /* CTR 구매요청서(PR) — CTR PR 상세와 같은 구성으로(09-22 요청). 예전에는 분기가 없어 기본 정보 · 결재 이력만 나왔다.
+         저장 형식(CTR_PR savePR): GoodsJSON [{desc,qty,amount}] · AccountLinesJSON [{itemDesc,glName,gl,cctr,cctrName,amount,isVat}]
+         · Remarks 「;」 구분 · Currency · ExchangeRate · TotalAmount(물품 합계 KRW) · VATAmount · TotalKRW · AttachmentRef(ENC).
+         물품 단가 · 회계 라인 금액은 PR 통화 기준이라, 외화면 환율로 KRW 를 함께 보인다(CTR PR 화면과 같은 계산). */
+      const _json=v=>{ if(!v) return []; try{ const t=toText(v); const j=JSON.parse(t); return Array.isArray(j)?j:[]; }catch(e){ return []; } };
+      const cur=String(f.Currency||'KRW').toUpperCase();
+      const rate=(cur!=='KRW' && Number(f.ExchangeRate)>0) ? Number(f.ExchangeRate) : 1;
+      const n0=v=>Math.round(Number(v)||0).toLocaleString();
+      const goods=_json(f.GoodsJSON), accL=_json(f.AccountLinesJSON);
+      const TH='padding:7px 9px;font-weight:600;color:#334155;background:#EEF2F7;border-bottom:1px solid #d9dee6;white-space:nowrap';
+      const TD='padding:6px 9px;border-bottom:1px solid #edf0f4;vertical-align:top';
+      const TF='padding:7px 9px;font-weight:700;background:#F6F8FA;border-top:1px solid #d9dee6';
+      const tbl=(head,body,foot)=>`<div style="overflow-x:auto;margin:4px 0 10px;border:1px solid #d9dee6;border-radius:6px"><table style="width:100%;border-collapse:collapse;font-size:.78rem;margin:0">`
+        +`<thead><tr>${head.map(([t,al])=>`<th style="${TH};text-align:${al||'left'}">${t}</th>`).join('')}</tr></thead><tbody>${body}</tbody>${foot?`<tfoot>${foot}</tfoot>`:''}</table></div>`;
+      const empty=`<div style="font-size:.82rem;color:#a19f9d;padding:4px 0 10px">없음</div>`;
+
+      info+=sec('PR 정보')
+        +row('Purchase Category',f.PurchaseCategory||'-')
+        +row('Department / Cost Center',(f.Department||'-')+' / '+(f.CostCenter||'-'))
+        +(f.PhoneExt?row('내선',f.PhoneExt):'')
+        +row('Currency / Exchange Rate', cur==='KRW' ? 'KRW' : cur+' / '+Number(f.ExchangeRate||0).toLocaleString())
+        +rowRaw('Total (KRW)', `<b>${n0(f.TotalKRW||f.TotalAmount)}원</b>${Number(f.VATAmount)>0?` <span style="color:#605e5c;font-size:.76rem">(VAT 포함 · VAT ${n0(cur==='KRW'?f.VATAmount:f.VATAmount*rate)}원)</span>`:''}`);
+
+      // Description of Goods
+      if(goods.length){
+        let origTotal=0;
+        const body=goods.map(g=>{
+          const sub=(Number(g.amount)||0)*(Number(g.qty)||1); origTotal+=sub;
+          const krw=cur!=='KRW'?`<div style="color:#a19f9d;font-size:.7rem">≈ ${n0(sub*rate)} KRW</div>`:'';
+          return `<tr><td style="${TD}">${escHtml(toText(g.desc||'-'))}</td><td style="${TD};text-align:center">${escHtml(String(g.qty||1))}</td>`
+            +`<td style="${TD};text-align:right">${(Number(g.amount)||0).toLocaleString()}</td><td style="${TD};text-align:right;white-space:nowrap">${sub.toLocaleString()} ${cur}${krw}</td></tr>`;
+        }).join('');
+        const foot=`<tr><td colspan="3" style="${TF};text-align:right">TOTAL</td><td style="${TF};text-align:right;white-space:nowrap">${origTotal.toLocaleString()} ${cur}${cur!=='KRW'?`<div style="font-weight:400;color:#605e5c;font-size:.7rem">＝ ${n0(f.TotalAmount)} KRW</div>`:''}</td></tr>`;
+        info+=sec('Description of Goods')+tbl([['Description of Goods'],['Quantity','center'],['Unit Price','right'],['Sub Total (Excl. VAT)','right']],body,foot);
+      } else info+=sec('Description of Goods')+empty;
+
+      // Accounting Information — VAT 줄은 CTR PR 과 같은 옅은 주황
+      if(accL.length){
+        let tot=0;
+        const body=accL.map(l=>{
+          const k=cur==='KRW'?Math.round(Number(l.amount)||0):Math.round((Number(l.amount)||0)*rate); tot+=k;
+          const bg=l.isVat?';background:#FDF1E7':'';
+          return `<tr><td style="${TD}${bg}">${escHtml(toText(l.itemDesc||'-'))}</td><td style="${TD}${bg}">${escHtml(toText(l.glName||'-'))}</td>`
+            +`<td style="${TD}${bg};white-space:nowrap">${escHtml(String(l.gl||'-'))}</td><td style="${TD}${bg}">${escHtml(toText(l.cctrName||l.cctr||'-'))}</td>`
+            +`<td style="${TD}${bg};text-align:right;white-space:nowrap">${k.toLocaleString()}</td></tr>`;
+        }).join('');
+        const foot=`<tr><td colspan="4" style="${TF};text-align:right">TOTAL</td><td style="${TF};text-align:right;white-space:nowrap">${tot.toLocaleString()}</td></tr>`;
+        info+=sec('Accounting Information')+tbl([['Item Description'],['G/L Acc. Description'],['G/L Acc. No.'],['Cost Center'],['Amount (KRW)','right']],body,foot);
+      } else info+=sec('Accounting Information')+empty;
+
+      // Remarks — CTR PR 과 같은 네 가지, 고른 것만 진하게
+      const _rk=String(toText(f.Remarks||'')).split(';').map(x=>x.trim()).filter(Boolean);
+      info+=sec('Remarks')+[
+        ['Onetime payment','Onetime payment'],
+        ['Partial payment','Partial payment (For partial payment, please attach the "installment table")'],
+        ['PO Required','PO Required'],['GR Required','GR Required'],
+      ].map(([k,lab])=>{ const on=_rk.includes(k);
+        return `<div style="display:flex;align-items:center;gap:8px;padding:2px 0;font-size:.8rem"><span style="display:inline-flex;width:14px;height:14px;border-radius:3px;border:1.5px solid ${on?'#107c10':'#c8c6c4'};background:${on?'#107c10':'#fff'};color:#fff;font-size:10px;align-items:center;justify-content:center;flex-shrink:0">${on?'✓':''}</span><span style="color:${on?'#323130':'#a19f9d'}">${escHtml(lab)}</span></div>`;
+      }).join('')
+        +`<div style="font-size:11.5px;color:#8a5a00;background:#fff8e1;border:1px solid #ffe08a;border-radius:6px;padding:7px 10px;margin:6px 0 10px">(Note) Please follow the "Government Related Payment/Expense Guideline", if the expenses are related to Government.</div>`;
+      info+=sec('첨부파일')+parseFiles(f.AttachmentRef);
+    }
 
     const apprHtml=sec('결재 이력')+'<div class="appr-history">'+
       apprList.map(a=>{
