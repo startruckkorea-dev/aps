@@ -1228,7 +1228,10 @@ async function boot(account){
    상신 시점 치환(각 시스템)은 그 뒤에 올라오는 건만 바꾸므로, 이미 만들어진 대기 행은
    여기서 "내 결재"로 함께 보여주고 처리할 수 있게 한다.
    처리하는 순간 그 행의 결재자를 나(대리인)로 바꿔 기록을 남긴다 — 대리인 본인의 결재로 남긴다는 규칙과 같다.
-   조회가 실패하면 대리 건 없이 평소대로 동작한다(대리는 편의 기능이라 실패로 화면을 막지 않는다). */
+   조회가 실패하면 대리 건 없이 평소대로 동작한다(대리는 편의 기능이라 실패로 화면을 막지 않는다).
+   Scope(09-23): 위임마다 대상 시스템(Scope, 쉼표 구분 키 · 'ALL' = APS 전체)을 함께 들고,
+   시스템 키를 받아 그 시스템에 위임됐을 때만 내 결재로 본다. 포털은 13개를 한 화면에 모으므로
+   이 검사가 없으면 GW 하나만 위임해도 13개 전부가 대리인에게 열렸다(각 시스템은 자기 키로 이미 거른다). */
 const LIST_AAC = 'AAC_Requests';
 // 날짜 값이 「날짜 및 시간」 열(UTC ISO)로 와도, 텍스트('YYYY-MM-DD HH:mm')로 와도 KST 문자열로 맞춘다.
 function _aacKst(v){
@@ -1259,27 +1262,41 @@ async function loadMyDelegations(){
       if(e && e.length<=10) e=e+' 23:59';
       if(!s||!e||s>now||e<now) return;
       const dg=String(f.RequesterEmail||'').trim().toLowerCase();
-      if(dg) _aacDelegated.set(dg,{name:f.RequesterName||dg,title:f.Title||'',from:s,to:e});
+      // Scope 가 비어 있으면 옛 데이터 — 각 시스템과 같이 전체로 본다. 'ALL,FLEX' 처럼 수동 시스템 키가 섞여도 목록으로 판정한다.
+      const _sk=String(f.Scope||'').split(',').map(x=>x.trim()).filter(Boolean);
+      if(dg) _aacDelegated.set(dg,{name:f.RequesterName||dg,title:f.Title||'',from:s,to:e,scope:_sk.length?_sk:['ALL']});
     });
-    if(_aacDelegated.size) console.log('[AAC] 대리 결재 가능:',[..._aacDelegated.keys()].join(', '));
+    if(_aacDelegated.size) console.log('[AAC] 대리 결재 가능:',[..._aacDelegated].map(([k,v])=>k+'['+v.scope.join('/')+']').join(', '));
   }catch(e){ console.warn('[AAC] 위임 조회 실패 — 내 결재만 표시:',e&&e.message); }
 }
-// 이 결재행이 내가 처리할 수 있는 건인가 (내 것이거나, 내가 대리인으로 받은 사람의 것)
-function isMyAppr(email){
+// 이 위임이 이 시스템에 미치는가 — 'ALL' 이거나 시스템 키가 Scope 에 있을 때. 키를 안 주면 시스템을 따지지 않는다.
+function aacInScope(d, sysKey){
+  if(!d) return false;
+  const sc=d.scope||['ALL'];
+  return sc.includes('ALL') || !sysKey || sc.includes(sysKey);
+}
+// 이 위임이 지금 유효한가(기간). 기간 정보가 없는 옛 맵이면 통과.
+function aacInPeriod(d){
+  if(!d) return false;
+  if(!(d.from && d.to)) return true;
+  const _n=new Date(Date.now()+9*3600*1000).toISOString().slice(0,16).replace('T',' ');
+  return !(d.from > _n || d.to < _n);
+}
+// 이 결재행이 내가 처리할 수 있는 건인가 (내 것이거나, 이 시스템에 대해 내가 대리인으로 받은 사람의 것)
+function isMyAppr(email, sysKey){
   const e=String(email||'').toLowerCase();
   if(!e) return false;
   if(e===(user&&user.email||'').toLowerCase()||e===(user&&user.username||'').toLowerCase()) return true;
-  /* 맵에 있어도 기간이 지났으면 내 것이 아니다. 로그인 후 오래 열어 둔 탭에서
-     만료된 위임이 결재함에 남아 보이던 것을 막는다(쓰기는 aacPatchWith 가 다시 막는다). */
+  /* 맵에 있어도 기간이 지났거나 이 시스템이 범위 밖이면 내 것이 아니다. 로그인 후 오래 열어 둔 탭에서
+     만료된 위임이 결재함에 남아 보이던 것을 막는다(쓰기는 doApproval 이 다시 막는다). */
   const d=_aacDelegated.get(e);
-  if(!d) return false;
-  if(d.from && d.to){
-    const _n=new Date(Date.now()+9*3600*1000).toISOString().slice(0,16).replace('T',' ');
-    if(d.from > _n || d.to < _n) return false;
-  }
-  return true;
+  return !!d && aacInPeriod(d) && aacInScope(d, sysKey);
 }
-function aacDelegatorOf(email){ return _aacDelegated.get(String(email||'').toLowerCase())||null; }
+// 이 결재자의 위임(내가 대리인) — 시스템 키를 주면 그 시스템에 미치는 위임만 돌려준다. 기간은 여기서 보지 않는다(호출부가 판정).
+function aacDelegatorOf(email, sysKey){
+  const d=_aacDelegated.get(String(email||'').toLowerCase())||null;
+  return d && aacInScope(d, sysKey) ? d : null;
+}
 
 async function loadAll(force=false){
   if (!force && _allDataTime && (Date.now()-_allDataTime) < CACHE_TTL_MS) { renderAll(); return; }
@@ -1583,7 +1600,7 @@ function renderApvPopup(){
       var f=i.fields;
       var st=(f.Status||'').trim();
       if(st!=='대기')return;
-      if(!isMyAppr(f.ApproverEmail))return;
+      if(!isMyAppr(f.ApproverEmail, key))return;
       if(wids.has(String(f.RequestID)))return;
       var rf=d.reqMap[String(f.RequestID)]||{};
       items.push({sys:sys,item:i,f:f,rf:rf});
@@ -1660,7 +1677,7 @@ function updateApvBadge(){
     d.apprItems.forEach(function(i){
       var f=i.fields;
       if((f.Status||'').trim()!=='대기')return;
-      if(!isMyAppr(f.ApproverEmail))return;
+      if(!isMyAppr(f.ApproverEmail, key))return;
       if(wids.has(String(f.RequestID)))return;
       totalCnt++;
       var rf=d.reqMap[String(f.RequestID)]||{};
@@ -1706,7 +1723,7 @@ function renderAll(){
     const _myAll = d.apprItems.filter(i=>{
       const st=(i.fields.Status||'').trim();
       if(st==='철회(잠김)')return false;
-      return isMyAppr(i.fields.ApproverEmail) && !_withdrawnIds.has(String(i.fields.RequestID));
+      return isMyAppr(i.fields.ApproverEmail, sys.key) && !_withdrawnIds.has(String(i.fields.RequestID));
     });
     const _reqIdMap = {};
     _myAll.forEach(i=>{
@@ -2225,7 +2242,7 @@ async function showDetail(sysKey,reqId){
             })()
           : '');
 
-    const myPending=apprList.find(a=>isMyAppr(a.fields.ApproverEmail)&&(a.fields.Status||'').trim()==='대기');
+    const myPending=apprList.find(a=>isMyAppr(a.fields.ApproverEmail, sysKey)&&(a.fields.Status||'').trim()==='대기');
     _currentApprList = apprList; // 전역 저장 — showConfirm onclick에서 참조
     // RD 승인 제외는 전표 내용이 아니라 '결재선이 왜 한 단계 짧은지'에 대한 설명이므로
     // 결재 이력 바로 아래에 둔다. 저장값에 옛 접두어가 붙어 있을 수 있어 제거 후 표시한다.
@@ -2371,7 +2388,18 @@ async function doApproval(){
       await loadAll(true); return;
     }
     // 대리로 처리하는 건이면 결재자를 나로 바꿔 기록한다(원래 결재자는 역할 문구에 남긴다).
-    const _origEmail=(_cur.fields.ApproverEmail||''); const _dgi=aacDelegatorOf(_origEmail);
+    const _origEmail=(_cur.fields.ApproverEmail||''); const _dgi=aacDelegatorOf(_origEmail, sysKey);
+    /* 쓰기 직전에 다시 판정한다(각 시스템의 aacPatchWith 와 같은 규칙). 위임 맵은 결재함을 그릴 때 만든 것이라
+       탭을 오래 열어 두면 기간이 끝난 뒤에도 남아 있고, 이 시스템이 위임 범위 밖인 행이 화면에 남아 있을 수도 있다. */
+    const _isMine=[(user.email||'').toLowerCase(),(user.username||'').toLowerCase()].includes(_origEmail.trim().toLowerCase());
+    if(!_isMine){
+      const _why=!_dgi?'이 결재는 내 결재가 아니거나, 이 시스템은 대리 범위에 들어 있지 않습니다.':(!aacInPeriod(_dgi)?'대리 기간이 종료되었습니다.':'');
+      if(_why){
+        console.warn('[AAC] 대리 처리 차단:',sysKey,_origEmail,_why);
+        loading(false); alert(_why+'\n화면을 새로고침한 뒤 다시 확인해 주세요.');
+        await loadAll(true); return;
+      }
+    }
     const _patch={Status:action==='승인'?'승인':action,ApprovalDate:new Date().toISOString(),Comment:comment};
     if(_dgi){
       _patch.ApproverEmail=(user.email||user.username||'');
