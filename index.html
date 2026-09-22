@@ -784,7 +784,8 @@ const SYSTEMS=[
 /* 딥링크(?tab=approval&id=)를 받아 결재함 · 상세를 여는 시스템.
    SCC(d5737d8)에 이어 BP · FA 도 받는 쪽을 넣었다(2026-09-21). 셋 다 APS 에서 승인을 막고
    해당 시스템으로 보내는 곳이라, 첫 화면(작성 화면)에 떨어지면 결재자가 건을 다시 찾아야 했다. */
-const DEEPLINK_SYS = ['SCC','BP','FA'];
+// ACC 는 APS 에서 바로 승인할 수 있지만, 상세의 「→ ACC Voucher 바로가기」(회계 라인 확인)도 그 전표로 가게 한다(09-22).
+const DEEPLINK_SYS = ['SCC','BP','FA','ACC'];
 /* 시스템 카드의 「바로가기」 — 내가 결재할 건이 있으면 결재함으로 연다(없으면 첫 화면). */
 function sysCardUrl(sys, pendingCnt){
   if(sys && DEEPLINK_SYS.includes(sys.key) && pendingCnt>0) return sys.url.replace(/\/?$/,'/')+'?tab=approval';
