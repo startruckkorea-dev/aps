@@ -447,11 +447,13 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#f5f7f
     <div class="ql-group">
       <div class="ql-group-label">바로가기</div>
       <div class="ql-group-row">
-        <button onclick="openSscLink()" class="ql-btn"><div class="qi" style="background:#0ea5e918;color:#0ea5e9"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3" width="14" height="18" rx="2"/><rect x="9" y="1.3" width="6" height="3" rx="1"/><path d="M9 13.2l2 2 4-4.2"/></svg></div><span class="ql">SSC</span></button>
+        <!-- 바로가기 세 개(SSC · KRI Archive · STK NW)는 button 이라 오른쪽 클릭에 「새 탭에서 링크 열기 · 링크 주소 복사」 가
+             안 나왔다(09-23 지적). APS 연동 시스템 칸과 같은 a 링크로 바꾼다 — 여는 방식(_self / 새 탭)은 예전과 같다. -->
+        <a href="https://ssc.startruckkorea.com/" target="_self" class="ql-btn"><div class="qi" style="background:#0ea5e918;color:#0ea5e9"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3" width="14" height="18" rx="2"/><rect x="9" y="1.3" width="6" height="3" rx="1"/><path d="M9 13.2l2 2 4-4.2"/></svg></div><span class="ql">SSC</span></a>
         <a href="https://ics.startruckkorea.com/" target="_self" class="ql-btn"><div class="qi" style="background:#101b3418;color:#101b34"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 5.5v6c0 5 3.4 8.4 8 9.5 4.6-1.1 8-4.5 8-9.5v-6z"/><path d="M9 12l2 2 4-4.2"/></svg></div><span class="ql">ICS</span></a>
         <a href="https://mkqr.startruckkorea.com/" target="_self" class="ql-btn"><div class="qi" style="background:#d9770618;color:#d97706"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><line x1="14" y1="14" x2="21" y2="14"/><line x1="14" y1="18" x2="18" y2="18"/><line x1="18" y1="14" x2="18" y2="21"/><line x1="14" y1="21" x2="14" y2="21"/></svg></div><span class="ql">MK QR</span></a>
-        <button onclick="openKriLink()" class="ql-btn"><div class="qi" style="background:#5c6f7f18;color:#5c6f7f"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6.2a1 1 0 0 1 1-1h4.6l2 2H20a1 1 0 0 1 1 1v10.6a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z"/></svg></div><span class="ql">KRI Archive</span></button>
-        <button onclick="window.open('https://stk-nw.startruckkorea.com/','_blank')" class="ql-btn"><div class="qi" style="background:#0078d418;color:#0078d4"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 8.5a15 15 0 0 1 19 0"/><path d="M5.5 12.2a10.3 10.3 0 0 1 13 0"/><path d="M8.8 15.8a5.6 5.6 0 0 1 6.4 0"/><circle cx="12" cy="19" r="1.1" fill="currentColor" stroke="none"/></svg></div><span class="ql">STK NW</span></button>
+        <a href="https://kri.startruckkorea.com/" target="_blank" rel="noopener" class="ql-btn"><div class="qi" style="background:#5c6f7f18;color:#5c6f7f"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6.2a1 1 0 0 1 1-1h4.6l2 2H20a1 1 0 0 1 1 1v10.6a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z"/></svg></div><span class="ql">KRI Archive</span></a>
+        <a href="https://stk-nw.startruckkorea.com/" target="_blank" rel="noopener" class="ql-btn"><div class="qi" style="background:#0078d418;color:#0078d4"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 8.5a15 15 0 0 1 19 0"/><path d="M5.5 12.2a10.3 10.3 0 0 1 13 0"/><path d="M8.8 15.8a5.6 5.6 0 0 1 6.4 0"/><circle cx="12" cy="19" r="1.1" fill="currentColor" stroke="none"/></svg></div><span class="ql">STK NW</span></a>
         <a href="https://consent.startruckkorea.com/" target="_self" class="ql-btn"><div class="qi" style="background:#f4433618;color:#f44336"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 4.3 19.7 9.3 9.4 19.6H4.4v-5z"/><line x1="3" y1="21.5" x2="21" y2="21.5"/></svg></div><span class="ql">Consent</span></a>
       </div>
     </div>
@@ -1151,21 +1153,8 @@ function showAccRestrictedPopup() {
 function guardAccFilter(sel) { return true; }
 // 데이터 조회 시 사용할 시스템 목록 — 13개 전부. ACC 도 예외가 아니다(위 주석).
 function visibleSystems() { return SYSTEMS; }
-function openKriLink() {
-  window.open('https://kri.startruckkorea.com/', '_blank');
-}
-
-function openSscLink() {
-  const cfg = _sysConfig;
-  const ue = (user && user.email || '').toLowerCase();
-  const uu = (user && user.username || '').toLowerCase();
-  const allowedKeys = [
-    'SHARED-SC_CONTACT_AR','SHARED-SC_CONTACT_AP','SHARED-SC_CONTACT_GL',
-    'SHARED-SC_ADMIN_1','SHARED-SC_ADMIN_2','SHARED-SC_ADMIN_3','SHARED-SC_ADMIN_4','SHARED-SC_ADMIN_5',
-    'SHARED-SC_2nd_1','SHARED-SC_2nd_2','SHARED-SC_2nd_3'
-  ];
-  window.open('https://ssc.startruckkorea.com/', '_self');
-}
+// openKriLink · openSscLink 는 09-23 에 뺐다 — 바로가기 세 개를 a 링크로 바꿔 더 쓰이지 않는다.
+// openSscLink 에 있던 SHARED-SC_* 허용 키 목록은 쓰이지 않던 값이었다(접근 제어는 SSC 앱 자체가 한다).
 
 function cfgEmails(cfg, keys) {
   // _ADMIN_N 패턴 키는 cfg에 존재하는 모든 번호까지 자동 포함
