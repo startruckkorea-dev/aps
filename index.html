@@ -419,7 +419,7 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#f5f7f
       </button>
       <!-- 결재 대리 지정(AAC) 바로가기(09-26) — My Approvals Record 오른쪽. 옆 버튼과 같은 모양이지만 a 링크라
            오른쪽 클릭 메뉴(새 탭 · 주소 복사)가 그대로 나온다. 데이터에 기대지 않으므로 숨겼다 켜지 않고 #app 과 함께 보인다. -->
-      <a id="aac-btn" href="https://aac.startruckkorea.com/" target="_self" title="결재 대리 지정 (AAC)" style="display:inline-flex;align-items:center;gap:5px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);color:#fff;border-radius:6px;padding:6px 9px;font-size:.82rem;line-height:1;cursor:pointer;font-family:inherit;text-decoration:none;transition:background .15s" onmouseover="this.style.background='rgba(255,255,255,.22)'" onmouseout="this.style.background='rgba(255,255,255,.12)'">
+      <a id="aac-btn" href="https://aac.startruckkorea.com/?tab=active" target="_self" title="결재 대리 지정 현황 (AAC)" style="display:inline-flex;align-items:center;gap:5px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);color:#fff;border-radius:6px;padding:6px 9px;font-size:.82rem;line-height:1;cursor:pointer;font-family:inherit;text-decoration:none;transition:background .15s" onmouseover="this.style.background='rgba(255,255,255,.22)'" onmouseout="this.style.background='rgba(255,255,255,.12)'">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="7" r="3.2"/><path d="M3 20.5v-1.3a5 5 0 0 1 5-5h2.4"/><path d="M13.5 17.5h7.5"/><path d="M18 14.5l3 3-3 3"/></svg>
       </a>
       <button id="aps-admin-btn" onclick="switchApsTab('admin')" title="APS 전체 결재 관리" style="display:none;align-items:center;justify-content:center;background:#0078d4;color:#fff;border:none;border-radius:6px;padding:6px 10px;font-size:.8rem;font-weight:600;cursor:pointer;font-family:inherit;margin-right:8px;">
@@ -501,6 +501,8 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#f5f7f
         <option value="LTR">Local Travel (PC)</option>
         <option value="CTR_PR">CTR PR</option>
         <option value="ACC" class="acc-filter-opt">ACC Voucher</option>
+        <option value="ACO_DEV">ACC Others · Deviation</option>
+        <option value="ACO_CCL">ACC Others · Card Limit</option>
       </select>
       <select id="myr-filter-status" class="filter-select" onchange="renderMyRequestsTable(true)">
         <option value="">전체</option>
@@ -557,6 +559,8 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#f5f7f
         <option value="LTR">Local Travel (PC)</option>
         <option value="CTR_PR">CTR PR</option>
         <option value="ACC" class="acc-filter-opt">ACC Voucher</option>
+        <option value="ACO_DEV">ACC Others · Deviation</option>
+        <option value="ACO_CCL">ACC Others · Card Limit</option>
       </select>
       <select id="mya-filter-status" class="filter-select" onchange="renderMyApprovedTable(true)">
         <option value="">전체</option>
@@ -609,6 +613,8 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#f5f7f
         <option value="LTR">Local Travel (PC)</option>
         <option value="CTR_PR">CTR PR</option>
         <option value="ACC" class="acc-filter-opt">ACC Voucher</option>
+        <option value="ACO_DEV">ACC Others · Deviation</option>
+        <option value="ACO_CCL">ACC Others · Card Limit</option>
       </select>
       <select id="admin-filter-status" class="filter-select" onchange="renderAdminTable(true)">
         <option value="">전체 상태</option>
@@ -687,6 +693,8 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#f5f7f
         <option value="LTR">Local Travel (PC)</option>
         <option value="CTR_PR">CTR PR</option>
         <option value="ACC" class="acc-filter-opt">ACC Voucher</option>
+        <option value="ACO_DEV">ACC Others · Deviation</option>
+        <option value="ACO_CCL">ACC Others · Card Limit</option>
       </select>
       <select class="filter-select" id="filter-status" onchange="resetPages();renderAll()">
         <option value="대기">대기 중</option>
@@ -787,7 +795,20 @@ const SYSTEMS=[
   {key:'LTR',    name:'Local Travel (PC)', apr:'LTR_Approvals',   req:'LTR_Requests',   url:'https://ltr-pc.startruckkorea.com/',    historyList:'LTR_Approvals'},
   {key:'CTR_PR', name:'CTR PR', apr:'CTR_PR_Approvals', req:'CTR_PR_Requests', url:'https://ctr-pr.startruckkorea.com/', historyList:'CTR_PR_Approvals'},
   {key:'ACC', name:'ACC Voucher', apr:'bf0412d9-6556-46d9-a165-149461a4f286', req:'060b5c19-b1ed-40a3-9dbd-fae9a6648a57', url:'https://acc-voucher.startruckkorea.com/', historyList:'bf0412d9-6556-46d9-a165-149461a4f286', restricted:true},
+  /* ACC Others(09-26) — Deviation Report · Credit Card Limit 두 목록(acc-others 의 LISTS). 결재행 규칙은 다른 시스템과 같다
+     (RequestID · ApproverEmail · ApproverRole · ApprovalOrder · Status 대기/대기(잠김)/승인/반려, ApprovalDate · Comment) 라 APS 에서 바로 승인 · 반려한다.
+     aac: AAC 위임 범위 키 — 두 목록이 한 시스템이라 둘 다 'ACO'(acc-others 의 AAC_SYS_KEY). reqFields: 신청 목록에 SubmittedDate 열이 없어 따로 적는다. */
+  {key:'ACO_DEV', name:'ACC Others · Deviation',  apr:'DEV_Approvals', req:'DEV_Requests', url:'https://acc-others.startruckkorea.com/', historyList:'DEV_Approvals', aac:'ACO', reqFields:'Title,RequesterEmail,Status,RequestDate'},
+  {key:'ACO_CCL', name:'ACC Others · Card Limit', apr:'CCL_Approvals', req:'CCL_Requests', url:'https://acc-others.startruckkorea.com/', historyList:'CCL_Approvals', aac:'ACO', reqFields:'Title,RequesterEmail,Status,RequestDate'},
 ];
+/* 신청 목록에서 받는 열 — 화면이 쓰는 다섯 열만. 목록에 없는 열을 적으면 그 조회가 통째로 실패하므로(09-03 6801626)
+   시스템별로 있는 열만 적는다. BP 는 업체이름(CustomerName)을 함께 받고, ACC Others 는 SubmittedDate 가 없다(reqFields). */
+function reqSelFor(sys){
+  if (sys.reqFields) return '?$expand=fields($select=' + sys.reqFields + ')';
+  return sys.key === 'BP'
+    ? '?$expand=fields($select=Title,RequesterEmail,Status,RequestDate,SubmittedDate,CustomerName)'
+    : '?$expand=fields($select=Title,RequesterEmail,Status,RequestDate,SubmittedDate)';
+}
 /* 결재하러 넘어가는 주소. SCC 는 특정 건으로 바로 들어가게 ?tab=approval&id=<신청 ID> 를 붙인다.
    예전에는 루트로만 보내 SCC 첫 화면(신청서 작성 = Contract Checklist)이 떠서, 대표님이 결재하려다
    매번 체크리스트 작성 화면으로 가셨다(2026-09-21 신고). SCC 가 이 값을 받아 결재함 · 상세를 연다. */
@@ -1267,10 +1288,13 @@ async function loadMyDelegations(){
   }catch(e){ console.warn('[AAC] 위임 조회 실패 — 내 결재만 표시:',e&&e.message); }
 }
 // 이 위임이 이 시스템에 미치는가 — 'ALL' 이거나 시스템 키가 Scope 에 있을 때. 키를 안 주면 시스템을 따지지 않는다.
+// APS 키 → AAC 위임 범위 키. ACC Others 는 DEV · CCL 두 목록이 한 시스템이라 둘 다 'ACO' 로 본다(SYSTEMS 의 aac).
+function aacScopeKey(sysKey){ const s=SYSTEMS.find(x=>x.key===sysKey); return (s&&s.aac)||sysKey; }
 function aacInScope(d, sysKey){
   if(!d) return false;
   const sc=d.scope||['ALL'];
-  return sc.includes('ALL') || !sysKey || sc.includes(sysKey);
+  const k=aacScopeKey(sysKey);
+  return sc.includes('ALL') || !k || sc.includes(k);
 }
 // 이 위임이 지금 유효한가(기간). 기간 정보가 없는 옛 맵이면 통과.
 function aacInPeriod(d){
@@ -1316,9 +1340,8 @@ async function loadAll(force=false){
       // 경로(fetchAllAccApprovals)를 쓴다.
       // BP 는 「요청 제목」 자리에 업체이름(고객이름)을 보여 주므로 CustomerName 을 함께 받는다.
       // 다른 시스템 목록에는 이 열이 없어 함께 적으면 그 조회가 통째로 실패한다(09-03 6801626 사례).
-      const _reqSel = sys.key === 'BP'
-        ? '?$expand=fields($select=Title,RequesterEmail,Status,RequestDate,SubmittedDate,CustomerName)'
-        : '?$expand=fields($select=Title,RequesterEmail,Status,RequestDate,SubmittedDate)';
+      // 시스템별 열 목록은 reqSelFor() 한 곳에 둔다(관리자 탭도 같은 것을 쓴다) — ACC Others 는 SubmittedDate 가 없다(09-26).
+      const _reqSel = reqSelFor(sys);
       const [apprData,reqData]=await Promise.all([
         sys.key==='ACC' ? fetchAllAccApprovals() : apiAll('/sites/'+siteId+'/lists/'+sys.apr+'/items?$expand=fields'),
         apiAll('/sites/'+siteId+'/lists/'+sys.req+'/items'+_reqSel),
@@ -1871,7 +1894,8 @@ async function showDetail(sysKey,reqId){
   }
   const modal=document.getElementById('detail-modal');
   document.getElementById('detail-content').innerHTML='<div style="text-align:center;padding:32px;color:#718096"><div class="spinner" style="margin:0 auto 12px"></div>불러오는 중...</div>';
-  document.getElementById('detail-sys-badge').innerHTML=`<span class="sys-badge sys-${sysKey}">${sysKey==='ACC'?'ACC Voucher':sysKey}</span>`;
+  // 배지 — 키가 그대로 읽히는 시스템은 키, ACC · ACC Others 는 이름(ACO_DEV 같은 내부 키는 사용자가 모른다).
+  document.getElementById('detail-sys-badge').innerHTML=`<span class="sys-badge sys-${sysKey}">${sysKey==='ACC'?'ACC Voucher':(sysKey.startsWith('ACO_')&&_sysObj?_sysObj.name:sysKey)}</span>`;
   document.getElementById('detail-title').textContent='신청 상세 내용';
   modal.className='open';
   const sys=SYSTEMS.find(s=>s.key===sysKey);
@@ -1923,7 +1947,7 @@ async function showDetail(sysKey,reqId){
     const rowFullRaw=(l,v)=>`<div style="padding:7px 0;border-bottom:0.5px solid #edebe9;font-size:13px"><div style="font-size:11px;color:#605e5c;margin-bottom:3px">${l}</div><div style="white-space:pre-wrap;color:#323130">${v||'-'}</div></div>`;
     const rowFull=(l,v)=>rowFullRaw(l, (v===undefined||v===null||v==='') ? '' : escHtml(toText(v)));
 
-    const _baseTitle = (['GW','IT','SCC','BP','FA','MC','RR','GA_STN','GA_BC','GA_IDC','CTR_PR','ACC'].includes(sys.key)?f.Title:('#'+reqId));
+    const _baseTitle = (['GW','IT','SCC','BP','FA','MC','RR','GA_STN','GA_BC','GA_IDC','CTR_PR','ACC','ACO_DEV','ACO_CCL'].includes(sys.key)?f.Title:('#'+reqId));
     // 요청 제목(IT: TicketTitle, GW: RequestTitle)은 각 시스템의 상세 섹션에서 이미 표시되므로
     // 기본 정보에서는 제외한다. 두 곳에 같은 값이 나와 화면이 중복돼 보이던 문제 해소.
     let info=sec('기본 정보')+row('제목',_baseTitle||'-')+row('신청자',f.RequesterEmail)+
@@ -2101,6 +2125,24 @@ async function showDetail(sysKey,reqId){
         +rowFull('Purpose',f.Purpose)
         ;
       info+=sec('첨부파일')+parseFiles(f.AttachmentRef);
+    }
+    else if(sysKey==='ACO_DEV'||sysKey==='ACO_CCL'){
+      // ACC Others — acc-others 상세(openDetail)와 같은 라벨 · 순서. 날짜 열(ReportDate 등)은 date 입력값('YYYY-MM-DD')이 그대로라 앞 10자만.
+      const _d=v=>v?String(v).slice(0,10):'-';
+      const _won=v=>(v===undefined||v===null||v==='')?'-':(isNaN(Number(v))?String(v):Number(v).toLocaleString('ko-KR'));
+      if(sysKey==='ACO_DEV'){
+        info+=row('Date (작성일)',_d(f.ReportDate))
+          +sec('Deviation Summary')+row('Request Title',f.RequestTitle)+row('Policy (규정명)',f.PolicyTitle)
+          +row('Category (위반사항)',f.DeviationCategory)+row('Incident Date (발생일)',_d(f.IncidentDate))
+          +row('Expense Type',f.ExpenseType)+row('Amount (KRW)',_won(f.Amount))+rowFull('Description (내용)',f.Description)
+          +sec('Corrective Actions')+rowFull('Immediate Actions (즉시조치)',f.ImmediateActions)+rowFull('Long-Term Measures (장기 개선조치)',f.LongTermMeasures)
+          +sec('Recommendations')+rowFull('Policy Improvement (규정 개선 권고)',f.Recommendations);
+      } else {
+        info+=row('Application Date',_d(f.ApplicationDate))+row('Card Holder',f.CardHolder||f.RequesterName)+row('Increase Type',f.IncreaseType)
+          +sec('신청 내용')+row('Request Title',f.RequestTitle)+rowFull('Reason for Request (신청 사유)',f.ReasonForRequest)
+          +row('Amount (KRW)',_won(f.IncreaseAmount))+row('Duration (적용 기간)',f.Duration)+rowFull('Remarks (비고)',f.Remarks);
+      }
+      info+=sec('첨부파일')+parseFiles(f.AttachedFiles);
     }
     else if(sysKey==='CTR_PR'){
       /* CTR 구매요청서(PR) — CTR PR 상세와 같은 구성으로(09-22 요청). 예전에는 분기가 없어 기본 정보 · 결재 이력만 나왔다.
@@ -3252,9 +3294,7 @@ async function loadAdminPage(force=false) {
       // 교체에 쓰므로, 필드를 자르면 그 기능이 조용히 깨질 수 있다.
       // BP 는 「요청 제목」 자리에 업체이름(고객이름)을 보여 주므로 CustomerName 을 함께 받는다.
       // 다른 시스템 목록에는 이 열이 없어 함께 적으면 그 조회가 통째로 실패한다(09-03 6801626 사례).
-      const _reqSel = sys.key === 'BP'
-        ? '?$expand=fields($select=Title,RequesterEmail,Status,RequestDate,SubmittedDate,CustomerName)'
-        : '?$expand=fields($select=Title,RequesterEmail,Status,RequestDate,SubmittedDate)';
+      const _reqSel = reqSelFor(sys);
       const [aprData, reqData] = await Promise.all([
         sys.key==='ACC' ? fetchAllAccApprovals() : apiAll('/sites/'+siteId+'/lists/'+sys.apr+'/items?$expand=fields'),
         apiAll('/sites/'+siteId+'/lists/'+sys.req+'/items'+_reqSel),
