@@ -1727,11 +1727,15 @@ function renderAll(){
   const myUPN=(user&&user.username||'').toLowerCase();
   let html='',total=0;
 
+  /* 카드 순서(09-26): 내가 결재할 건(대기)이 있는 시스템을 맨 앞(왼쪽 위)에 시스템 순서대로, 나머지는 그 뒤에 시스템 순서대로.
+     예전에는 늘 SYSTEMS 순서라 결재할 건이 아래쪽 카드에 있으면 스크롤해 찾아야 했다. 정렬은 안정적이라 같은 무리 안 순서는 유지된다. */
+  const _cards=[]; let _ord=0;
+  const put=(pending,h)=>{ _cards.push({p:pending>0?0:1,i:_ord++,h}); };
   for(const sys of SYSTEMS){
     if(fSys&&fSys!==sys.key)continue;
     const d=_allData[sys.key];
-    if(!d){html+=card(sys,'<div class="sys-empty">⏳ 불러오는 중...</div>',0);continue;}
-    if(d.error){html+=card(sys,`<div class="sys-empty" style="color:#e53e3e">⚠️ ${d.error}</div>`,0);continue;}
+    if(!d){put(0,card(sys,'<div class="sys-empty">⏳ 불러오는 중...</div>',0));continue;}
+    if(d.error){put(0,card(sys,`<div class="sys-empty" style="color:#e53e3e">⚠️ ${d.error}</div>`,0));continue;}
 
     // 내 결재 항목: 같은 RequestID가 여러 개일 경우 '대기' 우선, 없으면 최신 1개만 표시
     // 철회된 RequestID 전체 제외 (어느 결재자든 철회(잠김)/철회 상태면 해당 건 전체 숨김)
@@ -1760,7 +1764,7 @@ function renderAll(){
     });
     total+=mine.length;
 
-    if(!mine.length){html+=card(sys,`<div class="sys-empty">✓ ${fSt==='대기'?'결재 대기 항목이 없습니다':'항목이 없습니다'}</div>`,0);continue;}
+    if(!mine.length){put(0,card(sys,`<div class="sys-empty">✓ ${fSt==='대기'?'결재 대기 항목이 없습니다':'항목이 없습니다'}</div>`,0));continue;}
 
     const totalItems=mine.length;
     const totalPages=Math.max(1,Math.ceil(totalItems/PAGE_SIZE));
@@ -1806,12 +1810,15 @@ function renderAll(){
       pgHtml=`<div class="card-footer"><span class="footer-total">${start}–${end} / ${totalItems}건</span><div class="pg-btns">${btns}</div></div>`;
     }
 
-    html+=card(sys,
+    const _pendingCnt=mine.filter(i=>(i.fields.Status||'').trim()==='대기').length;
+    put(_pendingCnt,card(sys,
       `<div class="item-list">${rows}</div>
       ${pgHtml||`<div class="card-footer"><span class="footer-total">전체 ${totalItems}건</span></div>`}`,
-      mine.filter(i=>(i.fields.Status||'').trim()==='대기').length,
-      mine.length);
+      _pendingCnt,
+      mine.length));
   }
+  _cards.sort((a,b)=>a.p-b.p||a.i-b.i);
+  html=_cards.map(c=>c.h).join('');
 
   document.getElementById('summary-count').textContent='총 '+total+'건';
   updateApvBadge();
