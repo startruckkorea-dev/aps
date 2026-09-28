@@ -588,7 +588,7 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#f5f7f
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
         결재자 이력 조회
       </button>
-      <button id="sys-log-toggle" onclick="apsToggleSysLogBar()" title="각 시스템이 SharePoint Logging_data 에 남긴 접근 · 내보내기 · 편집 기록을 한 달 단위로 봅니다"
+      <button id="sys-log-toggle" onclick="apsToggleSysLogBar()" title="각 시스템이 SharePoint Logging_data 에 남긴 접근 · 내보내기 · 편집 기록을 7일 단위로 봅니다"
         style="background:#fff;color:#334155;display:inline-flex;align-items:center;gap:6px;border:1px solid #cbd5e1;border-radius:6px;padding:6px 14px;font-size:.8rem;font-weight:600;cursor:pointer;font-family:inherit;margin-left:8px;line-height:1;">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
         이력 조회
@@ -653,14 +653,17 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#f5f7f
       <span style="font-size:.7rem;color:#3b82f6">그 사람이 승인·반려한 결재행을 My Approvals Record 와 같은 표로 보여줍니다. 읽기 전용이며 조회 사실은 로그에 남습니다.</span>
     </div>
 
-    <!-- 시스템 이력 조회(09-28) — SharePoint Logging_data/<시스템>/…/YYYY-MM-DD/*.json 을 한 달 단위로 읽어 표로. 「이력 조회」 버튼으로 연다 -->
+    <!-- 시스템 이력 조회(09-28) — SharePoint Logging_data/<시스템>/…/YYYY-MM-DD/*.json 을 7일 단위(기본 오늘까지 7일)로 읽어 표로. 「이력 조회」 버튼으로 연다 -->
     <div id="sys-log-bar" style="display:none;margin:0 0 12px;padding:10px 14px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px">
       <div style="display:flex;align-items:center;flex-wrap:wrap;gap:10px">
         <span style="font-size:.78rem;font-weight:700;color:#1e293b;white-space:nowrap">시스템 이력 조회</span>
-        <span style="font-size:.7rem;color:#64748b">각 시스템이 Logging_data 에 남긴 접근 · 조회 · 내보내기 · 편집 기록을 한 달 단위로 읽습니다. 조회 사실도 기록에 남습니다.</span>
+        <span style="font-size:.7rem;color:#64748b">각 시스템이 Logging_data 에 남긴 접근 · 조회 · 내보내기 · 편집 기록을 7일 단위로 읽습니다(기본: 오늘까지 7일). 조회 사실도 기록에 남습니다.</span>
         <span style="margin-left:auto;display:flex;gap:6px;align-items:center;flex-wrap:wrap">
           <select id="sys-log-system" style="min-width:190px;padding:5px 8px;border:1px solid #d1d5db;border-radius:6px;font-size:.75rem;font-family:inherit;background:#fff"><option value="">전체 시스템</option></select>
-          <input type="month" id="sys-log-month" style="padding:4px 8px;border:1px solid #d1d5db;border-radius:6px;font-size:.75rem;font-family:inherit;background:#fff">
+          <button onclick="apsSysLogShift(-7)" title="7일 앞으로" style="padding:5px 8px;border:1px solid #d1d5db;border-radius:6px;background:#fff;color:#64748b;font-size:.72rem;cursor:pointer;font-family:inherit">‹ 7일</button>
+          <input type="date" id="sys-log-from" onchange="apsSysLogRangeFix('from')" style="padding:4px 8px;border:1px solid #d1d5db;border-radius:6px;font-size:.75rem;font-family:inherit;background:#fff"><span style="color:#94a3b8;font-size:.74rem">~</span><input type="date" id="sys-log-to" onchange="apsSysLogRangeFix('to')" style="padding:4px 8px;border:1px solid #d1d5db;border-radius:6px;font-size:.75rem;font-family:inherit;background:#fff">
+          <button onclick="apsSysLogShift(7)" title="7일 뒤로" style="padding:5px 8px;border:1px solid #d1d5db;border-radius:6px;background:#fff;color:#64748b;font-size:.72rem;cursor:pointer;font-family:inherit">7일 ›</button>
+          <button onclick="apsSysLogRangeDefault(true)" title="오늘까지 7일" style="padding:5px 8px;border:1px solid #d1d5db;border-radius:6px;background:#fff;color:#64748b;font-size:.72rem;cursor:pointer;font-family:inherit">최근 7일</button>
           <button id="sys-log-btn" onclick="apsLoadSysLogs()" style="padding:6px 16px;border:none;border-radius:6px;background:#0078d4;color:#fff;font-size:.75rem;font-weight:700;cursor:pointer;font-family:inherit">불러오기</button>
           <button onclick="apsToggleSysLogBar(false)" style="padding:6px 12px;border:1px solid #d1d5db;border-radius:6px;background:#fff;color:#64748b;font-size:.75rem;cursor:pointer;font-family:inherit">닫기</button>
         </span>
@@ -3036,18 +3039,40 @@ async function apsViewApproverHistory() {
 }
 
 // ── 관리자: 시스템 이력 조회(09-28) ────────────────────────────────────
-/* 각 시스템의 logAction 이 남긴 JSON(Logging_data/<시스템>[/<하위>]/YYYY-MM-DD/HHmmss_user_rand.json)을 한 달 단위로 읽는다.
+/* 각 시스템의 logAction 이 남긴 JSON(Logging_data/<시스템>[/<하위>]/YYYY-MM-DD/HHmmss_user_rand.json)을 7일 단위로 읽는다(처음엔 한 달 — 파일 수백 개라 느려 09-28 에 7일로).
    폴더 구조가 시스템마다 다르다(GW/2026-09-28, GA/DEV/…, ACC-Others/BP-Master/Admin/…) → 날짜 폴더를 만날 때까지 내려간다(깊이 4).
    파일이 행위마다 하나라 자동으로 읽지 않고 「불러오기」 로만. 조회 자체도 APS 이력으로 남긴다. */
-const _sysLog = { systems: null, items: [], view: [], page: 1, month: '', system: '' };
-const SYS_LOG_PAGE = 50;
-function apsMonthNow() { const n = new Date(Date.now() + 9 * 3600 * 1000); return n.getUTCFullYear() + '-' + String(n.getUTCMonth() + 1).padStart(2, '0'); }
+const _sysLog = { systems: null, items: [], view: [], page: 1, range: '', from: '', to: '', system: '' };
+const SYS_LOG_PAGE = 20;                                             // 한 쪽 20건(09-28 — 50건은 너무 길었다)
+const SYS_LOG_DAYS = 7;                                              // 한 번에 읽는 기간(일) — 한 달은 파일이 수백 개라 오래 걸렸다(09-28)
+function apsDayStr(d) { return d.getUTCFullYear() + '-' + String(d.getUTCMonth() + 1).padStart(2, '0') + '-' + String(d.getUTCDate()).padStart(2, '0'); }
+function apsDayAdd(str, n) { const d = new Date(str + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return apsDayStr(d); }
+function apsTodayKst() { return apsDayStr(new Date(Date.now() + 9 * 3600 * 1000)); }
+function apsSysLogRangeDefault(force) {
+  const f = document.getElementById('sys-log-from'), t = document.getElementById('sys-log-to'); if (!f || !t) return;
+  const today = apsTodayKst();
+  if (force || !f.value || !t.value) { t.value = today; f.value = apsDayAdd(today, -(SYS_LOG_DAYS - 1)); }
+  f.max = today; t.max = today;
+}
+function apsSysLogRangeFix(which) {   // 한쪽을 바꾸면 다른 쪽을 7일 폭으로 — 언제나 7일 단위
+  const f = document.getElementById('sys-log-from'), t = document.getElementById('sys-log-to');
+  if (which === 'from' && f.value) t.value = apsDayAdd(f.value, SYS_LOG_DAYS - 1);
+  else if (which === 'to' && t.value) f.value = apsDayAdd(t.value, -(SYS_LOG_DAYS - 1));
+  const today = apsTodayKst();
+  if (t.value > today) { t.value = today; f.value = apsDayAdd(today, -(SYS_LOG_DAYS - 1)); }
+}
+function apsSysLogShift(n) {
+  const f = document.getElementById('sys-log-from'), t = document.getElementById('sys-log-to');
+  if (!f.value || !t.value) apsSysLogRangeDefault(true);
+  let nt = apsDayAdd(t.value, n); const today = apsTodayKst(); if (nt > today) nt = today;
+  t.value = nt; f.value = apsDayAdd(nt, -(SYS_LOG_DAYS - 1));
+}
 async function apsToggleSysLogBar(show) {
   const bar = document.getElementById('sys-log-bar'); if (!bar) return;
   const on = show === undefined ? bar.style.display === 'none' : !!show;
   bar.style.display = on ? 'block' : 'none';
   if (!on) return;
-  const m = document.getElementById('sys-log-month'); if (!m.value) { m.value = apsMonthNow(); m.max = apsMonthNow(); }
+  apsSysLogRangeDefault(false);
   if (!_sysLog.systems) await apsLoadLogSystems();
 }
 async function apsLoadLogSystems() {
@@ -3068,10 +3093,12 @@ async function apsReadLogFile(d, f, t, _retry = 0) {
   return res.json();
 }
 async function apsLoadSysLogs() {
-  const month = document.getElementById('sys-log-month').value || apsMonthNow(), system = document.getElementById('sys-log-system').value;
-  if (!/^\d{4}-\d{2}$/.test(month)) { alert('조회할 달을 선택해 주세요.'); return; }
+  apsSysLogRangeDefault(false);
+  const from = document.getElementById('sys-log-from').value, to = document.getElementById('sys-log-to').value, system = document.getElementById('sys-log-system').value;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(from) || !/^\d{4}-\d{2}-\d{2}$/.test(to) || from > to) { alert('조회 기간을 확인해 주세요.'); return; }
+  const range = from + ' ~ ' + to;
   const btn = document.getElementById('sys-log-btn'); btn.disabled = true;
-  loading(true, month + ' 이력 폴더를 찾는 중...');
+  loading(true, range + ' 이력 폴더를 찾는 중...');
   try {
     const d = await _getLogDriveId(); if (!d) throw new Error('이력 저장소(STK-DB Documents)에 연결하지 못했습니다.');
     if (!_sysLog.systems) await apsLoadLogSystems();
@@ -3087,11 +3114,11 @@ async function apsLoadSysLogs() {
         folders++;
         for (const c of ch) {
           if (c.folder) {
-            if (/^\d{4}-\d{2}-\d{2}$/.test(c.name)) { if (c.name.startsWith(month + '-')) queue.push({ id: c.id, label: f.label, day: c.name, depth: f.depth + 1, isDay: true }); }
+            if (/^\d{4}-\d{2}-\d{2}$/.test(c.name)) { if (c.name >= from && c.name <= to) queue.push({ id: c.id, label: f.label, day: c.name, depth: f.depth + 1, isDay: true }); }
             else if (!f.isDay && f.depth < 4) queue.push({ id: c.id, label: f.label + '/' + c.name, depth: f.depth + 1 });
           } else if (f.isDay && c.file && /\.json$/i.test(c.name)) files.push({ id: c.id, name: c.name, label: f.label, day: f.day, downloadUrl: c['@microsoft.graph.downloadUrl'] || '' });
         }
-        if (folders % 10 === 0) loading(true, month + ' 이력 폴더를 찾는 중... 폴더 ' + folders + ' · 파일 ' + files.length.toLocaleString());
+        if (folders % 10 === 0) loading(true, range + ' 이력 폴더를 찾는 중... 폴더 ' + folders + ' · 파일 ' + files.length.toLocaleString());
       }
     };
     await Promise.all(Array.from({ length: 6 }, walker));
@@ -3103,26 +3130,54 @@ async function apsLoadSysLogs() {
         try { const j = await apsReadLogFile(d, f, t); out.push({ ...f, ...(j && typeof j === 'object' ? j : {}) }); }
         catch (e) { out.push({ ...f, action: '(읽기 실패)', detail: { error: e.message } }); }
         done++;
-        if (done % 25 === 0 || done === files.length) loading(true, month + ' 이력을 읽는 중... ' + done.toLocaleString() + ' / ' + files.length.toLocaleString());
+        if (done % 25 === 0 || done === files.length) loading(true, range + ' 이력을 읽는 중... ' + done.toLocaleString() + ' / ' + files.length.toLocaleString());
       }
     };
     await Promise.all(Array.from({ length: Math.min(6, Math.max(1, files.length)) }, reader));
     out.forEach(e => { e.ts = e.timestampKST || (e.day + ' ' + e.name.slice(0, 2) + ':' + e.name.slice(2, 4) + ':' + e.name.slice(4, 6)); });
     out.sort((a, b) => (b.ts > a.ts ? 1 : b.ts < a.ts ? -1 : 0));
-    Object.assign(_sysLog, { items: out, month, system });
+    Object.assign(_sysLog, { items: out, range, from, to, system });
     document.getElementById('sys-log-body').style.display = '';
     document.getElementById('sys-log-q').value = '';
     apsRenderSysLogs(true);
-    logAction('APS', '시스템 이력 조회', { 시스템: system || '전체', 월: month, 건수: out.length });
+    logAction('APS', '시스템 이력 조회', { 시스템: system || '전체', 기간: range, 건수: out.length });
   } catch (e) { alert('이력을 읽지 못했습니다.\n\n' + e.message); }
   finally { loading(false); btn.disabled = false; }
 }
-// 한 줄 요약 — 시스템마다 detail 모양이 달라 「키: 값」 으로 편다(오류가 있으면 그것부터)
+// 한 줄 요약 — 시스템마다 detail 모양이 달라 「키: 값」 으로 편다(빈 값은 빼고, 안쪽 객체는 괄호로, 참/거짓은 예/아니오). 오류가 있으면 그것부터.
+// ACC Others BP Master 기록은 그쪽 화면과 같은 문장으로(검색어 → 결과 수, 수정은 전 → 후).
 function apsSysLogSummary(e) {
   const d = e.detail; if (!d || typeof d !== 'object') return d == null ? '' : String(d);
   if (d.error) return '오류: ' + d.error;
-  const s = Object.entries(d).map(([k, v]) => k + ': ' + (v && typeof v === 'object' ? JSON.stringify(v) : String(v == null ? '' : v))).join(' · ');
+  if (/BP-Master/.test(e.label || e.system || '')) { const t = apsBpLogSummary(e.action || '', d); if (t != null) return t; }
+  const fmtV = v => v === true ? '예' : v === false ? '아니오' : Array.isArray(v) ? v.map(x => (x && typeof x === 'object') ? JSON.stringify(x) : String(x)).join(', ')
+    : (v && typeof v === 'object') ? Object.entries(v).filter(([, x]) => x !== '' && x != null).map(([k2, x]) => k2 + ' ' + fmtV(x)).join(', ') : String(v);
+  const s = Object.entries(d).filter(([, v]) => v !== '' && v != null && !(v && typeof v === 'object' && !Array.isArray(v) && !Object.keys(v).length))
+    .map(([k, v]) => (v && typeof v === 'object' && !Array.isArray(v)) ? k + '(' + fmtV(v) + ')' : k + ': ' + fmtV(v)).join(' · ');
   return s.length > 220 ? s.slice(0, 220) + '…' : s;
+}
+function apsBpLogSummary(a, d) {
+  const n = v => (v == null || v === '' ? '' : Number(v).toLocaleString());
+  const blank = v => (v == null || v === '' ? '(빈 칸)' : String(v));
+  const filt = [d.query ? '「' + d.query + '」' : '', d.type && d.type !== '전체' ? d.type : '', d.status && d.status !== '전체' ? d.status : ''].filter(Boolean).join(' · ');
+  switch (a) {
+    case '검색': case '검색 초기화': case '유형 선택': case '상태 필터': return (filt || '전체') + (d.results != null ? ' → ' + n(d.results) + '건' : '');
+    case '새로고침': return (filt ? filt + ' · ' : '') + (d.rows != null ? n(d.rows) + '건 다시 읽음' : '');
+    case '조회 열기': case '관리 탭 열기': case '조회 시작': return d.cached ? '읽어 둔 목록 사용' : '';
+    case '편집 시작': return d.until ? '자동 해제 ' + fmt(d.until).slice(11) : '';
+    case '편집 시작 실패': return (d.reason || '') + (d.holder ? ' · ' + d.holder : '');
+    case '편집 종료': return d.since ? fmt(d.since).slice(11) + ' 부터 편집' : '';
+    case '잠금 상태 확인': return d.holder ? (d.mine ? '내가 편집 중' : d.holder + ' 편집 중') : '잠금 없음';
+    case '등록': case '일괄 등록': return (d.codes || '') + (d.rows ? ' · ' + d.rows + '행' : '');
+    case '일괄 등록 건너뜀': return n(d.count) + '건 · ' + (d.codes || '');
+    case '일괄 상태 변경': return '→ ' + (d.to || '') + ' · ' + n(d.count) + '건' + (d.skipped ? ' (건너뜀 ' + n(d.skipped) + ')' : '') + (d.codes ? ' · ' + d.codes : '');
+    case '수정': { const b = d.before || {}, f = d.after || {}; const ch = Object.keys(f).filter(k => String(b[k] == null ? '' : b[k]) !== String(f[k] == null ? '' : f[k])).map(k => k + ': ' + blank(b[k]) + ' → ' + blank(f[k]));
+      return (d.code || '') + (d.row ? ' · ' + n(d.row) + '행' : '') + (ch.length ? ' · ' + ch.join(', ') : ' · 변경 없음'); }
+    case 'SAP(Be1) 붙여넣기': return n(d.lines) + '줄 · ' + n(d.parsed) + '건 파싱' + (d.invalid ? ' · 문제 ' + n(d.invalid) + '건' : '') + (d.codes ? ' · ' + d.codes : '');
+    case '이력 조회': return (d.from ? d.from + ' ~ ' + d.to : (d.month || '')) + ' · ' + (d.kind || '') + ' · ' + n(d.count) + '건';
+    case '이력 내보내기': return (d.from ? d.from + ' ~ ' + d.to : (d.month || '')) + ' · ' + n(d.count) + '건';
+    default: return null;
+  }
 }
 function apsRenderSysLogs(resetPage) {
   const q = (document.getElementById('sys-log-q').value || '').trim().toLowerCase();
@@ -3134,7 +3189,7 @@ function apsRenderSysLogs(resetPage) {
   const bySys = {}; _sysLog.items.forEach(e => { const k = e.label.split('/')[0]; bySys[k] = (bySys[k] || 0) + 1; });
   const top = Object.entries(bySys).sort((a, b) => b[1] - a[1]).slice(0, 6).map(([k, n]) => escHtml(k) + ' ' + n.toLocaleString()).join(' · ');
   const users = new Set(_sysLog.items.map(e => String(e.user || '').toLowerCase())).size;
-  document.getElementById('sys-log-count').innerHTML = '<b>' + escHtml(_sysLog.month) + '</b> · 총 ' + _sysLog.items.length.toLocaleString() + '건 · 사용자 ' + users + '명' + (top ? ' · ' + top : '') + (q ? ' · <b>거른 결과 ' + items.length.toLocaleString() + '건</b>' : '');
+  document.getElementById('sys-log-count').innerHTML = '<b>' + escHtml(_sysLog.range) + '</b> · 총 ' + _sysLog.items.length.toLocaleString() + '건 · 사용자 ' + users + '명' + (top ? ' · ' + top : '') + (q ? ' · <b>거른 결과 ' + items.length.toLocaleString() + '건</b>' : '');
   const start = (_sysLog.page - 1) * SYS_LOG_PAGE, slice = items.slice(start, start + SYS_LOG_PAGE);
   const trs = slice.map((e, i) => '<tr style="border-bottom:1px solid #f1f5f9;font-size:.74rem;cursor:pointer" onclick="apsToggleSysLog(this,' + (start + i) + ')" onmouseover="this.style.background=\'#f0f6ff\'" onmouseout="this.style.background=\'\'">' +
     '<td style="padding:6px 10px;white-space:nowrap;color:#64748b">' + escHtml(String(e.ts || '').slice(5)) + '</td>' +
@@ -3146,7 +3201,7 @@ function apsRenderSysLogs(resetPage) {
     '<div style="overflow-x:auto;border-radius:8px;border:1px solid #e2e8f0;background:#fff">' +
     '<table style="width:100%;border-collapse:collapse;background:#fff"><thead><tr style="background:#1e3a5f;color:#fff;font-size:.68rem">' +
     '<th style="padding:8px 10px;text-align:left;width:120px">일시</th><th style="padding:8px 10px;text-align:left;width:220px">시스템</th><th style="padding:8px 10px;text-align:left;width:220px">사용자</th><th style="padding:8px 10px;text-align:left;width:150px">행위</th><th style="padding:8px 10px;text-align:left">내용 <span style="font-weight:400;opacity:.75">(행을 누르면 원본)</span></th></tr></thead>' +
-    '<tbody>' + (trs || '<tr><td colspan="5" style="padding:22px;text-align:center;color:#94a3b8;font-size:.78rem">' + (_sysLog.items.length ? '거른 조건에 맞는 이력이 없습니다.' : '이 달에는 이력이 없습니다.') + '</td></tr>') + '</tbody></table></div>' +
+    '<tbody>' + (trs || '<tr><td colspan="5" style="padding:22px;text-align:center;color:#94a3b8;font-size:.78rem">' + (_sysLog.items.length ? '거른 조건에 맞는 이력이 없습니다.' : '이 기간에는 이력이 없습니다.') + '</td></tr>') + '</tbody></table></div>' +
     (pages > 1 ? '<div style="display:flex;align-items:center;justify-content:center;gap:4px;padding:8px 0 4px"><span style="font-size:.74rem;color:#94a3b8;margin-right:8px">' + (start + 1) + '–' + Math.min(start + SYS_LOG_PAGE, items.length) + ' / ' + items.length.toLocaleString() + '건</span>' + apsPagerHtml(_sysLog.page - 1, pages, (p) => 'apsSysLogGo(' + (p + 1) + ')') + '</div>' : '');
 }
 function apsSysLogGo(p) { _sysLog.page = p; apsRenderSysLogs(false); }
@@ -3166,8 +3221,8 @@ function apsExportSysLogs() {
   const wb = XLSX.utils.book_new(), ws = XLSX.utils.aoa_to_sheet(rows);
   ws['!cols'] = [{ wch: 19 }, { wch: 28 }, { wch: 30 }, { wch: 18 }, { wch: 60 }, { wch: 70 }, { wch: 50 }];
   XLSX.utils.book_append_sheet(wb, ws, '시스템 이력');
-  XLSX.writeFile(wb, 'APS_시스템이력_' + _sysLog.month + (_sysLog.system ? '_' + _sysLog.system.replace(/[\\/:*?"<>|]/g, '_') : '') + '.xlsx');
-  logAction('APS', '시스템 이력 내보내기', { 시스템: _sysLog.system || '전체', 월: _sysLog.month, 건수: rows.length - 1 });
+  XLSX.writeFile(wb, 'APS_시스템이력_' + _sysLog.from.replace(/-/g, '') + '-' + _sysLog.to.replace(/-/g, '') + (_sysLog.system ? '_' + _sysLog.system.replace(/[\\/:*?"<>|]/g, '_') : '') + '.xlsx');
+  logAction('APS', '시스템 이력 내보내기', { 시스템: _sysLog.system || '전체', 기간: _sysLog.range, 건수: rows.length - 1 });
 }
 
 function apsClearApvTarget() {
