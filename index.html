@@ -3193,16 +3193,18 @@ function apsRenderSysLogs(resetPage) {
   const users = new Set(_sysLog.items.map(e => String(e.user || '').toLowerCase())).size;
   document.getElementById('sys-log-count').innerHTML = '<b>' + escHtml(_sysLog.range) + '</b> · 총 ' + _sysLog.items.length.toLocaleString() + '건 · 사용자 ' + users + '명' + (top ? ' · ' + top : '') + (q ? ' · <b>거른 결과 ' + items.length.toLocaleString() + '건</b>' : '');
   const start = (_sysLog.page - 1) * SYS_LOG_PAGE, slice = items.slice(start, start + SYS_LOG_PAGE);
-  const trs = slice.map((e, i) => '<tr style="border-bottom:1px solid #f1f5f9;font-size:.74rem;cursor:pointer" onclick="apsToggleSysLog(this,' + (start + i) + ')" onmouseover="this.style.background=\'#f0f6ff\'" onmouseout="this.style.background=\'\'">' +
-    '<td style="padding:6px 10px;white-space:nowrap;color:#64748b">' + escHtml(String(e.ts || '').slice(5)) + '</td>' +
-    '<td style="padding:6px 10px;white-space:nowrap;color:#0078d4;font-weight:600">' + escHtml(e.label) + '</td>' +
-    '<td style="padding:6px 10px;white-space:nowrap;color:#374151">' + escHtml(String(e.user || '').toLowerCase()) + '</td>' +
-    '<td style="padding:6px 10px;white-space:nowrap;font-weight:600;color:#1e293b">' + escHtml(e.action || '') + '</td>' +
-    '<td style="padding:6px 10px;color:#475569;word-break:break-all">' + escHtml(apsSysLogSummary(e)) + '</td></tr>').join('');
+  // 모든 칸 한 줄 — 넘치면 줄임표(전체 글은 title, 행을 누르면 원본). 두 줄로 내려가 행 높이가 들쭉날쭉하던 것(09-28).
+  const cell = 'padding:6px 10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;';
+  const trs = slice.map((e, i) => { const sum = apsSysLogSummary(e); return '<tr style="border-bottom:1px solid #f1f5f9;font-size:.74rem;cursor:pointer" onclick="apsToggleSysLog(this,' + (start + i) + ')" onmouseover="this.style.background=\'#f0f6ff\'" onmouseout="this.style.background=\'\'">' +
+    '<td style="' + cell + 'color:#64748b">' + escHtml(String(e.ts || '').slice(5)) + '</td>' +
+    '<td style="' + cell + 'color:#0078d4;font-weight:600" title="' + escHtml(e.label) + '">' + escHtml(e.label) + '</td>' +
+    '<td style="' + cell + 'color:#374151" title="' + escHtml(String(e.user || '').toLowerCase()) + '">' + escHtml(String(e.user || '').toLowerCase()) + '</td>' +
+    '<td style="' + cell + 'font-weight:600;color:#1e293b" title="' + escHtml(e.action || '') + '">' + escHtml(e.action || '') + '</td>' +
+    '<td style="' + cell + 'color:#475569" title="' + escHtml(sum) + '">' + escHtml(sum) + '</td></tr>'; }).join('');
   document.getElementById('sys-log-table').innerHTML =
     '<div style="overflow-x:auto;border-radius:8px;border:1px solid #e2e8f0;background:#fff">' +
-    '<table style="width:100%;border-collapse:collapse;background:#fff"><thead><tr style="background:#1e3a5f;color:#fff;font-size:.68rem">' +
-    '<th style="padding:8px 10px;text-align:left;width:120px">일시</th><th style="padding:8px 10px;text-align:left;width:220px">시스템</th><th style="padding:8px 10px;text-align:left;width:220px">사용자</th><th style="padding:8px 10px;text-align:left;width:150px">행위</th><th style="padding:8px 10px;text-align:left">내용 <span style="font-weight:400;opacity:.75">(행을 누르면 원본)</span></th></tr></thead>' +
+    '<table style="width:100%;table-layout:fixed;border-collapse:collapse;background:#fff"><thead><tr style="background:#1e3a5f;color:#fff;font-size:.68rem">' +
+    '<th style="padding:8px 10px;text-align:left;width:122px">일시</th><th style="padding:8px 10px;text-align:left;width:215px">시스템</th><th style="padding:8px 10px;text-align:left;width:215px">사용자</th><th style="padding:8px 10px;text-align:left;width:140px">행위</th><th style="padding:8px 10px;text-align:left">내용 <span style="font-weight:400;opacity:.75">(길면 …으로 줄임 · 행을 누르면 원본)</span></th></tr></thead>' +
     '<tbody>' + (trs || '<tr><td colspan="5" style="padding:22px;text-align:center;color:#94a3b8;font-size:.78rem">' + (_sysLog.items.length ? '거른 조건에 맞는 이력이 없습니다.' : '이 기간에는 이력이 없습니다.') + '</td></tr>') + '</tbody></table></div>' +
     (pages > 1 ? '<div style="display:flex;align-items:center;justify-content:center;gap:4px;padding:8px 0 4px"><span style="font-size:.74rem;color:#94a3b8;margin-right:8px">' + (start + 1) + '–' + Math.min(start + SYS_LOG_PAGE, items.length) + ' / ' + items.length.toLocaleString() + '건</span>' + apsPagerHtml(_sysLog.page - 1, pages, (p) => 'apsSysLogGo(' + (p + 1) + ')') + '</div>' : '');
 }
