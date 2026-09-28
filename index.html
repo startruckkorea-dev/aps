@@ -3100,7 +3100,7 @@ async function apsLoadSysLogs() {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(from) || !/^\d{4}-\d{2}-\d{2}$/.test(to) || from > to) { alert('조회 기간을 확인해 주세요.'); return; }
   const range = from + ' ~ ' + to;
   const btn = document.getElementById('sys-log-btn'); btn.disabled = true;
-  loading(true, range + ' 이력 폴더를 찾는 중...');
+  loading(true, range + ' 이력을 찾는 중...');
   try {
     const d = await _getLogDriveId(); if (!d) throw new Error('이력 저장소(STK-DB Documents)에 연결하지 못했습니다.');
     if (!_sysLog.systems) await apsLoadLogSystems();
@@ -3120,7 +3120,7 @@ async function apsLoadSysLogs() {
             else if (!f.isDay && f.depth < 4) queue.push({ id: c.id, label: f.label + '/' + c.name, depth: f.depth + 1 });
           } else if (f.isDay && c.file && /\.json$/i.test(c.name)) files.push({ id: c.id, name: c.name, label: f.label, day: f.day, downloadUrl: c['@microsoft.graph.downloadUrl'] || '' });
         }
-        if (folders % 10 === 0) loading(true, range + ' 이력 폴더를 찾는 중... 폴더 ' + folders + ' · 파일 ' + files.length.toLocaleString());
+        if (folders % 10 === 0) loading(true, range + ' 이력을 찾는 중... ' + files.length.toLocaleString() + '건 확인');
       }
     };
     await Promise.all(Array.from({ length: 6 }, walker));
