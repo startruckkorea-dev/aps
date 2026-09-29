@@ -660,9 +660,9 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#f5f7f
         <span style="font-size:.7rem;color:#64748b">각 시스템이 Logging_data 에 남긴 접근 · 조회 · 내보내기 · 편집 기록을 7일 단위로 읽습니다(기본: 오늘까지 7일). 조회 사실도 기록에 남습니다.</span>
         <span style="margin-left:auto;display:flex;gap:6px;align-items:center;flex-wrap:wrap">
           <select id="sys-log-system" style="min-width:190px;padding:5px 8px;border:1px solid #d1d5db;border-radius:6px;font-size:.75rem;font-family:inherit;background:#fff"><option value="">전체 시스템</option></select>
-          <button onclick="apsSysLogShift(-7)" title="7일 앞으로" style="padding:5px 8px;border:1px solid #d1d5db;border-radius:6px;background:#fff;color:#64748b;font-size:.72rem;cursor:pointer;font-family:inherit">‹ 7일</button>
+          <button onclick="apsSysLogShift(-1)" title="고른 기간 길이만큼 앞으로" style="padding:5px 8px;border:1px solid #d1d5db;border-radius:6px;background:#fff;color:#64748b;font-size:.72rem;cursor:pointer;font-family:inherit">‹ 이전</button>
           <input type="date" id="sys-log-from" onchange="apsSysLogRangeFix('from')" style="padding:4px 8px;border:1px solid #d1d5db;border-radius:6px;font-size:.75rem;font-family:inherit;background:#fff"><span style="color:#94a3b8;font-size:.74rem">~</span><input type="date" id="sys-log-to" onchange="apsSysLogRangeFix('to')" style="padding:4px 8px;border:1px solid #d1d5db;border-radius:6px;font-size:.75rem;font-family:inherit;background:#fff">
-          <button onclick="apsSysLogShift(7)" title="7일 뒤로" style="padding:5px 8px;border:1px solid #d1d5db;border-radius:6px;background:#fff;color:#64748b;font-size:.72rem;cursor:pointer;font-family:inherit">7일 ›</button>
+          <button onclick="apsSysLogShift(1)" title="고른 기간 길이만큼 뒤로" style="padding:5px 8px;border:1px solid #d1d5db;border-radius:6px;background:#fff;color:#64748b;font-size:.72rem;cursor:pointer;font-family:inherit">다음 ›</button>
           <button onclick="apsSysLogRangeDefault(true)" title="오늘까지 7일" style="padding:5px 8px;border:1px solid #d1d5db;border-radius:6px;background:#fff;color:#64748b;font-size:.72rem;cursor:pointer;font-family:inherit">최근 7일</button>
           <button id="sys-log-btn" onclick="apsLoadSysLogs()" style="padding:6px 16px;border:none;border-radius:6px;background:#0078d4;color:#fff;font-size:.75rem;font-weight:700;cursor:pointer;font-family:inherit">불러오기</button>
           <button onclick="apsToggleSysLogBar(false)" style="padding:6px 12px;border:1px solid #d1d5db;border-radius:6px;background:#fff;color:#64748b;font-size:.75rem;cursor:pointer;font-family:inherit">닫기</button>
@@ -3046,7 +3046,8 @@ async function apsViewApproverHistory() {
    파일이 행위마다 하나라 자동으로 읽지 않고 「불러오기」 로만. 조회 자체도 APS 이력으로 남긴다. */
 const _sysLog = { systems: null, items: [], view: [], page: 1, range: '', from: '', to: '', system: '' };
 const SYS_LOG_PAGE = 20;                                             // 한 쪽 20건(09-28 — 50건은 너무 길었다)
-const SYS_LOG_DAYS = 7;                                              // 한 번에 읽는 기간(일) — 한 달은 파일이 수백 개라 오래 걸렸다(09-28)
+const SYS_LOG_DAYS = 7;
+const SYS_LOG_MAX_DAYS = 31;                                            // 한 번에 읽을 수 있는 최대 기간(일) — 하루 · 사흘 · 한 달 등 자유롭게(09-29)                                              // 한 번에 읽는 기간(일) — 한 달은 파일이 수백 개라 오래 걸렸다(09-28)
 function apsDayStr(d) { return d.getUTCFullYear() + '-' + String(d.getUTCMonth() + 1).padStart(2, '0') + '-' + String(d.getUTCDate()).padStart(2, '0'); }
 function apsDayAdd(str, n) { const d = new Date(str + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return apsDayStr(d); }
 function apsTodayKst() { return apsDayStr(new Date(Date.now() + 9 * 3600 * 1000)); }
@@ -3056,18 +3057,30 @@ function apsSysLogRangeDefault(force) {
   if (force || !f.value || !t.value) { t.value = today; f.value = apsDayAdd(today, -(SYS_LOG_DAYS - 1)); }
   f.max = today; t.max = today;
 }
-function apsSysLogRangeFix(which) {   // 한쪽을 바꾸면 다른 쪽을 7일 폭으로 — 언제나 7일 단위
+/* 시작 · 끝을 자유롭게 고른다(09-29) — 예전에는 한쪽을 바꾸면 다른 쪽을 7일 폭으로 되돌려 하루짜리 조회가 안 됐다.
+   지키는 것: 시작 ≤ 끝, 끝 ≤ 오늘, 기간 ≤ SYS_LOG_MAX_DAYS일(넘으면 바꾼 쪽을 기준으로 다른 쪽을 당긴다). */
+function apsSysLogRangeFix(which) {
   const f = document.getElementById('sys-log-from'), t = document.getElementById('sys-log-to');
-  if (which === 'from' && f.value) t.value = apsDayAdd(f.value, SYS_LOG_DAYS - 1);
-  else if (which === 'to' && t.value) f.value = apsDayAdd(t.value, -(SYS_LOG_DAYS - 1));
   const today = apsTodayKst();
-  if (t.value > today) { t.value = today; f.value = apsDayAdd(today, -(SYS_LOG_DAYS - 1)); }
+  if (f.value > today) f.value = today;
+  if (t.value > today) t.value = today;
+  if (which === 'from' && f.value) {
+    if (!t.value || t.value < f.value) t.value = f.value;
+    if (apsDayAdd(f.value, SYS_LOG_MAX_DAYS - 1) < t.value) t.value = apsDayAdd(f.value, SYS_LOG_MAX_DAYS - 1);
+  } else if (which === 'to' && t.value) {
+    if (!f.value || f.value > t.value) f.value = t.value;
+    if (apsDayAdd(t.value, -(SYS_LOG_MAX_DAYS - 1)) > f.value) f.value = apsDayAdd(t.value, -(SYS_LOG_MAX_DAYS - 1));
+  }
 }
-function apsSysLogShift(n) {
+/* ‹ 이전 · 다음 › — 지금 고른 기간 길이만큼 앞뒤로 옮긴다(끝은 오늘까지). */
+function apsSysLogShift(dir) {
   const f = document.getElementById('sys-log-from'), t = document.getElementById('sys-log-to');
-  if (!f.value || !t.value) apsSysLogRangeDefault(true);
-  let nt = apsDayAdd(t.value, n); const today = apsTodayKst(); if (nt > today) nt = today;
-  t.value = nt; f.value = apsDayAdd(nt, -(SYS_LOG_DAYS - 1));
+  if (!f.value || !t.value || f.value > t.value) apsSysLogRangeDefault(true);
+  const len = Math.round((new Date(t.value + 'T00:00:00Z') - new Date(f.value + 'T00:00:00Z')) / 86400000) + 1;
+  const today = apsTodayKst();
+  let nf = apsDayAdd(f.value, dir * len), nt = apsDayAdd(t.value, dir * len);
+  if (nt > today) { nt = today; nf = apsDayAdd(today, -(len - 1)); }
+  f.value = nf; t.value = nt;
 }
 async function apsToggleSysLogBar(show) {
   const bar = document.getElementById('sys-log-bar'); if (!bar) return;
@@ -3098,6 +3111,7 @@ async function apsLoadSysLogs() {
   apsSysLogRangeDefault(false);
   const from = document.getElementById('sys-log-from').value, to = document.getElementById('sys-log-to').value, system = document.getElementById('sys-log-system').value;
   if (!/^\d{4}-\d{2}-\d{2}$/.test(from) || !/^\d{4}-\d{2}-\d{2}$/.test(to) || from > to) { alert('조회 기간을 확인해 주세요.'); return; }
+  if (apsDayAdd(from, SYS_LOG_MAX_DAYS - 1) < to) { alert('한 번에 ' + SYS_LOG_MAX_DAYS + '일까지 조회할 수 있습니다. 기간을 줄여 주세요.'); return; }
   const range = from + ' ~ ' + to;
   const btn = document.getElementById('sys-log-btn'); btn.disabled = true;
   loading(true, range + ' 이력을 찾는 중...');
