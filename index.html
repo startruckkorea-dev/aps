@@ -1528,6 +1528,7 @@ function annFmtTime(v){
   var m=totalMin%60;
   return (h<10?'0':'')+h+':'+(m<10?'0':'')+m;
 }
+function annMinutes(v){var t=annFmtTime(String(v==null?'':v));var m=/^(\d{1,2}):(\d{2})$/.exec(t);return m?(+m[1])*60+(+m[2]):-1;}   // 시각 → 분(없으면 -1: 맨 뒤)
 function annItemHtml(r){
   var date=String(r[0]||'');
   var t1=annFmtTime(String(r[1]||''));
@@ -1549,7 +1550,8 @@ function annItemHtml(r){
 function renderAnnouncements(rows){
   console.log('[ANN] rows:',rows.length);
   if(!rows.length)return;
-  rows.sort(function(a,b){return String(b[0]).localeCompare(String(a[0]));});
+  // 날짜 내림차순, 같은 날이면 늦은 시각이 먼저(09-30 — 예전엔 날짜만 비교해 같은 날은 파일 순서대로 07:00 이 12:00 앞에 나왔다)
+  rows.sort(function(a,b){var d=String(b[0]||'').localeCompare(String(a[0]||''));return d||(annMinutes(b[1])-annMinutes(a[1]));});
   window._annRows=rows;
   var total=rows.length;
   // 배지: 오늘 포함 2일 이내(오늘+어제) 또는 미래 날짜인 것만 카운트
@@ -2620,6 +2622,8 @@ function switchApsTab(tab) {
   if(adminBtn) adminBtn.style.background = '#0078d4';
 
   if (tab === 'admin') {
+    if (!_isApsAdmin) { logAction('APS', '관리자 탭 접근 차단', { reason: '관리자 명단에 없음' }); alert('🔒 관리자 전용 메뉴입니다.\n접근 권한이 없습니다.'); return; }   // 단추는 관리자에게만 보이지만, 우회 진입도 막고 이력을 남긴다(09-30)
+    logAction('APS', '관리자 탭 열기', {});
     if(adminPage) adminPage.style.display = 'block';
     if(adminBtn)  adminBtn.style.background = '#0F2744';
     loadAdminPage();
