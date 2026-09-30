@@ -1144,7 +1144,7 @@ async function loadSystemConfig() {
 // 옛 기록도 같은 표기가 되고, 「회계담당자」 로 FA Code 입력을 여는 판정(processApproval)도 그대로다.
 // Transfer 는 이동 전/후 팀장·부서장이 나뉘어 Transfer-out / Transfer-in 으로 구분한다.
 const FA_ROLE_LABELS = {
-  '1차결재자':'Line Manager', '2차결재자':'Department Head', '회계담당자':'GL 담당자', '최종결재자':'CFO',
+  '1차결재자':'Line Manager', '2차결재자':'Department Head', '회계담당자':'GL 담당자', '회계팀장':'Accounting Head', '최종결재자':'CFO',
   '1차결재자(이동전 Line Manager)':'Transfer-out Line Manager', '2차결재자(이동전 부서장)':'Transfer-out Department Head',
   '3차결재자(이동후 Line Manager)':'Transfer-in Line Manager', '4차결재자(이동후 부서장)':'Transfer-in Department Head' };
 function faRoleLabel(role){
@@ -1155,6 +1155,7 @@ function faRoleLabel(role){
   if(/이동\s*전.*(부서장|Dept)/i.test(r)) return 'Transfer-out Department Head';
   if(/이동\s*후.*(Line|팀장)/i.test(r)) return 'Transfer-in Line Manager';
   if(/이동\s*후.*(부서장|Dept)/i.test(r)) return 'Transfer-in Department Head';
+  if(/회계\s*팀장|Accounting\s*Head/i.test(r)) return 'Accounting Head';   // FA 회계팀장(09-30) — /회계/ 보다 먼저
   if(/회계/.test(r)) return 'GL 담당자';
   if(/최종|CFO/i.test(r)) return 'CFO';
   return r.replace(/^\d+차\s*결재자\s*/,'').replace(/^\((.+)\)$/,'$1').trim();
