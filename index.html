@@ -1088,9 +1088,29 @@ async function _ensureLogFolder(driveId, folderPath, t) {
 //           (2) 매번 새 파일만 생성 — 기존 파일을 읽어서 고치는 과정이 없어 동시 기록 충돌(race condition) 자체가 불가능
 //           (3) 시스템/날짜별 하위폴더로 분산 — 폴더 하나가 무한정 커지는 것을 방지, 특정 날짜/시스템만 찾아보기도 쉬움
 //           (4) 파일 하나 크기가 1KB 미만이라 SharePoint 용량/성능에 주는 부담이 사실상 없음
+/* ══ 이력 제외 계정(10-01) ══
+   system_config_final.xlsx 의 Role(D열)이 「IT Manager」 · 「IT system service」 인 이메일(IT 담당자 · 서비스 계정)은 시스템 운영 · 점검으로
+   이력이 너무 쌓여 Logging_data 에 남기지 않는다. 명단은 loadSystemConfig 가 설정을 읽을 때 모은다(logSkipCollect).
+   설정을 아직 읽는 중이면 잠깐 기다렸다가 판단하고, 끝내 못 읽으면 전처럼 남긴다(열린 쪽이 기본 — 이력을 잃지 않게). */
+const LOG_SKIP_ROLES = ['it manager', 'it system service'];
+const _logSkipEmails = new Set();
+function logSkipCollect(row) {
+  const role = String(row[3] || '').trim().toLowerCase(), em = String(row[2] || '').trim().toLowerCase();
+  if (em && LOG_SKIP_ROLES.includes(role)) _logSkipEmails.add(em);
+}
+function logSkipNow() {
+  const me = [user && user.email, user && user.username].map(x => String(x || '').trim().toLowerCase()).filter(Boolean);
+  return me.some(e => _logSkipEmails.has(e));
+}
+async function logSkipped() {
+  for (let i = 0; i < 50 && !_sysConfig; i++) await new Promise(r => setTimeout(r, 100));   // 부팅 중 설정 읽기를 최대 5초 기다린다
+  if (!_sysConfig) { try { await loadSystemConfig(); } catch (e) {} }                          // 아직이면 직접 읽는다(이미 읽었으면 캐시)
+  return logSkipNow();
+}
 function logAction(systemName, action, detail) {
   (async () => {
     try {
+      if (await logSkipped()) return;   // IT 운영 계정(IT Manager · IT system service)은 남기지 않는다(10-01)
       const driveId = await _getLogDriveId();
       if (!driveId) return;
       const t = await token();
@@ -1135,6 +1155,7 @@ async function loadSystemConfig() {
       const key = (row[0] || '').toString().trim();
       if (!key || key.startsWith('[') || key === '설정 키 (KEY)' || key.startsWith('이 파일') || key.startsWith('STK Korea')) return;
       cfg[key] = { name: (row[1] || '').toString().trim(), email: (row[2] || '').toString().trim() };
+      logSkipCollect(row);   // Role(D열) IT Manager · IT system service → 이력 제외(10-01)
     });
     _sysConfig = cfg;
     console.log('[Config] Loaded system_config_final.xlsx:', Object.keys(cfg).length, 'entries');
