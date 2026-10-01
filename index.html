@@ -1365,9 +1365,10 @@ function aacDelegatorOf(email, sysKey){
 async function loadAll(force=false){
   if (!force && _allDataTime && (Date.now()-_allDataTime) < CACHE_TTL_MS) { renderAll(); return; }
   loading(true,'전체 결재 데이터 불러오는 중...');
-  await loadMyDelegations();   // 대리로 받은 위임 — 결재함 판정에 쓴다
   _allData={};
-  await Promise.all(visibleSystems().map(async sys=>{
+  // 대리로 받은 위임(loadMyDelegations)은 결재함 판정(renderAll · isMyAppr)에서만 쓰므로 목록 읽기와 동시에 받는다.
+  // 예전에는 먼저 끝나기를 기다린 뒤 목록을 읽어 왕복 1회만큼 늦었다(10-01). 실패는 함수 안에서 삼키므로 Promise.all 을 깨지 않는다.
+  await Promise.all([loadMyDelegations(), ...visibleSystems().map(async sys=>{
     try{
       // 이 화면이 신청에서 읽는 것은 아래 다섯뿐이다(loadAll·renderAll·summary 전수 조사).
       //   Title · RequesterEmail · Status · RequestDate · SubmittedDate
@@ -1397,7 +1398,7 @@ async function loadAll(force=false){
       console.error('[loadAll 실패]', sys.key, e && e.message);
       _allData[sys.key]={apprItems:[],reqMap:{},error:e.message};
     }
-  }));
+  })]);
   _allDataTime = Date.now();
   loading(false);
   renderAll();
