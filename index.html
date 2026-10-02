@@ -1980,6 +1980,23 @@ function _faLoc(f){
   if(!man) return loc;
   return loc === '직접입력' ? man : (loc + ' (' + man + ')');
 }
+/* 업무 처리 의견(ProcessLog · JSON 배열) 열람 칸 — BP Master · IT Ticket 상세 공용(10-02). 입력은 각 시스템 관리자 탭에서.
+   BP Master 와 같은 SSC 「업무 처리 의견」 모양(날짜 · 작성자 · 내용 카드). */
+function apsPlogHtml(f, sec, toText) {   // toText: 상세 화면의 SharePoint 서식 껍데기 걷기(showDetail 안 지역 함수)
+        let _pl=[];
+        const _tp=v=>{ try{ const a=JSON.parse(v); return Array.isArray(a)?a:null; }catch(e){ return null; } };
+        if(f.ProcessLog) _pl=_tp(f.ProcessLog)||(toText?_tp(toText(f.ProcessLog)):null)||[];
+        // BP Master 와 같은 SSC 「업무 처리 의견」 모양(날짜 · 작성자 · 내용 카드)
+        return sec('업무 처리 의견')+(_pl.length
+          ? '<div style="max-height:200px;overflow-y:auto">'
+            +_pl.map(l=>'<div style="background:#f0f6ff;border:1px solid #c7e0f4;border-radius:6px;padding:8px 12px;margin-bottom:8px">'
+              +'<div style="font-size:11px;color:#a19f9d;margin-bottom:3px">'+escHtml(l.at||'')+'</div>'
+              +'<div style="font-size:12px;color:#605e5c;margin-bottom:3px">작성자: <span style="font-weight:600;color:#0078d4">'+escHtml(l.email||l.name||'')+' (관리자)</span></div>'
+              +'<div style="font-size:12px;color:#605e5c;margin-bottom:2px">내용:</div>'
+              +'<div style="font-size:13px;color:#323130;white-space:pre-wrap;word-break:break-word;padding-left:8px">'+escHtml(l.text||'')+'</div></div>').join('')
+            +'</div>'
+          : '<div style="font-size:12px;color:#a19f9d;padding:6px 0">등록된 의견이 없습니다.</div>');
+}
 function escHtml(str){return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
 /* 기록 표(My Requests · My Approvals) 도우미(10-02) */
 function recCols(ws){ return '<colgroup>' + ws.map(w => '<col style="width:' + w + '%">').join('') + '</colgroup>'; }
@@ -2118,6 +2135,8 @@ async function showDetail(sysKey,reqId){
       else if(t==='Change') info+=sec('변경 요청 상세')+(f.TicketTitle?row('요청 제목',f.TicketTitle):'')+row('변경 유형',f.ChangeType)+row('예상 영향도',f.Impact)+rowFull('변경 내용',f.Detail)+rowFull('변경 이유',f.ChangeReason);
       else if(t==='Request') info+=sec('서비스 요청 상세')+(f.TicketTitle?row('요청 제목',f.TicketTitle):'')+row('요청 유형',f.ReqType)+row('계정 생성 목적',f.AcctPurpose)+row('권한 환경',f.ReqEnv)+row('신청 기간',f.ReqFrom&&f.ReqTo?f.ReqFrom+' ~ '+f.ReqTo:'-')+rowFull('요청 내용',f.Detail);
       info+=sec('첨부파일')+parseFiles(f.AttachedFiles);
+      // 업무 처리 의견 — IT Ticket 관리자 탭에서 남긴 ProcessLog 열람(10-02 · BP 와 같은 모양). 입력은 IT Ticket 에서.
+      info+=apsPlogHtml(f, sec, toText);
     }
     else if(sysKey==='SCC'){
       info+=sec('계약 정보')+row('Title of Contract',f.ContractTitle||'(미입력)')+row('Type',f.ContractCompanyType)+row('Contract Type',f.ContractType)+row('Contract Partner',f.ContractPartner)+row('Objective',f.Objective)+row('Contract Value',f.ContractValue?Number(f.ContractValue).toLocaleString()+' '+(f.Currency||''):'-')+row('Contract Period',(f.PeriodType||'')+(f.PeriodStart?' | '+f.PeriodStart+' ~ '+(f.PeriodEnd||'No end'):''))+row('Payment Term',f.PaymentDays?'Within '+f.PaymentDays+' days from invoice date':'-');
@@ -2178,22 +2197,8 @@ async function showDetail(sysKey,reqId){
            +row('업체이름(고객이름)', escHtml(String(f.CustomerName||'').trim())||'-')
            +(f.Description?rowFull('Description',f.Description):'');
       info+=sec('첨부파일')+parseFiles(f.AttachedFiles);
-      // 처리 이력 — BP Master 관리자 탭에서 남긴 ProcessLog(JSON 배열)를 열람만 한다. 입력은 BP Master 에서.
-      {
-        let _pl=[];
-        const _tp=v=>{ try{ const a=JSON.parse(v); return Array.isArray(a)?a:null; }catch(e){ return null; } };
-        if(f.ProcessLog) _pl=_tp(f.ProcessLog)||_tp(toText(f.ProcessLog))||[];
-        // BP Master 와 같은 SSC 「업무 처리 의견」 모양(날짜 · 작성자 · 내용 카드)
-        info+=sec('업무 처리 의견')+(_pl.length
-          ? '<div style="max-height:200px;overflow-y:auto">'
-            +_pl.map(l=>'<div style="background:#f0f6ff;border:1px solid #c7e0f4;border-radius:6px;padding:8px 12px;margin-bottom:8px">'
-              +'<div style="font-size:11px;color:#a19f9d;margin-bottom:3px">'+escHtml(l.at||'')+'</div>'
-              +'<div style="font-size:12px;color:#605e5c;margin-bottom:3px">작성자: <span style="font-weight:600;color:#0078d4">'+escHtml(l.email||l.name||'')+' (관리자)</span></div>'
-              +'<div style="font-size:12px;color:#605e5c;margin-bottom:2px">내용:</div>'
-              +'<div style="font-size:13px;color:#323130;white-space:pre-wrap;word-break:break-word;padding-left:8px">'+escHtml(l.text||'')+'</div></div>').join('')
-            +'</div>'
-          : '<div style="font-size:12px;color:#a19f9d;padding:6px 0">등록된 의견이 없습니다.</div>');
-      }
+      // 업무 처리 의견 — BP Master 관리자 탭에서 남긴 ProcessLog 를 열람만 한다(입력은 BP Master 에서). 모양은 apsPlogHtml.
+      info+=apsPlogHtml(f, sec, toText);
     }
     else if(sysKey==='FA'){
       info+=rowRaw('FA 유형',`<span style="background:#e8f4ff;color:#0078d4;padding:2px 8px;border-radius:10px;font-size:12px">${escHtml(f.FAType||'')}</span>`)+(f.FACode?rowRaw('FA Code',`<strong style="color:#107c10">${escHtml(toText(f.FACode))}</strong>`):'');
