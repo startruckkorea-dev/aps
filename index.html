@@ -106,6 +106,28 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#f5f7f
 .tb-btn.on{border-color:#3b82f6;color:#1d4ed8;background:#eff6ff}   /* 이력 창이 열려 있는 동안 */
 .tb-btn.green{background:#1d6f42;border-color:#1d6f42;color:#fff}
 .tb-btn.green:hover{background:#17592f;border-color:#17592f;color:#fff}
+/* My Requests · My Approvals 표(10-02) — colgroup 비율로 열 고정(쪽을 넘겨도 열이 안 움직임), 모든 칸 한 줄 · 넘치면 줄임표,
+   잘린 칸에 마우스를 올리면 전체 글 말풍선(#rec-tip). 좁은 화면은 가로 스크롤. */
+.rec-tbl{width:100%;border-collapse:collapse;table-layout:fixed;background:#fff}
+.rec-tbl th{padding:9px 8px;text-align:left;font-weight:600;font-size:.68rem;color:#64748b;background:#f8fafc;border-bottom:2px solid #e2e8f0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rec-tbl td{padding:0 8px;height:31px;font-size:.74rem;color:#334155;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border-bottom:1px solid #f1f5f9;vertical-align:middle}
+.rec-tbl tbody tr{cursor:pointer}
+.rec-tbl tbody tr:hover td{background:#f0f6ff}
+.rec-tbl tbody tr:last-child td{border-bottom:none}
+.rec-tbl .c{text-align:center;text-overflow:clip}
+.rec-tbl .no{color:#94a3b8;font-weight:600;font-variant-numeric:tabular-nums}
+.rec-tbl .sys{color:#0078d4;font-weight:600}
+.rec-tbl .ttl{color:#1e293b}
+.rec-tbl .dt{color:#64748b;font-variant-numeric:tabular-nums}
+.rec-tbl .dt.req{color:#94a3b8}
+.rec-tbl .step{color:#64748b;font-variant-numeric:tabular-nums}
+.rec-tbl .dash{color:#cbd5e1}
+.rec-tbl .st{display:inline-block;border-radius:10px;padding:0 8px;font-size:.68rem;font-weight:700;line-height:1.7;vertical-align:middle}
+.rec-tbl .dg{display:inline-block;margin-right:5px;background:#fff4ce;border:1px solid #f2d68c;color:#8a5a00;border-radius:9px;padding:0 6px;font-size:.6rem;font-weight:700;line-height:1.5;vertical-align:middle}
+.rec-wrap{overflow-x:auto;background:#fff;border-radius:8px;border:1px solid #e2e8f0}
+#rec-tip{position:fixed;z-index:3000;max-width:440px;padding:6px 10px;border-radius:6px;background:#1e293b;color:#fff;font-size:.74rem;line-height:1.5;
+  white-space:pre-wrap;word-break:break-all;box-shadow:0 4px 14px rgba(0,0,0,.18);pointer-events:none;opacity:0;transform:translateY(2px);transition:opacity .12s,transform .12s}
+#rec-tip.show{opacity:1;transform:none}
 .tb-btn.blue{background:#0078d4;border-color:#0078d4;color:#fff}
 .tb-btn.blue:hover{background:#106ebe;border-color:#106ebe;color:#fff}
 .tb-btn svg{flex:none}
@@ -1950,6 +1972,34 @@ function _faLoc(f){
   return loc === '직접입력' ? man : (loc + ' (' + man + ')');
 }
 function escHtml(str){return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
+/* 기록 표(My Requests · My Approvals) 도우미(10-02) */
+function recCols(ws){ return '<colgroup>' + ws.map(w => '<col style="width:' + w + '%">').join('') + '</colgroup>'; }
+function recCell(cls, txt, html){   // 한 줄 칸 — 잘리면 말풍선(data-tip)에 전체 글
+  const t = String(txt == null ? '' : txt);
+  return '<td class="' + cls + '" data-tip="' + escHtml(t) + '">' + (html != null ? html : (t ? escHtml(t) : '<span class="dash">-</span>')) + '</td>';
+}
+function recBadge(txt, bg, fg){ return '<span class="st" style="background:' + (bg||'#f1f5f9') + ';color:' + (fg||'#374151') + '">' + escHtml(txt||'-') + '</span>'; }
+// 잘린 칸 말풍선 — 문서에 한 번만 건다. 글이 다 보이는 칸은 띄우지 않는다.
+(function recTipInit(){
+  let tip = null, cur = null;
+  const hide = () => { cur = null; if (tip) tip.classList.remove('show'); };
+  document.addEventListener('mouseover', e => {
+    const td = e.target && e.target.closest && e.target.closest('.rec-tbl td[data-tip]');
+    if (!td) { if (cur) hide(); return; }
+    if (td === cur) return;
+    const txt = td.getAttribute('data-tip') || '';
+    if (!txt || td.scrollWidth <= td.clientWidth + 1) { hide(); return; }
+    if (!tip) { tip = document.createElement('div'); tip.id = 'rec-tip'; tip.setAttribute('role', 'tooltip'); document.body.appendChild(tip); }
+    cur = td; tip.textContent = txt;
+    tip.style.left = '0px'; tip.style.top = '0px'; tip.classList.add('show');
+    const r = td.getBoundingClientRect(), tw = tip.offsetWidth, th = tip.offsetHeight;
+    let x = Math.min(r.left, window.innerWidth - tw - 8), y = r.bottom + 4;
+    if (y + th > window.innerHeight - 8) y = r.top - th - 4;
+    tip.style.left = Math.max(8, x) + 'px'; tip.style.top = Math.max(8, y) + 'px';
+  });
+  window.addEventListener('scroll', hide, true);
+  document.addEventListener('click', hide, true);
+})();
 // ──────────────────────────────────────────────────────────────
 
 async function showDetail(sysKey,reqId){
@@ -3000,28 +3050,23 @@ function renderMyApprovedTable(resetPage) {
 
   const trs = pageRows.map((r, i) => {
     const rowNum = rows.length - ((_myApprovedPage - 1) * MYA_PAGE_SIZE + i);
-    return `
-    <tr style="border-bottom:1px solid #f1f5f9;font-size:.74rem;cursor:pointer"
-        onclick="showDetail('${r.sysKey}',${r.reqId})"
-        onmouseover="this.style.background='#f0f6ff'" onmouseout="this.style.background=''">
-      <td style="padding:6px 8px;text-align:left;color:#64748b;font-weight:600">${rowNum}</td>
-      <td style="padding:6px 8px;color:#0078d4;font-weight:600;white-space:nowrap">${r.sysLabel}</td>
-      <td style="padding:6px 8px;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.74rem" title="${escHtml(r.title||'')}">${escHtml(r.title||'')}</td>
-      <td style="padding:6px 8px;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#334155;font-size:.74rem" title="${escHtml(r.purpose||'')}">${r.purpose ? escHtml(r.purpose) : '<span style="color:#cbd5e1">-</span>'}</td>
-      <td style="padding:6px 8px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#374151;font-size:.74rem" title="${escHtml(r.requester||'')}">${escHtml(r.requester||'')}</td>
-      <td style="padding:6px 8px;max-width:210px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#1e293b;font-size:.74rem" title="${escHtml(r.approverEmail||r.approver||'')}${r.byDeputy ? ' — ' + escHtml(r.byDeputy) + ' 님이 대리로 처리' : ''}">
-        ${r.byDeputy ? `<span style="margin-right:5px;background:#fff4ce;border:1px solid #f2d68c;color:#8a5a00;border-radius:9px;padding:0 6px;font-size:.6rem;font-weight:700">대리</span>` : ''}${r.approverEmail ? escHtml(r.approverEmail) : (r.approver ? escHtml(r.approver) : '<span style="color:#cbd5e1">-</span>')}
-      </td>
-      <td style="padding:6px 8px;text-align:left;color:#64748b;white-space:nowrap">${r.aprOrder}${r.totalAprs?'/'+r.totalAprs:''}차</td>
-      <td style="padding:6px 8px;text-align:left">
-        <span style="background:${stBg[r.myStatus]||'#f1f5f9'};color:${stColor[r.myStatus]||'#374151'};border-radius:10px;padding:2px 5px;font-size:.72rem;font-weight:700">${r.myStatus}</span>
-      </td>
-      <td style="padding:6px 8px;color:#94a3b8;white-space:nowrap;font-size:.74rem">${fmtDt(r.requestDate)}</td>
-      <td style="padding:6px 8px;color:#64748b;white-space:nowrap;font-size:.74rem">${fmtDt(r.processedAt)}</td>
-      <td style="padding:6px 8px;text-align:left">
-        <span style="background:${tsBg[r.ticketStatus]||'#f1f5f9'};color:${tsColor[r.ticketStatus]||'#374151'};border-radius:10px;padding:2px 5px;font-size:.72rem;font-weight:700">${r.ticketStatus}</span>
-      </td>
-    </tr>`;}).join('');
+    const who = r.approverEmail || r.approver || '';
+    const whoTip = who + (r.byDeputy ? ' — ' + r.byDeputy + ' 님이 대리로 처리' : '');
+    const whoHtml = (r.byDeputy ? '<span class="dg">대리</span>' : '') + (who ? escHtml(who) : '<span class="dash">-</span>');
+    return '<tr onclick="showDetail(\'' + r.sysKey + '\',' + r.reqId + ')">'
+      + '<td class="no">' + rowNum + '</td>'
+      + recCell('sys', r.sysLabel)
+      + recCell('ttl', r.title)
+      + recCell('', r.purpose)
+      + recCell('', r.requester)
+      + recCell('', whoTip, whoHtml)
+      + '<td class="c step">' + r.aprOrder + (r.totalAprs ? '/' + r.totalAprs : '') + '차</td>'
+      + '<td class="c">' + recBadge(r.myStatus, stBg[r.myStatus], stColor[r.myStatus]) + '</td>'
+      + recCell('dt req', fmtDt(r.requestDate))
+      + recCell('dt', fmtDt(r.processedAt))
+      + '<td class="c">' + recBadge(r.ticketStatus, tsBg[r.ticketStatus], tsColor[r.ticketStatus]) + '</td>'
+      + '</tr>';
+  }).join('');
 
   // pagination
   let pgHtml = '';
@@ -3031,24 +3076,13 @@ function renderMyApprovedTable(resetPage) {
       + '</div>';
   }
 
+  // 열 비율(%) — 번호 · 결재시스템 · 제목 · 요청 제목 · 신청자 · 처리자 · 결재차수 · 결재 결과 · 신청일시 · 처리일시 · 티켓 현재 상태 (합 100)
   wrap.innerHTML = `
-    <div style="overflow-x:auto;background:#fff;border-radius:8px;border:1px solid #e2e8f0">
-      <table style="width:100%;border-collapse:collapse;background:#fff">
-        <thead>
-          <tr style="background:#f8fafc;border-bottom:2px solid #e2e8f0;font-size:.68rem;color:#64748b">
-            <th style="padding:10px 10px;text-align:left;font-weight:600">번호</th>
-            <th style="padding:10px 10px;text-align:left;font-weight:600">결재시스템</th>
-            <th style="padding:10px 10px;text-align:left;font-weight:600">제목</th>
-            <th style="padding:10px 10px;text-align:left;font-weight:600">요청 제목</th>
-            <th style="padding:10px 10px;text-align:left;font-weight:600">신청자</th>
-            <th style="padding:10px 10px;text-align:left;font-weight:600">처리자</th>
-            <th style="padding:10px 10px;text-align:left;font-weight:600">결재차수</th>
-            <th style="padding:10px 10px;text-align:left;font-weight:600">${_myApvTarget ? '결재 결과' : '내 결재 결과'}</th>
-            <th style="padding:10px 10px;text-align:left;font-weight:600">신청일시</th>
-            <th style="padding:10px 10px;text-align:left;font-weight:600">${_myApvTarget ? '처리일시' : '내 처리일시'}</th>
-            <th style="padding:10px 10px;text-align:left;font-weight:600">티켓 현재 상태</th>
-          </tr>
-        </thead>
+    <div class="rec-wrap">
+      <table class="rec-tbl" style="min-width:1040px">
+        ${recCols([3.5, 10, 13, 10.5, 11.5, 12.5, 5, 6, 10.5, 10.5, 7])}
+        <thead><tr><th>번호</th><th>결재시스템</th><th>제목</th><th>요청 제목</th><th>신청자</th><th>처리자</th><th class="c">결재차수</th>
+          <th class="c">${_myApvTarget ? '결재 결과' : '내 결재 결과'}</th><th>신청일시</th><th>${_myApvTarget ? '처리일시' : '내 처리일시'}</th><th class="c">티켓 현재 상태</th></tr></thead>
         <tbody>${trs}</tbody>
       </table>
     </div>${pgHtml}`;
@@ -3494,24 +3528,20 @@ function renderMyRequestsTable(resetPage) {
 
   const trs = pageRows.map((r, i) => {
     const rowNum = rows.length - ((_myRequestsPage - 1) * MYR_PAGE_SIZE + i);
-    return `
-    <tr style="border-bottom:1px solid #f1f5f9;font-size:.74rem;cursor:pointer"
-        onclick="showDetail('${r.sysKey}',${r.reqId})"
-        onmouseover="this.style.background='#f0f6ff'" onmouseout="this.style.background=''">
-      <td style="padding:6px 8px;text-align:left;color:#64748b;font-weight:600">${rowNum}</td>
-      <td style="padding:6px 8px;color:#0078d4;font-weight:600;white-space:nowrap">${r.sysLabel}</td>
-      <td style="padding:6px 8px;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.74rem" title="${escHtml(r.title||'')}">${escHtml(r.title||'')}</td>
-      <td style="padding:6px 8px;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#334155;font-size:.74rem" title="${escHtml(r.purpose||'')}">${r.purpose ? escHtml(r.purpose) : '<span style="color:#cbd5e1">-</span>'}</td>
-      <td style="padding:6px 8px;text-align:left">
-        <span style="background:${tsBg[r.reqStatus]||'#f1f5f9'};color:${tsColor[r.reqStatus]||'#374151'};border-radius:10px;padding:2px 5px;font-size:.72rem;font-weight:700">${r.reqStatus}</span>
-      </td>
-      <td style="padding:6px 8px;text-align:left;color:#64748b;white-space:nowrap">${r.doneCount}${r.totalAprs?'/'+r.totalAprs:''}차</td>
-      <td style="padding:6px 8px;max-width:170px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#1e293b;font-size:.74rem" title="${escHtml(r.nextApprover&&r.nextApprover!=='-'?(r.nextRole&&r.nextRole!=='-'?r.nextApprover+' ('+r.nextRole+')':r.nextApprover):'')}">
-        ${r.reqStatus==='진행중'||r.reqStatus==='대기' ? nextApproverCell(r) : '-'}
-      </td>
-      <td style="padding:6px 8px;color:#94a3b8;white-space:nowrap;font-size:.74rem">${fmtDt(r.requestDate)}</td>
-      <td style="padding:6px 8px;color:#64748b;white-space:nowrap;font-size:.74rem">${fmtDt(r.lastApprovalDate)}</td>
-    </tr>`;}).join('');
+    const live = r.reqStatus==='진행중'||r.reqStatus==='대기';
+    const nxtTxt = live && r.nextApprover && r.nextApprover!=='-' ? (r.nextRole && r.nextRole!=='-' ? r.nextApprover+' ('+r.nextRole+')' : r.nextApprover) : '';
+    return '<tr onclick="showDetail(\'' + r.sysKey + '\',' + r.reqId + ')">'
+      + '<td class="no">' + rowNum + '</td>'
+      + recCell('sys', r.sysLabel)
+      + recCell('ttl', r.title)
+      + recCell('', r.purpose)
+      + '<td class="c">' + recBadge(r.reqStatus, tsBg[r.reqStatus], tsColor[r.reqStatus]) + '</td>'
+      + '<td class="c step">' + r.doneCount + (r.totalAprs ? '/' + r.totalAprs : '') + '차</td>'
+      + recCell('', nxtTxt, live ? nextApproverCell(r) : null)
+      + recCell('dt req', fmtDt(r.requestDate))
+      + recCell('dt', fmtDt(r.lastApprovalDate))
+      + '</tr>';
+  }).join('');
 
   let pgHtml = '';
   if (totalPages > 1) {
@@ -3520,22 +3550,12 @@ function renderMyRequestsTable(resetPage) {
       + '</div>';
   }
 
+  // 열 비율(%) — 번호 · 시스템 · 제목 · 요청 제목 · 상태 · 결재차수 · 다음 결재자 · 신청일 · 최근결재일 (합 100)
   wrap.innerHTML = `
-    <div style="overflow-x:auto;background:#fff;border-radius:8px;border:1px solid #e2e8f0">
-      <table style="width:100%;border-collapse:collapse;background:#fff">
-        <thead>
-          <tr style="background:#f8fafc;border-bottom:2px solid #e2e8f0;font-size:.68rem;color:#64748b">
-            <th style="padding:10px 10px;text-align:left;font-weight:600">번호</th>
-            <th style="padding:10px 10px;text-align:left;font-weight:600">시스템</th>
-            <th style="padding:10px 10px;text-align:left;font-weight:600">제목</th>
-            <th style="padding:10px 10px;text-align:left;font-weight:600">요청 제목</th>
-            <th style="padding:10px 10px;text-align:left;font-weight:600">상태</th>
-            <th style="padding:10px 10px;text-align:left;font-weight:600">결재차수</th>
-            <th style="padding:10px 10px;text-align:left;font-weight:600">다음 결재자</th>
-            <th style="padding:10px 10px;text-align:left;font-weight:600">신청일</th>
-            <th style="padding:10px 10px;text-align:left;font-weight:600">최근결재일</th>
-          </tr>
-        </thead>
+    <div class="rec-wrap">
+      <table class="rec-tbl" style="min-width:960px">
+        ${recCols([4.5, 11.5, 16, 18.5, 7, 6, 14.5, 11, 11])}
+        <thead><tr><th>번호</th><th>시스템</th><th>제목</th><th>요청 제목</th><th class="c">상태</th><th class="c">결재차수</th><th>다음 결재자</th><th>신청일</th><th>최근결재일</th></tr></thead>
         <tbody>${trs}</tbody>
       </table>
     </div>
