@@ -125,6 +125,15 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#f5f7f
 .rec-tbl .st{display:inline-block;border-radius:10px;padding:0 8px;font-size:.68rem;font-weight:700;line-height:1.7;vertical-align:middle}
 .rec-tbl .dg{display:inline-block;margin-right:5px;background:#fff4ce;border:1px solid #f2d68c;color:#8a5a00;border-radius:9px;padding:0 6px;font-size:.6rem;font-weight:700;line-height:1.5;vertical-align:middle}
 .rec-wrap{overflow-x:auto;background:#fff;border-radius:8px;border:1px solid #e2e8f0}
+/* 전체 결재 관리 표(10-02) — 같은 .rec-tbl 규칙에 짙은 머리줄만 다르게 */
+.rec-tbl.adm th{background:#1e3a5f;color:#fff;border-bottom:none;padding:10px 8px}
+.rec-tbl.adm th.sort{cursor:pointer;user-select:none}
+.rec-tbl.adm th.sort:hover{background:#26497a}
+.rec-tbl.adm th .ar{opacity:.7;font-size:.7em;margin-left:2px}
+.rec-tbl.adm th.two{white-space:normal;line-height:1.25}
+.rec-tbl.adm th.two small{display:block;font-weight:400;font-size:.62rem;opacity:.8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rec-tbl.adm td.day{font-variant-numeric:tabular-nums}
+.rec-tbl.adm td.multi{white-space:normal;height:auto;padding:5px 8px;line-height:1.5}
 #rec-tip{position:fixed;z-index:3000;max-width:440px;padding:6px 10px;border-radius:6px;background:#1e293b;color:#fff;font-size:.74rem;line-height:1.5;
   white-space:pre-wrap;word-break:break-all;box-shadow:0 4px 14px rgba(0,0,0,.18);pointer-events:none;opacity:0;transform:translateY(2px);transition:opacity .12s,transform .12s}
 #rec-tip.show{opacity:1;transform:none}
@@ -4063,54 +4072,56 @@ function renderAdminTable(resetPage) {
   const stMap = {'대기':'#b45309','진행중':'#1d4ed8','승인완료':'#15803d','반려':'#b91c1c'};
   const stBg  = {'대기':'#fef3c7','진행중':'#dbeafe','승인완료':'#dcfce7','반려':'#fee2e2'};
 
-  const trs = pageRows.map((r, i) => { const rowNum = rows.length - ((_adminPage - 1) * ADMIN_PAGE_SIZE + i); return `
-    <tr style="border-bottom:1px solid #f1f5f9;font-size:.74rem;cursor:pointer" onclick="showDetail('${r.sysKey}',${r.reqId})" onmouseover="this.style.background='#f0f6ff'" onmouseout="this.style.background=''">
-      <td style="padding:8px 10px;color:#0078d4;font-weight:600;">${r.sysLabel}</td>
-      <td style="padding:8px 10px;text-align:left;color:#64748b;font-weight:600;">${rowNum}</td>
-      <td style="padding:8px 10px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${escHtml(r.title||'')}">${escHtml(r.title||'')}</td>
-      <td style="padding:8px 10px;color:#374151;">${escHtml(r.requester||'')}</td>
-      <td style="padding:8px 10px;text-align:left;">
-        <span style="background:${stBg[r.reqStatus]||'#f1f5f9'};color:${stMap[r.reqStatus]||'#374151'};border-radius:10px;padding:2px 6px;font-size:.74rem;font-weight:600;">${r.reqStatus}</span>
-      </td>
-      <td style="padding:8px 10px;text-align:left;color:#64748b;">${r.doneCount} / ${r.totalAprs}차</td>
-      <td style="padding:8px 10px;color:#374151;font-size:.74rem;white-space:nowrap;" title="${escHtml(r.nextApprover&&r.nextApprover!=='-'?(r.nextRole&&r.nextRole!=='-'?r.nextApprover+' ('+r.nextRole+')':r.nextApprover):'')}">${nextApproverCell(r)}${adminMatchedAprs(r, fApprover)}</td>
-      <td style="padding:8px 10px;color:#94a3b8;font-size:.74rem;">${fmt(r.requestDate)}</td>
-      <td style="padding:8px 10px;color:#94a3b8;font-size:.74rem;">${fmt(r.lastApprovalDate)}</td>
-      ${(()=>{
-        if(r.reqStatus==='승인완료'||r.reqStatus==='반려'||r.reqStatus==='철회'||r.reqStatus==='철회(잠김)') return '<td style="padding:8px 10px;text-align:left;color:#94a3b8;font-size:.74rem;">-</td>';
-        const days=r.requestDate?Math.floor((Date.now()-new Date(r.requestDate))/86400000):0;
-        const color=days>=7?'#b91c1c':days>=3?'#b45309':'#64748b';
-        const bg=days>=7?'#fee2e2':days>=3?'#fef3c7':'transparent';
-        return '<td style="padding:8px 10px;text-align:left;font-size:.74rem;font-weight:'+(days>=3?'700':'400')+';color:'+color+';background:'+bg+';">'+(days>=7?'🔴 ':days>=3?'🟡 ':'')+days+'일</td>';
-      })()}
-      ${(()=>{
-        if(r.reqStatus==='승인완료'||r.reqStatus==='반려'||r.reqStatus==='철회'||r.reqStatus==='철회(잠김)') return '<td style="padding:8px 10px;text-align:left;color:#94a3b8;font-size:.74rem;">-</td>';
-        const ref=r.lastApprovalDate||r.requestDate;
-        const days=ref?Math.floor((Date.now()-new Date(ref))/86400000):0;
-        const color=days>=7?'#b91c1c':days>=3?'#b45309':'#64748b';
-        const bg=days>=7?'#fee2e2':days>=3?'#fef3c7':'transparent';
-        return '<td style="padding:8px 10px;text-align:left;font-size:.74rem;font-weight:'+(days>=3?'700':'400')+';color:'+color+';background:'+bg+';">'+(days>=7?'🔴 ':days>=3?'🟡 ':'')+days+'일</td>';
-      })()}
-    </tr>`;}).join('');
+  // 지연일수(신청일 기준) · 정체일수(최근결재 기준) 칸 — 끝난 건은 「-」, 3일+ 노랑 · 7일+ 빨강
+  const dayCell = (r, ref) => {
+    if (r.reqStatus==='승인완료'||r.reqStatus==='반려'||r.reqStatus==='철회'||r.reqStatus==='철회(잠김)') return '<td class="day"><span class="dash">-</span></td>';
+    const days = ref ? Math.floor((Date.now()-new Date(ref))/86400000) : 0;
+    const color = days>=7?'#b91c1c':days>=3?'#b45309':'#64748b';
+    const bg = days>=7?'#fee2e2':days>=3?'#fef3c7':'transparent';
+    return '<td class="day" style="font-weight:'+(days>=3?'700':'400')+';color:'+color+';background:'+bg+'">'+(days>=7?'🔴 ':days>=3?'🟡 ':'')+days+'일</td>';
+  };
+  const trs = pageRows.map((r, i) => {
+    const rowNum = rows.length - ((_adminPage - 1) * ADMIN_PAGE_SIZE + i);
+    const nxtTxt = r.nextApprover && r.nextApprover!=='-' ? (r.nextRole && r.nextRole!=='-' ? r.nextApprover+' ('+r.nextRole+')' : r.nextApprover) : '';
+    const matched = adminMatchedAprs(r, fApprover);   // 결재자 검색 중이면 걸린 결재행(체크박스 포함)을 칸 아래에 — 이 칸만 여러 줄
+    const nxtTd = matched
+      ? '<td class="multi">' + nextApproverCell(r) + matched + '</td>'
+      : recCell('', nxtTxt, nextApproverCell(r));
+    return '<tr onclick="showDetail(\'' + r.sysKey + '\',' + r.reqId + ')">'
+      + recCell('sys', r.sysLabel)
+      + '<td class="no">' + rowNum + '</td>'
+      + recCell('ttl', r.title)
+      + recCell('', r.requester)
+      + '<td class="c">' + recBadge(r.reqStatus, stBg[r.reqStatus], stMap[r.reqStatus]) + '</td>'
+      + '<td class="c step">' + r.doneCount + ' / ' + r.totalAprs + '차</td>'
+      + nxtTd
+      + recCell('dt req', fmt(r.requestDate) === '-' ? '' : fmt(r.requestDate))
+      + recCell('dt', fmt(r.lastApprovalDate) === '-' ? '' : fmt(r.lastApprovalDate))
+      + dayCell(r, r.requestDate)
+      + dayCell(r, r.lastApprovalDate || r.requestDate)
+      + '</tr>';
+  }).join('');
 
   // 앞뒤 2칸(5칸)이던 것을 APS 공통 7칸 창으로(09-22).
   const pgBtns = [apsPagerHtml(_adminPage - 1, totalPages, (p) => `adminGoPage(${p + 1})`)];
 
+  // 열 비율(%) — 시스템 · 번호 · 제목 · 신청자 · 상태 · 결재진행 · 다음결재자 · 신청일 · 최근결재일 · 지연일수 · 정체일수 (합 100)
   document.getElementById('admin-table-wrap').innerHTML = `
-    <div style="overflow-x:auto;border-radius:8px;border:1px solid #e2e8f0;margin-bottom:12px;">
-      <table style="width:100%;border-collapse:collapse;background:#fff;">
-        <thead><tr style="background:#1e3a5f;color:#fff;font-size:.68rem;">
-          <th style="padding:10px;text-align:left;">시스템</th>
-          ${adminThSort('reqId','번호','left')}
-          <th style="padding:10px;text-align:left;">제목</th>
-          <th style="padding:10px;text-align:left;">신청자</th>
-          ${adminThSort('reqStatus','상태','left')}
-          ${adminThSort('doneCount','결재진행','left')}
-          <th style="padding:10px;text-align:left;">다음결재자</th>
-          ${adminThSort('requestDate','신청일','left')}
-          ${adminThSort('lastApprovalDate','최근결재일','left')}
-          ${adminThSort('delayDays','지연일수<br><span style="font-weight:400;font-size:.65rem;opacity:.8">(신청일 기준)</span>','left')}
-          ${adminThSort('stagnantDays','정체일수<br><span style="font-weight:400;font-size:.65rem;opacity:.8">(최근결재 기준)</span>','left')}
+    <div class="rec-wrap" style="margin-bottom:12px">
+      <table class="rec-tbl adm" style="min-width:1080px">
+        ${recCols([5.5, 5.5, 15, 13, 6.5, 6, 15.5, 9.5, 9.5, 7, 7])}
+        <thead><tr>
+          <th>시스템</th>
+          ${adminThSort('reqId','번호')}
+          <th>제목</th>
+          <th>신청자</th>
+          ${adminThSort('reqStatus','상태','c')}
+          ${adminThSort('doneCount','결재진행','c')}
+          <th>다음결재자</th>
+          ${adminThSort('requestDate','신청일')}
+          ${adminThSort('lastApprovalDate','최근결재일')}
+          ${adminThSort('delayDays','지연일수<small>(신청일 기준)</small>','two')}
+          ${adminThSort('stagnantDays','정체일수<small>(최근결재 기준)</small>','two')}
         </tr></thead>
         <tbody>${trs}</tbody>
       </table>
@@ -4121,11 +4132,12 @@ function renderAdminTable(resetPage) {
     </div>`;
 }
 
-function adminThSort(col, label, align='left') {
+function adminThSort(col, label, cls='') {   // cls: '' · 'c'(가운데) · 'two'(두 줄 머리 — label 안 <small>)
   const {col:sc, dir:sd} = _adminSort;
-  const arrow = sc===col ? (sd==='asc'?' ▲':' ▼') : ' ↕';
-  const style = 'padding:10px;text-align:'+align+';cursor:pointer;user-select:none;white-space:nowrap;';
-  return '<th style="'+style+'" onclick="adminSortBy(\''+col+'\')">'+label+'<span style="opacity:.7;font-size:.7em;">'+arrow+'</span></th>';
+  const arrow = sc===col ? (sd==='asc'?'▲':'▼') : '↕';
+  const ar = '<span class="ar">'+arrow+'</span>';
+  const body = cls==='two' ? label.replace('<small>', ar+'<small>') : label+ar;
+  return '<th class="sort '+cls+'" onclick="adminSortBy(\''+col+'\')">'+body+'</th>';
 }
 function adminSortBy(col) {
   if(_adminSort.col===col) _adminSort.dir=_adminSort.dir==='asc'?'desc':'asc';
