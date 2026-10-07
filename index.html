@@ -401,6 +401,85 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#f5f7f
   .sc-grid{grid-template-columns:1fr}
 }
 
+/* ── 상단 바 정리 + 연도 선택기 + 계정 메뉴(10-07 · aps-hub-year) — 연동 시스템과 같은 부품을 어두운 바에 맞춘 색으로 ── */
+.nav-right{display:flex;align-items:center;gap:12px}
+.nav-tools-wrap{display:flex;align-items:center;gap:12px}
+.nav-tools{display:flex;align-items:center;gap:6px}
+.nav-ib{appearance:none;display:inline-flex;align-items:center;justify-content:center;gap:5px;height:32px;min-width:32px;padding:0 9px;box-sizing:border-box;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.18);color:#fff;border-radius:8px;font-size:.8rem;line-height:1;cursor:pointer;font-family:inherit;text-decoration:none;transition:background .15s,border-color .15s;white-space:nowrap}
+.nav-ib:hover{background:rgba(255,255,255,.2);border-color:rgba(255,255,255,.3)}
+.nav-ib svg{width:15px;height:15px}
+.nav-ib.admin{margin-left:4px}
+.nav-ib.admin.on{background:#0078d4;border-color:#0078d4;box-shadow:0 0 0 2px rgba(0,120,212,.3)}
+.aps-act{position:relative;display:flex;align-items:center}
+.aps-year{appearance:none;cursor:pointer;display:inline-flex;align-items:center;gap:6px;height:32px;box-sizing:border-box;border:1px solid rgba(255,255,255,.28);border-radius:999px;padding:0 10px 0 12px;font-size:12.5px;font-weight:700;color:#fff;background:rgba(255,255,255,.1);font-variant-numeric:tabular-nums;white-space:nowrap;line-height:1;font-family:inherit;transition:border-color .15s,box-shadow .15s}
+.aps-year:hover{border-color:rgba(255,255,255,.5);background:rgba(255,255,255,.18)}
+.aps-year[aria-expanded="true"]{border-color:#7cc4ff;box-shadow:0 0 0 3px rgba(124,196,255,.25)}
+.aps-year.off{border-color:#f0c24b;background:rgba(240,194,75,.18);color:#ffe8a3}
+.aps-year small{font-weight:600;color:#107c10;background:#dff6dd;border-radius:9px;padding:2px 7px;font-size:10px;line-height:1.2}
+.aps-year .aps-year-ch{font-size:10px;color:rgba(255,255,255,.75);margin-left:-1px}
+.aps-ymenu{position:absolute;right:0;top:calc(100% + 8px);width:240px;background:#fff;border:1px solid #e1dfdd;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.18);z-index:120;padding:6px;text-align:left;color:#201f1e}
+.aps-ymenu[hidden],.aps-ymenu-bg[hidden],.aps-acct-menu[hidden]{display:none!important}
+.aps-ymenu .grab{display:none}
+.aps-ymenu-hd{display:flex;justify-content:space-between;align-items:center;padding:6px 10px 8px;font-size:11px;color:#8a8886}
+.aps-ymenu-hd b{font-size:12px;color:#323130;font-weight:700}
+.aps-ymenu ul{list-style:none;margin:0;padding:0}
+.aps-ymenu li{display:flex;align-items:center;gap:8px;padding:9px 10px;border-radius:7px;cursor:pointer;font-size:13px;color:#201f1e;font-variant-numeric:tabular-nums;line-height:1.2}
+.aps-ymenu li:hover{background:#f3f2f1}
+.aps-ymenu li.sel{background:#e8f3fc;color:#0b5fa5}
+.aps-ymenu li b{font-weight:700;width:40px}
+.aps-ymenu li small{font-weight:600;color:#107c10;background:#dff6dd;border-radius:9px;padding:2px 7px;font-size:10px}
+.aps-ymenu li .sub{margin-left:auto;margin-top:0;font-size:11px;color:#8a8886;white-space:nowrap}
+.aps-ymenu li.sel .sub{color:#0b5fa5}
+.aps-ymenu li.none b{color:#8a8886}
+.aps-ymenu li.sel.none b{color:#0b5fa5}
+.aps-ymenu li i.ck{font-style:normal;width:14px;text-align:center;color:#0078d4;visibility:hidden;font-size:12px}
+.aps-ymenu li.sel i.ck{visibility:visible}
+.aps-ymenu-bg{display:none}
+.aps-acct{position:relative;display:flex}
+.aps-acct-btn{appearance:none;cursor:pointer;display:inline-flex;align-items:center;gap:8px;height:34px;box-sizing:border-box;border:1px solid rgba(255,255,255,.2);border-radius:999px;padding:0 10px 0 2px;background:rgba(255,255,255,.08);font-family:inherit;color:#fff;transition:border-color .15s,box-shadow .15s;max-width:100%}
+.aps-acct-btn:hover{background:rgba(255,255,255,.16);border-color:rgba(255,255,255,.35)}
+.aps-acct-btn[aria-expanded="true"]{border-color:#7cc4ff;box-shadow:0 0 0 3px rgba(124,196,255,.25)}
+.aps-av{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#60a5fa,#3b82f6);color:#fff;font-size:11px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;letter-spacing:.3px;flex:none}
+.aps-av.lg{width:36px;height:36px;font-size:13px;background:#0f2744}
+.aps-acct-nm{font-size:12.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:160px}
+.aps-acct-ch{font-size:10px;color:rgba(255,255,255,.75)}
+.aps-acct-menu{position:absolute;right:0;top:calc(100% + 8px);width:270px;max-width:calc(100vw - 24px);background:#fff;border:1px solid #e1dfdd;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.18);padding:6px;z-index:120;text-align:left;color:#201f1e}
+.aps-acct-menu .mh{display:flex;gap:10px;align-items:center;padding:8px 10px 10px;border-bottom:1px solid #f0efed;margin-bottom:4px;min-width:0}
+.aps-acct-menu .hdr-user{display:flex;flex-direction:column;min-width:0;line-height:1.35}
+.aps-acct-menu .hdr-user-name{font-size:12.5px;font-weight:600;color:#323130;overflow-wrap:anywhere}
+.aps-acct-menu .hdr-user-mail{font-size:11px;color:#8a8886;overflow-wrap:anywhere}
+.aps-acct-lo{appearance:none;cursor:pointer;width:100%;display:flex;align-items:center;gap:8px;padding:8px 10px;border:0;border-radius:7px;background:#fff;color:#a4262c;font-size:12.5px;font-weight:600;font-family:inherit;text-align:left}
+.aps-acct-lo:hover{background:#fdf3f4}
+.aps-acct-lo svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+/* 데이터 없는 연도 — 결재함 자리에 안내 카드만 */
+.aps-year-empty{display:none;background:#fff;border:1px dashed #d2d0ce;border-radius:12px;padding:52px 24px;text-align:center;color:#605e5c;margin:24px 28px}
+.aps-year-empty .ic{margin-bottom:12px}
+.aps-year-empty .ic svg{width:44px;height:44px;stroke:#a19f9d;fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+.aps-year-empty .t{font-size:15px;font-weight:600;color:#323130}
+.aps-year-empty .t b{color:#0b5fa5;font-variant-numeric:tabular-nums}
+.aps-year-empty .d{font-size:12.5px;margin-top:6px;line-height:1.6}
+.aps-year-empty button{margin-top:18px;appearance:none;cursor:pointer;border:1px solid #0078d4;background:#fff;color:#0b5fa5;border-radius:999px;padding:7px 16px;font-size:12.5px;font-weight:600;font-family:inherit}
+.aps-year-empty button:hover{background:#f5faff}
+body.aps-year-off .ql-strip-wrap ~ :not(#aps-year-empty):not(script):not(style){display:none!important}
+body.aps-year-off #aps-year-empty{display:block!important}
+@media(max-width:680px){
+  .nav-right{display:contents}                       /* 계정은 1줄(브랜드 옆), 도구 묶음 + 연도는 2줄 */
+  .aps-acct{order:2}
+  .nav-tools-wrap{order:3;width:100%;justify-content:space-between;gap:8px}
+  .nav-tools{gap:3px;flex-wrap:wrap}
+  .nav-ib{height:30px;min-width:30px;padding:0 6px;font-size:.74rem}
+  .nav-ib.admin{margin-left:0}
+  .aps-acct-nm{max-width:110px}
+  .aps-ymenu{position:fixed;left:0;right:0;bottom:0;top:auto;width:auto;border-radius:16px 16px 0 0;padding:8px 12px calc(14px + env(safe-area-inset-bottom));box-shadow:0 -8px 30px rgba(0,0,0,.2);animation:apsYup .22s ease-out}
+  .aps-ymenu .grab{display:block;width:36px;height:4px;border-radius:2px;background:#d2d0ce;margin:2px auto 8px}
+  .aps-ymenu-hd{padding:8px 12px 10px}
+  .aps-ymenu li{padding:13px 12px;font-size:15px;border-radius:9px}
+  .aps-ymenu-bg{display:block;position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:119}
+  .aps-year-empty{margin:16px 10px}
+  #ann-popup,#apv-popup{top:96px!important}            /* 상단 바가 2줄(88px)이라 그 아래에서 열리게 — 예전엔 60px 에 고정돼 바를 가렸다 */
+}
+@keyframes apsYup{from{transform:translateY(100%)}to{transform:none}}
+
 
 
 
@@ -444,30 +523,96 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#f5f7f
       </div>
     </div>
     <div class="nav-right">
-      <div class="nav-user">
-        <div class="nav-user-avatar" id="user-avatar" style="display:none">?</div>
-        <span class="nav-user-name" id="user-name"></span>
+      <div class="nav-tools-wrap">
+        <div class="nav-tools">
+          <button id="ann-bell-btn" class="nav-ib" onclick="toggleAnnPopup()" title="공지" style="display:none">📢 <span id="ann-bell-cnt" style="vertical-align:middle;background:#ef4444;color:#fff;border-radius:10px;padding:1px 6px;font-size:.62rem;font-weight:700;margin-left:3px;vertical-align:middle">0</span></button>
+          <button id="apv-bell-btn" class="nav-ib" onclick="toggleApvPopup()" title="결재 알림" style="display:none">✅ <span id="apv-bell-cnt" style="vertical-align:middle;background:#16a34a;color:#fff;border-radius:10px;padding:1px 6px;font-size:.62rem;font-weight:700;margin-left:3px;vertical-align:middle">0</span></button>
+          <button id="my-requests-btn" class="nav-ib" onclick="switchApsTab('myrequests')" title="My Requests Record" style="display:none"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg></button>
+          <button id="my-record-btn" class="nav-ib" onclick="apsClearApvTarget();switchApsTab('myapproved')" title="My Approvals Record" style="display:none"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button>
+          <!-- 결재 대리 지정(AAC) 바로가기(09-26) — a 링크라 오른쪽 클릭 메뉴(새 탭 · 주소 복사)가 그대로 나온다. 데이터에 기대지 않으므로 숨겼다 켜지 않고 #app 과 함께 보인다. -->
+          <a id="aac-btn" class="nav-ib" href="https://aac.startruckkorea.com/?tab=active" target="_self" title="결재 대리 지정 현황 (AAC)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="7" r="3.2"/><path d="M3 20.5v-1.3a5 5 0 0 1 5-5h2.4"/><path d="M13.5 17.5h7.5"/><path d="M18 14.5l3 3-3 3"/></svg></a>
+          <!-- 관리 ⚙ — 다른 단추와 같은 반투명 모양. 관리자에게만 보이고(JS), 관리 탭이 열려 있으면 .on 으로 파랗게 -->
+          <button id="aps-admin-btn" class="nav-ib admin" onclick="switchApsTab('admin')" title="APS 전체 결재 관리" style="display:none"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
+        </div>
+        <div class="aps-act">
+          <button type="button" class="aps-year" id="aps-year-btn" title="조회 연도 (한국 시간 기준)" aria-haspopup="listbox" aria-expanded="false"><span id="aps-year-v">2026</span><small id="aps-year-tag">현재</small><span class="aps-year-ch">▾</span></button>
+          <div class="aps-ymenu-bg" id="aps-ymenu-bg" hidden></div>
+          <div class="aps-ymenu" id="aps-ymenu" hidden><div class="grab"></div><div class="aps-ymenu-hd"><b>조회 연도</b><span>한국 시간 기준</span></div><ul id="aps-ymenu-list" role="listbox"></ul></div>
+        </div>
       </div>
-      <button id="ann-bell-btn" onclick="toggleAnnPopup()" style="display:none;align-items:center;gap:5px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);color:#fff;border-radius:6px;padding:6px 9px;font-size:.82rem;cursor:pointer;font-family:inherit;transition:background .15s" onmouseover="this.style.background='rgba(255,255,255,.22)'" onmouseout="this.style.background='rgba(255,255,255,.12)'" style="line-height:1">📢 <span id="ann-bell-cnt" style="vertical-align:middle;background:#ef4444;color:#fff;border-radius:10px;padding:1px 6px;font-size:.62rem;font-weight:700;margin-left:3px;vertical-align:middle">0</span></button>
-      <button id="apv-bell-btn" onclick="toggleApvPopup()" style="display:none;align-items:center;gap:5px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);color:#fff;border-radius:6px;padding:6px 9px;font-size:.82rem;cursor:pointer;font-family:inherit;transition:background .15s" onmouseover="this.style.background='rgba(255,255,255,.22)'" onmouseout="this.style.background='rgba(255,255,255,.12)'" style="line-height:1">✅ <span id="apv-bell-cnt" style="vertical-align:middle;background:#16a34a;color:#fff;border-radius:10px;padding:1px 6px;font-size:.62rem;font-weight:700;margin-left:3px;vertical-align:middle">0</span></button>
-      <button id="my-requests-btn" onclick="switchApsTab('myrequests')" title="My Requests Record" style="display:none;align-items:center;gap:5px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);color:#fff;border-radius:6px;padding:6px 9px;font-size:.82rem;cursor:pointer;font-family:inherit;transition:background .15s" onmouseover="this.style.background='rgba(255,255,255,.22)'" onmouseout="this.style.background='rgba(255,255,255,.12)'">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg>
-      </button>
-      <button id="my-record-btn" onclick="apsClearApvTarget();switchApsTab('myapproved')" title="My Approvals Record" style="display:none;align-items:center;gap:5px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);color:#fff;border-radius:6px;padding:6px 9px;font-size:.82rem;cursor:pointer;font-family:inherit;transition:background .15s" onmouseover="this.style.background='rgba(255,255,255,.22)'" onmouseout="this.style.background='rgba(255,255,255,.12)'">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
-      </button>
-      <!-- 결재 대리 지정(AAC) 바로가기(09-26) — My Approvals Record 오른쪽. 옆 버튼과 같은 모양이지만 a 링크라
-           오른쪽 클릭 메뉴(새 탭 · 주소 복사)가 그대로 나온다. 데이터에 기대지 않으므로 숨겼다 켜지 않고 #app 과 함께 보인다. -->
-      <a id="aac-btn" href="https://aac.startruckkorea.com/?tab=active" target="_self" title="결재 대리 지정 현황 (AAC)" style="display:inline-flex;align-items:center;gap:5px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);color:#fff;border-radius:6px;padding:6px 9px;font-size:.82rem;line-height:1;cursor:pointer;font-family:inherit;text-decoration:none;transition:background .15s" onmouseover="this.style.background='rgba(255,255,255,.22)'" onmouseout="this.style.background='rgba(255,255,255,.12)'">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="7" r="3.2"/><path d="M3 20.5v-1.3a5 5 0 0 1 5-5h2.4"/><path d="M13.5 17.5h7.5"/><path d="M18 14.5l3 3-3 3"/></svg>
-      </a>
-      <button id="aps-admin-btn" onclick="switchApsTab('admin')" title="APS 전체 결재 관리" style="display:none;align-items:center;justify-content:center;background:#0078d4;color:#fff;border:none;border-radius:6px;padding:6px 10px;font-size:.8rem;font-weight:600;cursor:pointer;font-family:inherit;margin-right:8px;">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-      </button>
-      <button class="btn-signout" onclick="signOut()">로그아웃</button>
+      <div class="aps-acct">
+        <button type="button" class="aps-acct-btn" id="aps-acct-btn" title="계정" aria-haspopup="menu" aria-expanded="false"><span class="aps-av" id="aps-av"></span><span class="aps-acct-nm" id="aps-acct-nm"></span><span class="aps-acct-ch">▾</span></button>
+        <div class="aps-acct-menu" id="aps-acct-menu" hidden role="menu">
+          <div class="mh"><span class="aps-av lg" id="aps-av2"></span><span class="hdr-user"><span class="hdr-user-name" id="aps-acct-full"></span><span class="hdr-user-mail" id="aps-acct-mail"></span></span></div>
+          <button type="button" class="aps-acct-lo" role="menuitem" onclick="signOut()"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 3h4v18h-4M10 17l5-5-5-5M3 12h12"/></svg>로그아웃</button>
+        </div>
+        <!-- 예전 요소 — boot() 가 채우던 자리. 화면에는 안 보이고 JS 호환용으로만 둔다 -->
+        <span id="user-name" hidden></span><span id="user-avatar" hidden></span>
+      </div>
     </div>
   </div>
 
+<script>
+/* 계정 메뉴 + 연도 선택기(APS 통합 결재함 · 10-07 · aps-hub-year) — 연동 시스템(aps-acct · aps-year-sel)과 같은 동작. */
+(function () {
+  var btn = document.getElementById('aps-acct-btn'), menu = document.getElementById('aps-acct-menu'), src = document.getElementById('aps-acct-full');
+  var av = document.getElementById('aps-av'), av2 = document.getElementById('aps-av2'), nm = document.getElementById('aps-acct-nm');
+  function draw() {
+    var full = (src.textContent || '').trim();
+    var en = full.match(/\(([A-Za-z][A-Za-z .'-]*)\)\s*$/);
+    var latin = /^[A-Za-z]/.test(full);
+    var short = en ? en[1].trim() : (latin ? full.split(/\s+/).slice(0, 2).join(' ') : (full.split(/\s+/)[0] || ''));
+    var ini = (en || latin) ? short.split(/\s+/).map(function (w) { return w[0]; }).slice(0, 2).join('').toUpperCase() : short.slice(0, 1);
+    av.textContent = ini || '·'; av2.textContent = ini || '·'; nm.textContent = short; btn.title = full || '계정';
+  }
+  function open() { menu.hidden = false; btn.setAttribute('aria-expanded', 'true'); setTimeout(function () { document.addEventListener('click', onDoc); document.addEventListener('keydown', onKey, true); }, 0); }
+  function close() { menu.hidden = true; btn.setAttribute('aria-expanded', 'false'); document.removeEventListener('click', onDoc); document.removeEventListener('keydown', onKey, true); }
+  function onDoc(e) { if (!menu.contains(e.target) && !btn.contains(e.target)) close(); }
+  function onKey(e) { if (e.key === 'Escape') { close(); btn.focus(); } }
+  btn.addEventListener('click', function () { menu.hidden ? open() : close(); });
+  menu.addEventListener('click', function (e) { if (e.target.closest('.aps-acct-lo')) close(); });
+  new MutationObserver(draw).observe(src, { childList: true, subtree: true, characterData: true });
+  draw();
+})();
+window.apsYear = (function () {
+  var FIRST = 2025, HOME = 2026, SITES = { 2026: 'STK-DB' };   // 연도 → 데이터 저장소(화면에는 안 보인다). 2027 저장소가 생기면 더한다
+  var CUR = new Date(Date.now() + 9 * 36e5).getUTCFullYear(); if (CUR < HOME) CUR = HOME;
+  var sel = HOME; for (var y = CUR; y >= FIRST; y--) if (SITES[y]) { sel = y; break; }
+  var btn = document.getElementById('aps-year-btn'), menu = document.getElementById('aps-ymenu'), bg = document.getElementById('aps-ymenu-bg'), ul = document.getElementById('aps-ymenu-list');
+  var tv = document.getElementById('aps-year-v'), tag = document.getElementById('aps-year-tag');
+  function sub(y) { return SITES[y] ? '' : (y < HOME ? '데이터 없음' : '준비 전'); }
+  function render() {
+    var s = '';
+    for (var y = CUR; y >= FIRST; y--) s += '<li role="option" data-y="' + y + '" class="' + (y === sel ? 'sel ' : '') + (SITES[y] ? '' : 'none') + '" aria-selected="' + (y === sel) + '"><i class="ck">✓</i><b>' + y + '</b>' + (y === CUR ? '<small>현재</small>' : '') + '<span class="sub">' + sub(y) + '</span></li>';
+    ul.innerHTML = s;
+  }
+  function card() {
+    var el = document.getElementById('aps-year-empty');
+    if (!el) { var a = document.querySelector('.ql-strip-wrap'); if (!a) return null; el = document.createElement('div'); el.id = 'aps-year-empty'; el.className = 'aps-year-empty'; a.insertAdjacentElement('afterend', el); }
+    return el;
+  }
+  function apply() {
+    var off = !SITES[sel];
+    tv.textContent = sel; tag.style.display = sel === CUR ? '' : 'none'; btn.classList.toggle('off', off);
+    document.body.classList.toggle('aps-year-off', off);
+    if (off) { var el = card(); if (el) el.innerHTML = '<div class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 13l2.5-7h13L21 13v6H3z"/><path d="M3 13h5l2 3h4l2-3h5"/></svg></div><div class="t"><b>' + sel + '</b>년 데이터가 ' + (sel < HOME ? '없습니다' : '아직 없습니다') + '</div>'
+      + '<div class="d">' + (sel < HOME ? 'APS 결재 시스템은 ' + HOME + '년에 공식 출시되어 ' + sel + '년 데이터는 존재하지 않습니다.' : sel + '년 조회 환경이 준비되면 이곳에서 확인할 수 있습니다.') + '</div>'
+      + '<button type="button" onclick="apsYear.set(' + HOME + ')">' + HOME + '년 보기</button>'; }
+    window.APS_YEAR = sel;
+    try { document.dispatchEvent(new CustomEvent('aps-year', { detail: { year: sel, off: off } })); } catch (e) {}
+  }
+  function open() { render(); menu.hidden = false; bg.hidden = false; btn.setAttribute('aria-expanded', 'true'); setTimeout(function () { document.addEventListener('click', onDoc); document.addEventListener('keydown', onKey, true); }, 0); }
+  function close() { menu.hidden = true; bg.hidden = true; btn.setAttribute('aria-expanded', 'false'); document.removeEventListener('click', onDoc); document.removeEventListener('keydown', onKey, true); }
+  function onDoc(e) { if (!menu.contains(e.target) && e.target !== btn && !btn.contains(e.target)) close(); }
+  function onKey(e) { if (e.key === 'Escape') { close(); btn.focus(); } }
+  function set(y) { y = +y; if (y < FIRST || y > CUR) return; sel = y; close(); apply(); }
+  btn.addEventListener('click', function () { menu.hidden ? open() : close(); });
+  bg.addEventListener('click', close);
+  ul.addEventListener('click', function (e) { var li = e.target.closest('li[data-y]'); if (li) set(li.dataset.y); });
+  apply();
+  return { get: function () { return sel; }, set: set, current: CUR, home: HOME, sites: SITES };
+})();
+</script>
   <!-- Quick Links Strip -->
   <div class="ql-strip-wrap">
     <button class="ql-scroll-btn ql-scroll-left" id="ql-left" onclick="qlScroll(-160)">‹</button>
@@ -1308,6 +1453,8 @@ async function boot(account){
   const _fullName=account.name||account.username||'';
   const _firstName=_fullName.split(' ')[0]||_fullName;
   document.getElementById('user-name').textContent='STK '+_firstName;
+  var _af=document.getElementById('aps-acct-full'); if(_af) _af.textContent=_fullName;          // 계정 메뉴(10-07) — 아바타 · 짧은 이름은 여기서 파생된다
+  var _am=document.getElementById('aps-acct-mail'); if(_am) _am.textContent=user.email||account.username||'';
   const initials=(account.name||'?').split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase();
   document.getElementById('user-avatar').textContent=initials;
 
@@ -1332,7 +1479,7 @@ async function boot(account){
     _isApsAdmin = _adminEmails.some(e => e.toLowerCase()===_ue || e.toLowerCase()===_uu);
     if (_isApsAdmin) {
       const btn = document.getElementById('aps-admin-btn');
-      if (btn) btn.style.display = 'inline-block';
+      if (btn) btn.style.display = 'inline-flex';
     }
   }
   await loadAll();
@@ -2711,13 +2858,13 @@ function switchApsTab(tab) {
   if(qlStrip)        qlStrip.style.display        = 'none';
 
   // reset button highlights
-  if(adminBtn) adminBtn.style.background = '#0078d4';
+  if(adminBtn) adminBtn.classList.remove('on');   // 관리 탭 강조는 class 로(10-07)
 
   if (tab === 'admin') {
     if (!_isApsAdmin) { logAction('APS', '관리자 탭 접근 차단', { reason: '관리자 명단에 없음' }); alert('🔒 관리자 전용 메뉴입니다.\n접근 권한이 없습니다.'); return; }   // 단추는 관리자에게만 보이지만, 우회 진입도 막고 이력을 남긴다(09-30)
     logAction('APS', '관리자 탭 열기', {});
     if(adminPage) adminPage.style.display = 'block';
-    if(adminBtn)  adminBtn.style.background = '#0F2744';
+    if(adminBtn)  adminBtn.classList.add('on');
     loadAdminPage();
   } else if (tab === 'myapproved') {
     if(myapprovedPage) myapprovedPage.style.display = 'block';
