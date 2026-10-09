@@ -534,10 +534,19 @@ html, * { scrollbar-width: thin; scrollbar-color: #CBD5E1 transparent; }
 </style>
 <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
 <style id="aps-mobile">
-/* APS 모바일(10-09 · aps-mobile) — 767px 이하 전용. 웹 화면 무변경 */
+/* APS 모바일(10-09 · aps-mobile · 10-10 2차 점검) — 767px 이하 전용. 웹 화면 무변경 */
 /* APS 포털: My Requests · My Approvals 상단 단추 줄(.topbar nowrap)이 화면 밖으로 밀리던 넘침 해소 — 관리자 화면의 ≤640 정리(10-08)와 같은 모양으로 맞추고 767px 까지 넓힘.
    상단 바 도구 줄은 한 줄 고정(가로 스크롤)이라 높이가 88px 로 일정 → 공지 · 결재 팝업 top:96px 과 겹치지 않음. 페이지 바깥 여백은 기존 폰 규칙(.page 10px)에 맞춤 */
-@media (max-width: 767px) {
+@media screen and (max-width: 767px) {
+  /* ── iPhone(Safari) · Galaxy 방어(10-10) — 가로 돌림 글자 확대 · 날짜 칸 폭 · iOS 날짜 칸 높이 ── */
+  html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+  input:not([type=checkbox]):not([type=radio]), select, textarea, button { max-width: 100%; box-sizing: border-box; }
+  input[type=date], input[type=time], input[type=month], input[type=datetime-local] { min-width: 0; }
+  @supports (-webkit-touch-callout: none) {
+    input[type=date], input[type=time], input[type=month], input[type=datetime-local] { -webkit-appearance: none; appearance: none; display: block; min-height: 36px; line-height: normal; text-align: left; }
+    input::-webkit-date-and-time-value { text-align: left; min-height: 1.2em; }
+  }
+
   /* ── 상단 바 — 기존 ≤680 의 2줄 배치(1줄: 브랜드 · 계정 / 2줄: 도구 · 연도)를 767px 까지 같은 값으로 ── */
   .topnav { padding: 8px 12px; height: auto; min-height: 56px; flex-wrap: wrap; gap: 6px; }
   .nav-brand { flex: 1; min-width: 0; }
@@ -610,7 +619,22 @@ html, * { scrollbar-width: thin; scrollbar-color: #CBD5E1 transparent; }
   #apr-history-bar input, #apr-replace-bar input { min-width: 0 !important; flex: 1 1 100%; box-sizing: border-box; font-size: 16px !important; }
   #apr-history-bar button, #apr-replace-bar button { flex: 1 1 auto; min-height: 36px; }
   #sys-log-bar { padding: 10px !important; }
-  #sys-log-system, #sys-log-q { font-size: 16px !important; }   /* 날짜 칸은 좁은 격자라 기존 크기 유지 */
+  #sys-log-system, #sys-log-q { font-size: 16px !important; }
+  /* 시스템 이력 조회 줄(10-10) — ≤640 의 5칸 격자는 360px 에서 날짜 칸이 좁아 연도가 잘렸고(10/03/202…), 641~767px 은 격자 없이 줄바꿈돼
+     선택 34px · 날짜 · 단추 27px 로 들쭉날쭉했다. 7칸 격자로 [시스템] / [시작일 ~ 종료일] / [‹ 이전 | 최근 7일 | 다음 ›] / [불러오기 | 닫기], 높이 36px 통일 */
+  #sys-log-bar > div:first-child > span:last-child { margin-left: 0 !important; width: 100%; display: grid !important; grid-template-columns: repeat(3, minmax(0, 1fr)) 10px repeat(3, minmax(0, 1fr)); gap: 8px 6px !important; align-items: center; }
+  #sys-log-bar > div:first-child > span:last-child > * { height: 36px; min-width: 0 !important; margin: 0; }
+  #sys-log-bar > div:first-child > span:last-child > span { height: auto; justify-self: center; }
+  #sys-log-system { grid-column: 1 / -1; grid-row: 1; width: 100%; }
+  #sys-log-from { grid-column: 1 / 4; grid-row: 2; width: 100%; font-size: 16px !important; }
+  #sys-log-bar > div:first-child > span:last-child > span { grid-column: 4 / 5; grid-row: 2; }
+  #sys-log-to { grid-column: 5 / 8; grid-row: 2; width: 100%; font-size: 16px !important; }
+  #sys-log-bar > div:first-child > span:last-child > button { padding: 0 6px !important; font-size: .74rem !important; }
+  #sys-log-bar > div:first-child > span:last-child > button:nth-of-type(1) { grid-column: 1 / 3; grid-row: 3; }
+  #sys-log-bar > div:first-child > span:last-child > button:nth-of-type(3) { grid-column: 3 / 6; grid-row: 3; }
+  #sys-log-bar > div:first-child > span:last-child > button:nth-of-type(2) { grid-column: 6 / 8; grid-row: 3; }
+  #sys-log-btn { grid-column: 1 / 5 !important; grid-row: 4; }
+  #sys-log-bar > div:first-child > span:last-child > button:last-child { grid-column: 5 / 8; grid-row: 4; }
   #sys-log-q { min-width: 0 !important; flex: 1 1 100%; box-sizing: border-box; }
   #sys-log-count { margin-left: 0 !important; flex: 1 1 100%; line-height: 1.5; }
 
