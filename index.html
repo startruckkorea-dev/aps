@@ -2249,7 +2249,7 @@ async function showDetail(sysKey,reqId){
   try{
     const [r,apprData,clRaw]=await Promise.all([
       (()=>{
-        const _gaFields='Title,Company,CostCenter,ItemCount,TotalAmount,ItemsData,Status,RequesterEmail,RequestDate,NameEN,NameKO,JobTitle,JobPosition,Department,Email,Quantity,StickerQty,IssueType,Description,Address,AddressEng,MobileNumber,SalesAgentCompany,OrdName,OrdPhone,StnName,StnDept,Name,PhotoFileName,AttachedFiles';
+        const _gaFields='Title,Company,CostCenter,ItemCount,TotalAmount,ItemsData,Status,RequesterEmail,RequestDate,NameEN,NameKO,JobTitle,JobPosition,Department,Email,Quantity,StickerQty,IssueType,Description,Address,AddressEng,MobileNumber,SalesAgentCompany,OrdName,OrdPhone,StnName,StnDept,Name,PhotoFileName,AttachedFiles,QrCode,QrFileName';
         const _sel=(sysKey==='GA_STN'||sysKey==='GA_BC'||sysKey==='GA_IDC')?`?$expand=fields($select=${_gaFields})`:'?$expand=fields';
         return api('/sites/'+siteId+'/lists/'+sys.req+'/items/'+reqId+_sel);
       })(),
@@ -2430,7 +2430,11 @@ async function showDetail(sysKey,reqId){
       }
     }
     else if(sysKey==='GA_BC'){
-      info+=sec('명함 정보')+row('Name (EN)',f.NameEN)+row('Name (KO)',f.NameKO)+(f.JobTitle?row('Job Title',f.JobTitle):'')+(f.JobPosition?row('Job Position',f.JobPosition):'')+row('Department',f.Department)+row('Email',f.Email)+row('Quantity',f.Quantity+'매')+(f.StickerQty?row('Sticker Qty',f.StickerQty+'매'):'')+row('Cost Center',f.CostCenter)+(f.Description?row('Description',f.Description):'')+(f.Address?rowRaw('주소 (국문)',escHtml(toText(f.Address)).replace(/\r\n|\n/g,'<br>')):'')+( f.AddressEng?rowRaw('Address (EN)',escHtml(toText(f.AddressEng)).replace(/\r\n|\n/g,'<br>')):'')+( f.MobileNumber?row('Mobile Number',f.MobileNumber):'')+( f.SalesAgentCompany?row('세일즈 에이전트 상호명<br><span style="font-size:.88em;opacity:.72;white-space:nowrap">(사업자등록증에 기재된)</span>',f.SalesAgentCompany):'');
+      // QR 코드(10-09 · GA 명함 QR) — GA 상세와 같은 자리(Quantity 위) · 같은 판정(QrCode/QrFileName 열, 열이 없던 때는 Description 의 [QR 코드 적용] 표시)
+      const _bcQr=(f.QrCode===true||f.QrCode==='true'||f.QrCode==='Yes'||f.QrCode===1||!!f.QrFileName||/\[QR 코드 적용\]/.test(String(f.Description||'')));
+      const _bcQrHtml=_bcQr?'<span style="display:inline-flex;align-items:center;padding:1px 8px;border-radius:10px;font-size:.68rem;font-weight:700;background:#e8f1fb;color:#0b5cad;letter-spacing:.03em;line-height:1.5">QR</span><span style="margin-left:6px">적용 — 명함에 QR 코드 인쇄 (QR 이미지는 아래 첨부파일)</span>':'<span style="color:#8a8886">미적용</span>';
+      info+=sec('명함 정보')+row('Name (EN)',f.NameEN)+row('Name (KO)',f.NameKO)+(f.JobTitle?row('Job Title',f.JobTitle):'')+(f.JobPosition?row('Job Position',f.JobPosition):'')+row('Department',f.Department)+row('Email',f.Email)+rowRaw('QR 코드',_bcQrHtml)+row('Quantity',f.Quantity+'매')+(f.StickerQty?row('Sticker Qty',f.StickerQty+'매'):'')+row('Cost Center',f.CostCenter)+(f.Description?row('Description',f.Description):'')+(f.Address?rowRaw('주소 (국문)',escHtml(toText(f.Address)).replace(/\r\n|\n/g,'<br>')):'')+( f.AddressEng?rowRaw('Address (EN)',escHtml(toText(f.AddressEng)).replace(/\r\n|\n/g,'<br>')):'')+( f.MobileNumber?row('Mobile Number',f.MobileNumber):'')+( f.SalesAgentCompany?row('세일즈 에이전트 상호명<br><span style="font-size:.88em;opacity:.72;white-space:nowrap">(사업자등록증에 기재된)</span>',f.SalesAgentCompany):'');
+      info+=sec('첨부파일')+'<div id="aps-bc-files-'+parseInt(reqId)+'" style="font-size:.82rem;color:#a19f9d">불러오는 중…</div>';
     }
     else if(sysKey==='GA_IDC'){
       // 사원증 표기 이름(IDC_Requests.Name)을 Description 위에 — GA 상세와 같은 자리(09-29)
@@ -2655,6 +2659,7 @@ async function showDetail(sysKey,reqId){
         + '<div style="font-size:10px;color:#a19f9d;margin-top:5px">(Requested by the requester; the RD approval step was excluded for this voucher)</div>'
         + '</div>'
       : '';
+    if(sysKey==='GA_BC') setTimeout(()=>apsFillBcFiles(parseInt(reqId)),0);   // 아래에서 상세 HTML 을 넣은 뒤 채운다
     document.getElementById('detail-content').innerHTML=info+apprHtml+rdExemptHtml+
       (myPending?`<div class="modal-action">
         <button onclick="showConfirm(${myPending.id},'승인',${reqId},'${sysKey}','${escHtml((myPending.fields.ApproverRole||'').replace(/'/g,''))}',${myPending.fields.ApprovalOrder||0})" class="btn-approve">✅ 승인</button>
@@ -2664,6 +2669,28 @@ async function showDetail(sysKey,reqId){
 }
 function closeDetail(){document.getElementById('detail-modal').className='';}
 
+// GA 명함 첨부(QR 이미지 등) — AttachedFiles/BC_Requests_AttachedFiles/{번호} 폴더를 읽어 미리보기 · 내려받기(10-09). 내려받기는 .aps-file-dl 공통 처리
+async function apsFillBcFiles(reqId){
+  const put=v=>{const el=document.getElementById('aps-bc-files-'+reqId);if(el)el.innerHTML=v;};
+  const none='<span style="color:#a19f9d">첨부파일 없음</span>';
+  try{
+    const dd=await api('/sites/'+siteId+'/drives');const v=(dd&&dd.value)||[];
+    const drive=v.find(d=>d.name==='AttachedFiles')||v[0];if(!drive){put(none);return;}
+    const t=await token();
+    const res=await fetch(GRAPH+'/drives/'+drive.id+'/root:/BC_Requests_AttachedFiles/'+reqId+':/children',{headers:{Authorization:'Bearer '+t}});
+    if(res.status===404){put(none);return;}
+    if(!res.ok)throw new Error('HTTP '+res.status);
+    const files=((await res.json()).value||[]).filter(x=>x.file);
+    if(!files.length){put(none);return;}
+    put('<div style="display:flex;flex-wrap:wrap;gap:10px;padding:2px 0">'+files.map(x=>{
+      const nm=escHtml(x.name),u=x['@microsoft.graph.downloadUrl']||'',img=/\.(png|jpe?g)$/i.test(x.name)&&u;
+      return '<div style="display:flex;align-items:center;gap:10px;border:1px solid #edebe9;border-radius:6px;padding:6px 12px 6px 6px;background:#fff">'
+        +(img?'<img src="'+escHtml(u)+'" alt="'+nm+'" style="width:72px;height:72px;object-fit:contain;border:1px solid #edebe9;border-radius:4px;background:#fff;padding:3px;box-sizing:border-box">':'')
+        +'<div><a href="#" class="aps-file-dl" data-drive="'+encodeURIComponent(drive.id)+'" data-id="'+encodeURIComponent(x.id)+'" data-name="'+encodeURIComponent(x.name)+'" style="color:#0078d4;cursor:pointer;font-size:.82rem">📎 '+nm+'</a>'
+        +'<div style="font-size:.72rem;color:#a19f9d;margin-top:2px">'+(/^QR_/i.test(x.name)?'QR 이미지 · ':'')+Math.max(1,Math.round((x.size||0)/1024))+'KB</div></div></div>';
+    }).join('')+'</div>');
+  }catch(e){put('<span style="color:#b91c1c">첨부파일을 불러오지 못했습니다 ('+escHtml(e.message||'')+')</span>');}
+}
 async function apsDownloadIDCPhoto(fileName, reqId){
   try{
     const t=await token();
