@@ -533,6 +533,115 @@ html, * { scrollbar-width: thin; scrollbar-color: #CBD5E1 transparent; }
 ::-webkit-scrollbar-thumb:hover { background: #94A3B8; background-clip: padding-box; }
 </style>
 <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+<style id="aps-mobile">
+/* APS 모바일(10-09 · aps-mobile) — 767px 이하 전용. 웹 화면 무변경 */
+/* APS 포털: My Requests · My Approvals 상단 단추 줄(.topbar nowrap)이 화면 밖으로 밀리던 넘침 해소 — 관리자 화면의 ≤640 정리(10-08)와 같은 모양으로 맞추고 767px 까지 넓힘.
+   상단 바 도구 줄은 한 줄 고정(가로 스크롤)이라 높이가 88px 로 일정 → 공지 · 결재 팝업 top:96px 과 겹치지 않음. 페이지 바깥 여백은 기존 폰 규칙(.page 10px)에 맞춤 */
+@media (max-width: 767px) {
+  /* ── 상단 바 — 기존 ≤680 의 2줄 배치(1줄: 브랜드 · 계정 / 2줄: 도구 · 연도)를 767px 까지 같은 값으로 ── */
+  .topnav { padding: 8px 12px; height: auto; min-height: 56px; flex-wrap: wrap; gap: 6px; }
+  .nav-brand { flex: 1; min-width: 0; }
+  .nav-title { font-size: .85rem; }
+  .nav-sub { font-size: .6rem; }
+  .nav-right { display: contents; }
+  .aps-acct { order: 2; }
+  .nav-tools-wrap { order: 3; width: 100%; justify-content: space-between; gap: 8px; }
+  .nav-ib { height: 30px; min-width: 30px; padding: 0 6px; font-size: .74rem; }
+  .nav-ib.admin { margin-left: 0; }
+  .aps-acct-nm { max-width: 110px; }
+  .aps-ymenu { position: fixed; left: 0; right: 0; bottom: 0; top: auto; width: auto; border-radius: 16px 16px 0 0; padding: 8px 12px calc(14px + env(safe-area-inset-bottom)); box-shadow: 0 -8px 30px rgba(0,0,0,.2); }
+  .aps-ymenu .grab { display: block; width: 36px; height: 4px; border-radius: 2px; background: #d2d0ce; margin: 2px auto 8px; }
+  .aps-ymenu-hd { padding: 8px 12px 10px; }
+  .aps-ymenu li { padding: 13px 12px; font-size: 15px; border-radius: 9px; }
+  .aps-ymenu-bg { display: block; position: fixed; inset: 0; background: rgba(0,0,0,.35); z-index: 119; }
+  #ann-popup, #apv-popup { top: 96px !important; }
+  .page { padding: 12px 10px 40px; }
+  .cards-grid { grid-template-columns: repeat(2, 1fr); }   /* 681~767px — 3열이면 카드가 220px 로 좁아 단추가 잘렸다(≤680 은 기존 1열 !important 가 이긴다) */
+  .aps-year-empty { margin: 16px 10px; }
+  /* 도구 단추 줄은 줄바꿈 없이 한 줄(넘치면 가로 스크롤, 막대 숨김) — 바 높이가 88px 로 고정돼 팝업(top:96px)과 겹치지 않는다 */
+  .nav-tools-wrap { flex-wrap: nowrap; min-width: 0; }
+  .nav-tools { flex-wrap: nowrap; overflow-x: auto; overflow-y: hidden; min-width: 0; flex: 0 1 auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+  .nav-tools::-webkit-scrollbar { display: none; }
+  .nav-tools > .nav-ib { flex: none; }
+  .aps-act { flex: none; }
+  .nav-sub { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .nav-brand > div:last-child { min-width: 0; }
+  /* 공지 · 결재 팝업 — 화면 높이 안에서 안쪽 스크롤 */
+  #ann-popup-body { max-height: calc(100vh - 170px) !important; max-height: calc(100dvh - 170px) !important; }
+  .apv-popup-body { max-height: calc(100vh - 170px); max-height: calc(100dvh - 170px); }
+  .apv-item-top { flex-wrap: wrap; row-gap: 4px; }
+  .apv-item-summary { flex: 1 1 100%; min-width: 0; }
+  .ann-modal-overlay { padding: 10px; }
+  .ann-modal-box { max-height: 90vh; max-height: 90dvh; }
+
+  /* ── 검색 · 선택 칸 글자 16px(iOS 자동 확대 방지) ── */
+  .filter-select, .filter-input { font-size: 16px; height: 38px; }
+  .filter-input::placeholder { font-size: 13px; }
+
+  /* ── My Requests · My Approvals — 제목 줄 → 단추 3칸 격자 → 필터 2열 ── */
+  #aps-myrequests-page, #aps-myapproved-page { padding: 10px 10px 0 !important; }
+  #aps-myrequests-page .topbar, #aps-myapproved-page .topbar { flex-wrap: wrap; row-gap: 8px; column-gap: 8px; margin-bottom: 10px; }
+  #aps-myrequests-page .topbar-title, #aps-myapproved-page .topbar-title { font-size: 1rem; }
+  #myr-record-count, #mya-record-count { margin-left: 0 !important; white-space: nowrap; font-size: .74rem !important; }
+  #aps-myrequests-page .topbar-space, #aps-myapproved-page .topbar-space { flex: 0 0 100%; height: 0; }
+  #aps-myrequests-page .topbar .tb-btn, #aps-myapproved-page .topbar .tb-btn { flex: 1 1 calc(33.333% - 6px); min-width: 0; justify-content: center; height: 40px; padding: 0 6px; font-size: .76rem; gap: 4px; }
+  #aps-myrequests-page .filter-row, #aps-myapproved-page .filter-row { display: grid !important; grid-template-columns: 1fr 1fr; gap: 8px; margin: 4px 0 12px !important; }
+  #aps-myrequests-page .filter-row .filter-select, #aps-myapproved-page .filter-row .filter-select { width: 100%; min-width: 0; }
+  #myr-search, #mya-search { grid-column: 1 / -1; width: 100%; min-width: 0; }
+  #mya-filter-sys { grid-column: 1 / -1; }
+  /* 관리자 조회 띠 — 설명은 한 줄 전체, 단추 두 개는 반씩 */
+  #mya-target-banner > span:nth-child(3) { flex: 1 1 100%; }
+  #mya-target-banner > span:nth-child(4) { display: none; }   /* 빈 간격 띄우개 */
+  #mya-target-banner > button { flex: 1 1 40%; min-height: 36px; }
+  .rec-wrap { -webkit-overflow-scrolling: touch; }
+
+  /* ── 전체 결재 관리 — 10-08 의 ≤640 정리를 767px 까지 같은 값으로 ── */
+  #aps-admin-page { padding: 10px 10px 0 !important; }
+  #aps-admin-page .topbar { flex-wrap: wrap; row-gap: 8px; margin-bottom: 12px; }
+  #aps-admin-page .topbar-title { font-size: 1rem; white-space: nowrap; }
+  #aps-admin-page .topbar-cnt { font-size: .7rem; }
+  #aps-admin-page .topbar-space { flex: 0 0 100%; height: 0; }
+  #aps-admin-page .topbar .tb-btn { flex: 1 1 calc(33.333% - 6px); min-width: 0; justify-content: center; height: 36px; padding: 0 6px; font-size: .72rem; gap: 4px; }
+  #aps-admin-page .filter-row { display: grid !important; grid-template-columns: 1fr 1fr; gap: 8px; margin: 4px 0 12px !important; }
+  #aps-admin-page .filter-row .filter-select { width: 100%; min-width: 0; }
+  #aps-admin-page .filter-row .filter-input, #aps-admin-page .filter-row button { grid-column: 1 / -1; width: 100%; min-width: 0; box-sizing: border-box; }
+  #aps-admin-page .filter-row button { min-height: 38px; }
+  #apr-history-bar, #apr-replace-bar { padding: 10px !important; gap: 8px !important; }
+  #apr-history-bar input, #apr-replace-bar input { min-width: 0 !important; flex: 1 1 100%; box-sizing: border-box; font-size: 16px !important; }
+  #apr-history-bar button, #apr-replace-bar button { flex: 1 1 auto; min-height: 36px; }
+  #sys-log-bar { padding: 10px !important; }
+  #sys-log-system, #sys-log-q { font-size: 16px !important; }   /* 날짜 칸은 좁은 격자라 기존 크기 유지 */
+  #sys-log-q { min-width: 0 !important; flex: 1 1 100%; box-sizing: border-box; }
+  #sys-log-count { margin-left: 0 !important; flex: 1 1 100%; line-height: 1.5; }
+
+  /* ── 상세 모달 — 좌우 10px · 최대 90% 높이 · 안쪽 스크롤 · 라벨 폭 축소 ── */
+  #detail-modal { padding: 5vh 10px; align-items: flex-start; }
+  .modal-box { width: 100%; max-height: 90vh; max-height: 90dvh; overflow-y: auto; overscroll-behavior: contain; padding: 20px 16px 18px; border-radius: 16px; }
+  .modal-close { position: sticky; top: 0; float: right; z-index: 2; margin: -6px -4px 0 8px; }
+  .modal-title { font-size: 1rem; margin-bottom: 14px; padding-bottom: 12px; }
+  .modal-row { padding: 7px 0; font-size: .8rem; }
+  .modal-label { width: 92px; padding-right: 8px; font-size: .72rem; }
+  .modal-val { min-width: 0; overflow-wrap: anywhere; }
+  .appr-item { padding: 10px 12px; }
+  .appr-info { min-width: 0; }
+  .appr-person, .appr-comment { overflow-wrap: anywhere; }
+  .modal-action { position: sticky; bottom: -18px; margin: 18px -16px -18px; padding: 12px 16px 16px; background: #fff; border-top: 1px solid #f1f5f9; }
+  .modal-action .btn-approve, .modal-action .btn-reject { min-height: 46px; }
+
+  /* ── 확인 팝업 — 거의 전체 폭, 단추는 반씩 ── */
+  .confirm-box { width: calc(100% - 20px); max-width: 440px; padding: 22px 18px 18px; max-height: 90vh; max-height: 90dvh; overflow-y: auto; }
+  .confirm-comment { font-size: 16px; }
+  .confirm-btns > button { flex: 1; min-height: 44px; }
+
+  /* ── 로딩 ── */
+  .loading-box { max-width: calc(100vw - 40px); padding: 26px 32px; }
+
+  /* ── 로그인 — 카드가 화면 폭에 맞고 하단 안내 띠와 겹치지 않게 ── */
+  #login-screen { padding: 16px 16px 84px; }
+  .login-card { padding: 36px 22px 28px; }
+  .login-page-footer { flex-direction: column; justify-content: center; gap: 2px; padding: 8px 14px; text-align: center; font-size: 10px; line-height: 1.45; }
+}
+</style>
 </head>
 <body>
 
