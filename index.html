@@ -664,6 +664,19 @@ html, * { scrollbar-width: thin; scrollbar-color: #CBD5E1 transparent; }
   #login-screen { padding: 16px 16px 84px; }
   .login-card { padding: 36px 22px 28px; }
   .login-page-footer { flex-direction: column; justify-content: center; gap: 2px; padding: 8px 14px; text-align: center; font-size: 10px; line-height: 1.45; }
+
+  /* ── iOS-SELECT · iPhone(Safari) 선택 칸 모양 통일(10-11) — iOS WebKit 에서만 켜짐(-webkit-touch-callout 은 iOS 전용 속성).
+     Android(Chrome · 삼성 인터넷 = Blink) · PC · 인쇄 · PDF 는 이 조건을 맞추지 않아 지금 모습 그대로.
+     iOS 기본 둥근 회색 선택 칸 대신: 기본 모양 끔 + 시스템 입력칸과 같은 테두리 · 배경 · 모서리 + 오른쪽 꺾쇠 화살표(배경 그림, 사용 안 함이면 옅은 색).
+     테두리 · 배경 · 글자색 기본값은 :where() 로 우선순위 0 — 시스템이 select 에 준 값(사용 안 함 회색 등)이 그대로 이긴다.
+     포털 필터(.filter-select)는 원래 appearance:none + 회색 삼각형 화살표를 쓰므로 건드리지 않고, 나머지 select 도 같은 삼각형 · 같은 색으로 맞춤
+     관리자 시스템 로그 줄의 #sys-log-system 은 인라인 style 의 padding · background 가 화살표 자리와 그림을 지워 !important 로 이김. ── */
+  @supports (-webkit-touch-callout: none) {
+    :where(select:not([multiple]):not([size]):not(.filter-select)) { background-color: #fff; border: 1px solid #d1d5db; border-radius: 6px; color: #334155; }
+    select:not([multiple]):not([size]):not(.filter-select) { -webkit-appearance: none; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%2394a3b8'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; background-size: 10px 6px; padding-right: 28px; }
+    select:not([multiple]):not([size]):not(.filter-select):disabled { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23cbd5e1'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; background-size: 10px 6px; }
+    #sys-log-system { padding-right: 28px !important; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%2394a3b8'/%3E%3C/svg%3E") !important; background-repeat: no-repeat !important; background-position: right 10px center !important; background-size: 10px 6px !important; }
+  }
 }
 </style>
 </head>
