@@ -1356,11 +1356,12 @@ async function apiAll(path) {
 const API_RETRY_MAX = 5;
 const API_RETRY_BUDGET = 8000;   // ms
 
-async function api(path,method='GET',body=null){
+// hdrs(10-10): 결재행 쓰기에 If-Match(@odata.etag)를 붙일 때만 쓴다. 다른 호출은 넘기지 않아 요청이 그대로다.
+async function api(path,method='GET',body=null,hdrs=null){
   let _spent = 0;                 // 이 호출이 지금까지 기다린 시간
   for(let attempt=0;;attempt++){
     const t=await token();
-    const opts={method,headers:{Authorization:'Bearer '+t,'Content-Type':'application/json',Prefer:'HonorNonIndexedQueriesWarningMayFailRandomly'}};
+    const opts={method,headers:{Authorization:'Bearer '+t,'Content-Type':'application/json',Prefer:'HonorNonIndexedQueriesWarningMayFailRandomly',...(hdrs||{})}};
     if(body)opts.body=JSON.stringify(body);
     const res=await fetch(GRAPH+path,opts);
     if(res.ok) return res.status===204?null:res.json();
@@ -1386,7 +1387,9 @@ async function api(path,method='GET',body=null){
     if([503,504].includes(res.status) && !_idem){
       console.warn('[api] '+res.status+' — '+method+' 는 중복 생성 방지를 위해 재시도하지 않습니다: '+path.slice(0,80));
     }
-    throw new Error((await res.json().catch(()=>null))?.error?.message||res.status);
+    // status(10-10): 412(If-Match 불일치 — 그 사이 다른 사람이 바꿨다)를 호출부가 가려낼 수 있게 붙인다. 메시지는 전과 같다.
+    const _err=new Error((await res.json().catch(()=>null))?.error?.message||res.status); _err.status=res.status;
+    throw _err;
   }
 }
 function loading(on,txt='처리 중...'){
@@ -1460,12 +1463,15 @@ async function logSkipped() {
   if (!_sysConfig) { try { await loadSystemConfig(); } catch (e) {} }                          // 아직이면 직접 읽는다(이미 읽었으면 캐시)
   return logSkipNow();
 }
-function logAction(systemName, action, detail) {
+/* opts.audit(10-10): 결재 승인 · 반려 · 결재자 교체처럼 데이터를 바꾸는 행위의 감사 기록. 10-01 의 이력 제외 계정 규칙은
+   운영 · 점검(열람)으로 이력이 너무 쌓이는 것을 막으려는 것이라, 데이터를 바꾼 기록에는 적용하지 않는다 — 관리자(IT Manager)가 한
+   결재자 교체가 빠지면 감사 기록의 의미가 없다. 기록 실패는 여전히 원 기능을 막지 않고 콘솔에 경고로 남긴다. */
+function logAction(systemName, action, detail, opts) {
   (async () => {
     try {
-      if (await logSkipped()) return;   // IT 운영 계정(IT Manager · IT system service)은 남기지 않는다(10-01)
+      if (!(opts && opts.audit) && await logSkipped()) return;   // IT 운영 계정(IT Manager · IT system service)은 남기지 않는다(10-01) — 감사 기록 제외
       const driveId = await _getLogDriveId();
-      if (!driveId) return;
+      if (!driveId) { console.warn('[Log] 기록 실패(무시됨, 원 기능엔 영향 없음): 문서 드라이브를 찾지 못했습니다 —', systemName, action); return; }
       const t = await token();
       const now = new Date(new Date().getTime() + 9*3600*1000); // KST
       const p = n => String(n).padStart(2,'0');
@@ -1476,17 +1482,19 @@ function logAction(systemName, action, detail) {
       const rand = Math.random().toString(36).slice(2, 6); // 같은 초에 여러 로그가 생겨도 파일명 충돌 방지
       const folderPath = `Logging_data/${systemName}/${dateStr}`;
       const folderOk = await _ensureLogFolder(driveId, folderPath, t);
-      if (!folderOk) return;
+      if (!folderOk) { console.warn('[Log] 기록 실패(무시됨, 원 기능엔 영향 없음): 폴더를 만들지 못했습니다 —', folderPath, action); return; }
       const path = `/${folderPath}/${timeStr}_${userTag}_${rand}.json`;
       const body = JSON.stringify({
         timestampKST: `${dateStr} ${p(now.getUTCHours())}:${p(now.getUTCMinutes())}:${p(now.getUTCSeconds())}`,
         user: rawUser, system: systemName, action, detail: detail || {}
       });
-      await fetch(GRAPH + '/drives/' + driveId + '/root:' + path + ':/content', {
+      const _lr = await fetch(GRAPH + '/drives/' + driveId + '/root:' + path + ':/content', {
         method: 'PUT',
         headers: { Authorization: 'Bearer ' + t, 'Content-Type': 'application/json' },
         body
       });
+      // 예전에는 응답을 보지 않아 저장이 거부돼도(403 · 429 …) 아무 흔적이 없었다(10-10).
+      if (!_lr.ok) console.warn('[Log] 기록 실패(무시됨, 원 기능엔 영향 없음): HTTP ' + _lr.status + ' —', systemName, action);
     } catch(e) { console.warn('[Log] 기록 실패(무시됨, 원 기능엔 영향 없음):', e.message); }
   })();
 }
@@ -1605,6 +1613,14 @@ function visibleSystems() { return SYSTEMS; }
 // openKriLink · openSscLink 는 09-23 에 뺐다 — 바로가기 세 개를 a 링크로 바꿔 더 쓰이지 않는다.
 // openSscLink 에 있던 SHARED-SC_* 허용 키 목록은 쓰이지 않던 값이었다(접근 제어는 SSC 앱 자체가 한다).
 
+/* 접두사 + 번호 키 전부(10-10) — 'ADMIN_SP_' 면 ADMIN_SP_1 · ADMIN_SP_2 · … 설정에 있는 번호를 모두, 번호 순으로.
+   중간 번호가 비어도(1 · 3) 끊기지 않는다. acc-others 의 cfgSeqKeys 와 같은 함수다. */
+function cfgSeqKeys(cfg, prefix) {
+  const P = String(prefix).toUpperCase();
+  return Object.keys(cfg || {})
+    .filter(k => k.toUpperCase().startsWith(P) && /^\d+$/.test(k.slice(P.length)))
+    .sort((a, b) => Number(a.slice(P.length)) - Number(b.slice(P.length)));
+}
 function cfgEmails(cfg, keys) {
   // _ADMIN_N 패턴 키는 cfg에 존재하는 모든 번호까지 자동 포함
   const expanded = [];
@@ -1649,8 +1665,11 @@ async function boot(account){
   if (_cfg) {
     const _ue = (user.email||'').toLowerCase();
     const _uu = (user.username||'').toLowerCase();
-    // ADMIN_SP_1, ADMIN_SP_2... 자동 확장 + ADMIN_SP도 체크
-    const _adminEmails = cfgEmails(_cfg, ['ADMIN_SP_1','ADMIN_SP']);
+    // ADMIN_SP + ADMIN_SP_1, ADMIN_SP_2 … 설정에 있는 번호 전부(10-10).
+    // 예전에는 cfgEmails(['ADMIN_SP_1','ADMIN_SP']) 였는데, cfgEmails 의 자동 확장은 「…_ADMIN_N」 키만 펼쳐
+    // ADMIN_SP_2 이상은 관리자로 인정되지 않았다(0a734e6 「ADMIN_SP_N 권한자」 의도와 달랐다).
+    // 설정을 못 읽으면 여기까지 오지 않아 관리자 아님(닫힌 쪽)이다.
+    const _adminEmails = cfgEmails(_cfg, ['ADMIN_SP'].concat(cfgSeqKeys(_cfg, 'ADMIN_SP_')));
     // 전역에 둔다. 결재자 교체처럼 실제로 데이터를 바꾸는 기능은
     // 버튼 숨김만으로는 부족해 실행 직전에 다시 확인해야 한다.
     _isApsAdmin = _adminEmails.some(e => e.toLowerCase()===_ue || e.toLowerCase()===_uu);
@@ -1793,7 +1812,7 @@ function summary(sysKey,rf){
 
 function stBadge(st){
   const map={'대기':'st-대기','접수됨':'st-접수됨','처리중':'st-접수됨','승인':'st-승인','반려':'st-반려','대기(잠김)':'st-대기잠김','승인완료':'st-승인','철회':'st-철회','철회(잠김)':'st-철회'};
-  return`<span class="st-pill ${map[st]||'st-대기잠김'}">${st||'대기'}</span>`;
+  return`<span class="st-pill ${map[st]||'st-대기잠김'}">${escHtml(st||'대기')}</span>`;
 }
 
 function resetPages(){_pages={};}
@@ -1882,7 +1901,8 @@ async function parseAnnXlsx(url){
   ss.replace(/<si>([\s\S]*?)<\/si>/g,function(_,si){
     var p=[];
     si.replace(/<t[^>]*>([\s\S]*?)<\/t>/g,function(_,t){p.push(t);});
-    strs.push(p.join('').replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&#xA;/g,'\n'));
+    // XML 문자 참조를 한 번에 푼다(10-10 — 공지를 글자로 넣게 되어 &quot; · &#NN; 도 여기서 풀어야 한다. 한 번에 풀어 &amp;lt; 는 &lt; 글자로 남는다)
+    strs.push(p.join('').replace(/&(amp|lt|gt|quot|apos|#x[0-9a-fA-F]+|#[0-9]+);/g,function(m,e){return e==='amp'?'&':e==='lt'?'<':e==='gt'?'>':e==='quot'?'"':e==='apos'?"'":e[1]==='x'||e[1]==='X'?String.fromCharCode(parseInt(e.slice(2),16)):String.fromCharCode(parseInt(e.slice(1),10));}));
   });
   const rows=[];
   sh.replace(/<row[^>]*>([\s\S]*?)<\/row>/g,function(_,cells){
@@ -1913,12 +1933,13 @@ function annFmtTime(v){
 }
 function annMinutes(v){var t=annFmtTime(String(v==null?'':v));var m=/^(\d{1,2}):(\d{2})$/.exec(t);return m?(+m[1])*60+(+m[2]):-1;}   // 시각 → 분(없으면 -1: 맨 뒤)
 function annItemHtml(r){
-  var date=String(r[0]||'');
-  var t1=annFmtTime(String(r[1]||''));
-  var t2=annFmtTime(String(r[2]||''));
+  // 공지 값은 Excel 에 사람이 적는 글이다 — 글자로 넣고 줄바꿈만 <br> 로 살린다(10-10, 예전에는 HTML 로 그대로 들어갔다).
+  var date=escHtml(String(r[0]||''));
+  var t1=escHtml(annFmtTime(String(r[1]||'')));
+  var t2=escHtml(annFmtTime(String(r[2]||'')));
   var type=String(r[3]||'update').toLowerCase().trim();
-  var title=String(r[4]||'');
-  var body=String(r[5]||'').replace(/\n/g,'<br>');
+  var title=escHtml(String(r[4]||''));
+  var body=escHtml(String(r[5]||'')).replace(/\n/g,'<br>');
   var typeLabel=type==='notification'
     ?'<span class="ann-item-type ann-type-notification">공지</span>'
     :'<span class="ann-item-type ann-type-update">업데이트</span>';
@@ -2092,17 +2113,17 @@ function renderApvPopup(){
     var oldTag=isOld?'<span class="apv-old-label">7일 초과</span>':'';
     var btnHtml=isSCC||isBP||isFAAccountant
       ?('<a href="'+sysApproveUrl(sys,reqId)+'" target="_blank" onclick="event.stopPropagation()" style="font-size:.72rem;color:#0078d4;text-decoration:none;border:1px solid #bfdbfe;border-radius:4px;padding:3px 10px;white-space:nowrap">'+(sysKey==='FA'?'FA에서 결재 →':sysKey==='BP'?'BP에서 결재 →':'SCC에서 결재 →')+'</a>')
-      :('<button class="btn-approve" onclick="closeApvPopup();quickConfirm('+apprId+',\'승인\','+reqId+',\''+sysKey+'\',\''+escHtml(role.replace(/'/g,''))+'\','+apprOrder+')">승인</button>'
-        +'<button class="btn-reject" onclick="closeApvPopup();quickConfirm('+apprId+',\'반려\','+reqId+',\''+sysKey+'\',\''+escHtml(role.replace(/'/g,''))+'\','+apprOrder+')">반려</button>');
-    html+='<div class="'+itemCls+'" onclick="closeApvPopup();showDetail(\''+sysKey+'\',' +reqId+')" style="cursor:pointer">'
+      :('<button class="btn-approve" onclick="closeApvPopup();quickConfirm('+apsArg(apprId)+',\'승인\','+apsArg(reqId)+',\''+sysKey+'\','+apsStr(role.replace(/'/g,''))+','+apsArg(apprOrder)+')">승인</button>'
+        +'<button class="btn-reject" onclick="closeApvPopup();quickConfirm('+apsArg(apprId)+',\'반려\','+apsArg(reqId)+',\''+sysKey+'\','+apsStr(role.replace(/'/g,''))+','+apsArg(apprOrder)+')">반려</button>');
+    html+='<div class="'+itemCls+'" onclick="closeApvPopup();showDetail(\''+sysKey+'\',' +apsArg(reqId)+')" style="cursor:pointer">'
       +'<div class="apv-item-top">'
       +'<span class="apv-item-sys">'+sys.name+'</span>'
-      +'<span class="apv-item-id" title="요청 번호 '+reqId+'"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h4"/></svg>'+reqId+'</span>'
+      +'<span class="apv-item-id" title="요청 번호 '+escHtml(reqId)+'"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h4"/></svg>'+escHtml(reqId)+'</span>'
       +(role?'<span class="apv-item-role">'+escHtml(role)+'</span>':'')
       +'<span class="apv-item-summary" title="'+escHtml(sumText)+'">'+escHtml(sumText)+'</span>'
       +'</div>'
       +'<div style="display:flex;align-items:center;justify-content:space-between">'
-      +'<span class="apv-item-meta">'+email+' · '+dateStr+'</span>'
+      +'<span class="apv-item-meta">'+escHtml(email)+' · '+dateStr+'</span>'
       +'<div class="apv-item-btns" onclick="event.stopPropagation()">'+btnHtml+'</div>'
       +'</div>'
       +'</div>';
@@ -2163,7 +2184,7 @@ function renderAll(){
     if(fSys&&fSys!==sys.key)continue;
     const d=_allData[sys.key];
     if(!d){put(0,card(sys,'<div class="sys-empty">⏳ 불러오는 중...</div>',0));continue;}
-    if(d.error){put(0,card(sys,`<div class="sys-empty" style="color:#e53e3e">⚠️ ${d.error}</div>`,0));continue;}
+    if(d.error){put(0,card(sys,`<div class="sys-empty" style="color:#e53e3e">⚠️ ${escHtml(d.error)}</div>`,0));continue;}
 
     // 내 결재 항목: 같은 RequestID가 여러 개일 경우 '대기' 우선, 없으면 최신 1개만 표시
     // 철회된 RequestID 전체 제외 (어느 결재자든 철회(잠김)/철회 상태면 해당 건 전체 숨김)
@@ -2207,7 +2228,7 @@ function renderAll(){
       const email=(rf.RequesterEmail||'-').replace(/@.*/,'');
       const sumText=summary(sys.key,rf)||'-';
       const dateStr=fmt(rf.RequestDate);
-      rows+=`<div class="item-row" onclick="showDetail('${sys.key}',${f.RequestID})">
+      rows+=`<div class="item-row" onclick="showDetail('${sys.key}',${apsArg(f.RequestID)})">
         <span class="item-no">·</span>
         <div class="item-body">
           <div class="item-summary">${escHtml(sumText)}</div>
@@ -2219,7 +2240,7 @@ function renderAll(){
             ?(()=>{
               const _blockSys=sys.key==='FA'||sys.key==='BP'||sys.key==='SCC';
               const _label=sys.key==='FA'?'FA에서 결재 →':sys.key==='BP'?'BP에서 결재 →':'SCC에서 결재 →';
-              return _blockSys?`<a href="${sysApproveUrl(sys, f.RequestID)}" target="_blank" style="font-size:.72rem;color:#0078d4;text-decoration:none;border:1px solid #bfdbfe;border-radius:4px;padding:3px 10px;white-space:nowrap">${_label}</a>`:`<button class="btn-approve" onclick="quickConfirm(${item.id},'승인',${f.RequestID},'${sys.key}','${escHtml((f.ApproverRole||'').replace(/'/g,''))}',${f.ApprovalOrder||0})">승인</button><button class="btn-reject" onclick="quickConfirm(${item.id},'반려',${f.RequestID},'${sys.key}','${escHtml((f.ApproverRole||'').replace(/'/g,''))}',${f.ApprovalOrder||0})">반려</button>`;
+              return _blockSys?`<a href="${sysApproveUrl(sys, f.RequestID)}" target="_blank" style="font-size:.72rem;color:#0078d4;text-decoration:none;border:1px solid #bfdbfe;border-radius:4px;padding:3px 10px;white-space:nowrap">${_label}</a>`:`<button class="btn-approve" onclick="quickConfirm(${apsArg(item.id)},'승인',${apsArg(f.RequestID)},'${sys.key}',${apsStr((f.ApproverRole||'').replace(/'/g,''))},${apsArg(f.ApprovalOrder||0)})">승인</button><button class="btn-reject" onclick="quickConfirm(${apsArg(item.id)},'반려',${apsArg(f.RequestID)},'${sys.key}',${apsStr((f.ApproverRole||'').replace(/'/g,''))},${apsArg(f.ApprovalOrder||0)})">반려</button>`;
             })()
             :`<span class="done-label">완료</span>`}
         </div>
@@ -2322,6 +2343,45 @@ function apsPlogHtml(f, sec, toText) {   // toText: 상세 화면의 SharePoint 
           : '<div style="font-size:12px;color:#a19f9d;padding:6px 0">등록된 의견이 없습니다.</div>');
 }
 function escHtml(str){return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
+/* 인라인 onclick="…" 에 넣는 인자(10-10). RequestID · ApprovalOrder 는 대부분 숫자 열이지만 AAC 는 텍스트 열(ridText)이라
+   값에 ) ; 같은 글자가 들어가면 그대로 코드가 됐다. 숫자면 예전처럼 숫자 그대로, 아니면 JS 문자열(JSON)로 만들어 속성용으로 이스케이프한다. */
+function apsArg(v){ const s=String(v==null?'':v).trim(); return /^-?\d+(\.\d+)?$/.test(s) ? s : escHtml(JSON.stringify(s)); }
+function apsStr(v){ return escHtml(JSON.stringify(String(v==null?'':v))); }
+// 첨부 링크 주소 — https:// 만 링크로 둔다(javascript: · data: 차단). 아니면 빈 문자열.
+function apsSafeHref(u){ const s=String(u==null?'':u).trim(); return /^https:\/\//i.test(s) ? escHtml(s) : ''; }
+/* ── 결재행 쓰기 동시 처리 방지(10-10) ──
+   읽은 뒤 쓰기 사이에 원 결재자와 대리인, 또는 APS 와 원 시스템이 같은 행을 처리하면 둘 다 성공했다.
+   읽을 때 받은 버전(@odata.etag)을 If-Match 로 보내면 그 사이 바뀐 행은 412 로 거부된다(WMC 쿠폰 저장 d7e5f89 와 같은 방식).
+   412 면 다시 읽어, 그 값이 이번에 쓰려던 값과 같으면(503 · 504 재시도로 같은 요청이 두 번 간 경우) 이어서 진행하고,
+   아니면 { status, by } 를 돌려 호출부가 「다른 사용자가 먼저 처리」 를 알린다. etag 가 없으면 예전처럼 조건 없이 쓴다. */
+function apsIfMatch(cur){ const e = cur && (cur['@odata.etag'] || (cur.fields && cur.fields['@odata.etag'])); return e ? { 'If-Match': e } : null; }
+function apsIsOwnWrite(f, patch){
+  if (!f || !patch) return false;
+  const n = v => String(v == null ? '' : v).replace(/\r\n/g, '\n').trim();
+  for (const k of Object.keys(patch)) {
+    if (!(k in f) && k !== 'Status') continue;   // AAC 처럼 목록에 없는 열은 보내지 않았다(aacSafePatch)
+    if (k === 'ApprovalDate') { const a = Date.parse(f[k]), b = Date.parse(patch[k]); if (!(Math.abs(a - b) < 2000)) return false; continue; }
+    if (/Email$/.test(k)) { if (n(f[k]).toLowerCase() !== n(patch[k]).toLowerCase()) return false; continue; }
+    if (n(f[k]) !== n(patch[k])) return false;
+  }
+  return true;
+}
+async function apsApprovalWrite(doPatch, listId, itemId, patch){
+  try { await doPatch(); return true; }
+  catch (e) {
+    if (!e || e.status !== 412) throw e;
+    let f = {};
+    try { f = ((await api('/sites/'+siteId+'/lists/'+listId+'/items/'+itemId+'?$expand=fields')) || {}).fields || {}; } catch (_) {}
+    if (apsIsOwnWrite(f, patch)) { console.warn('[결재] 412 — 같은 내용이 이미 반영되어 있어 이어서 진행합니다:', listId, itemId); return true; }
+    console.warn('[결재] 412 — 다른 사용자가 먼저 변경:', listId, itemId, f.Status);
+    return { status: String(f.Status || '').trim(), by: String(f.ApproverName || f.ApproverEmail || '').trim() };
+  }
+}
+function apsConflictMsg(w){
+  return (w && w.status && w.status !== '대기')
+    ? '다른 사용자가 먼저 처리한 결재입니다.\n(현재 상태: ' + w.status + (w.by ? ' · ' + w.by : '') + ')\n\n이번 처리는 반영하지 않았습니다. 화면을 새로 불러옵니다.'
+    : '다른 사용자가 먼저 이 결재를 변경했습니다(결재자 교체 등).\n이번 처리는 반영하지 않았습니다. 화면을 새로 불러온 뒤 다시 확인해 주세요.';
+}
 /* 기록 표(My Requests · My Approvals) 도우미(10-02) */
 function recCols(ws){ return '<colgroup>' + ws.map(w => '<col style="width:' + w + '%">').join('') + '</colgroup>'; }
 function recCell(cls, txt, html){   // 한 줄 칸 — 잘리면 말풍선(data-tip)에 전체 글
@@ -2422,7 +2482,8 @@ async function showDetail(sysKey,reqId){
         // 신형 형식: name||driveId||itemId
         if(entry.includes('||')){const fi=entry.indexOf('||');const name=entry.substring(0,fi),rest=entry.substring(fi+2);const parts=rest.split('||');if(parts.length>=2){const di=parts[0],ii=parts.slice(1).join('||');return`<div style="padding:3px 0;font-size:.82rem">📎 <a href="#" class="aps-file-dl" data-drive="${encodeURIComponent(di)}" data-id="${encodeURIComponent(ii)}" data-name="${encodeURIComponent(name)}" style="color:#0078d4;cursor:pointer">${escHtml(name)}</a></div>`;}}
         // FA 구형 형식: name|webUrl (파이프 1개)
-        if(entry.includes('|')){const sp=entry.indexOf('|');const name=entry.substring(0,sp).trim();const url=entry.substring(sp+1).trim();if(url)return`<div style="padding:3px 0;font-size:.82rem">📎 <a href="${url}" target="_blank" style="color:#0078d4;cursor:pointer">${escHtml(name)}</a></div>`;}
+        // 주소는 https:// 만 링크로 둔다(10-10 — javascript: 주소가 그대로 href 에 들어갔다). 아니면 이름만 글자로.
+        if(entry.includes('|')){const sp=entry.indexOf('|');const name=entry.substring(0,sp).trim();const url=entry.substring(sp+1).trim();const _h=apsSafeHref(url);if(url)return _h?`<div style="padding:3px 0;font-size:.82rem">📎 <a href="${_h}" target="_blank" style="color:#0078d4;cursor:pointer">${escHtml(name)}</a></div>`:`<div style="padding:3px 0;font-size:.82rem;color:#a19f9d">📎 ${escHtml(name)}</div>`;}
         return'';
       }).filter(Boolean).join('')||'<div style="font-size:.82rem;color:#a19f9d">첨부파일 없음</div>';
     };
@@ -2557,7 +2618,7 @@ async function showDetail(sysKey,reqId){
           info+=sec('주문 항목')+'<div style="overflow-x:auto;margin-top:4px"><table style="width:100%;border-collapse:collapse;font-size:.78rem"><thead><tr style="background:#4472C4;color:#fff">'+
             '<th style="padding:6px 8px;text-align:left">상품명</th><th style="padding:6px 8px;text-align:center">코드</th><th style="padding:6px 8px;text-align:center">단위</th><th style="padding:6px 8px;text-align:center">Q&#39;ty</th><th style="padding:6px 8px;text-align:right">단가</th><th style="padding:6px 8px;text-align:right">소계</th>'+
             '</tr></thead><tbody>'+
-            items.map(i=>`<tr style="border-bottom:1px solid #edebe9"><td style="padding:5px 8px">${escHtml(i.name||'')}</td><td style="padding:5px 8px;text-align:center;color:#605e5c">${escHtml(i.code||'')}</td><td style="padding:5px 8px;text-align:center">${escHtml(i.unit||'')}</td><td style="padding:5px 8px;text-align:center">${i.qty}</td><td style="padding:5px 8px;text-align:right">${Number(i.price).toLocaleString()}</td><td style="padding:5px 8px;text-align:right;font-weight:600">${Number(i.rowTotal).toLocaleString()}</td></tr>`).join('')+
+            items.map(i=>`<tr style="border-bottom:1px solid #edebe9"><td style="padding:5px 8px">${escHtml(i.name||'')}</td><td style="padding:5px 8px;text-align:center;color:#605e5c">${escHtml(i.code||'')}</td><td style="padding:5px 8px;text-align:center">${escHtml(i.unit||'')}</td><td style="padding:5px 8px;text-align:center">${escHtml(i.qty)}</td><td style="padding:5px 8px;text-align:right">${Number(i.price).toLocaleString()}</td><td style="padding:5px 8px;text-align:right;font-weight:600">${Number(i.rowTotal).toLocaleString()}</td></tr>`).join('')+
             `</tbody><tfoot><tr style="background:#4472C4;color:#fff"><td colspan="5" style="padding:6px 8px;text-align:right;font-weight:700">Total Sum</td><td style="padding:6px 8px;text-align:right;font-weight:700">${tot.toLocaleString()}원</td></tr></tfoot></table></div>`;
         }catch(e){}
       }
@@ -2583,14 +2644,14 @@ async function showDetail(sysKey,reqId){
               const dec=decodeURIComponent(escape(atob(parts[1])));
               const si=dec.indexOf('###');
               if(si>=0){const di=dec.substring(0,si),ii=dec.substring(si+3);
-                return`<div style="padding:3px 0;font-size:.82rem">📎 <a href="#" class="aps-file-dl" data-drive="${encodeURIComponent(di)}" data-id="${encodeURIComponent(ii)}" data-name="${encodeURIComponent(name)}" style="color:#0078d4;cursor:pointer">${name}</a></div>`;}
+                return`<div style="padding:3px 0;font-size:.82rem">📎 <a href="#" class="aps-file-dl" data-drive="${encodeURIComponent(di)}" data-id="${encodeURIComponent(ii)}" data-name="${encodeURIComponent(name)}" style="color:#0078d4;cursor:pointer">${escHtml(name)}</a></div>`;}
             }catch(e){}
           }
-          return`<div style="padding:3px 0;font-size:.82rem;color:#a19f9d">📎 ${name}</div>`;
+          return`<div style="padding:3px 0;font-size:.82rem;color:#a19f9d">📎 ${escHtml(name)}</div>`;
         }).join('');
         if(_links)_idcFiles=_links;
       } else if(f.PhotoFileName){
-        _idcFiles=`<div style="padding:3px 0;font-size:.82rem">📎 <a href="#" onclick="apsDownloadIDCPhoto('${f.PhotoFileName.replace(/'/g,"\\'")}',${reqId});return false;" style="color:#0078d4;cursor:pointer">${escHtml(toText(f.PhotoFileName))}</a></div>`;
+        _idcFiles=`<div style="padding:3px 0;font-size:.82rem">📎 <a href="#" onclick="apsDownloadIDCPhoto(${apsStr(f.PhotoFileName)},${apsArg(reqId)});return false;" style="color:#0078d4;cursor:pointer">${escHtml(toText(f.PhotoFileName))}</a></div>`;
       }
       info+=sec('첨부파일')+_idcFiles;
     }
@@ -2673,9 +2734,9 @@ async function showDetail(sysKey,reqId){
           const sub=rc((Number(g.amount)||0)*(parseFloat(g.qty)||1)); origTotal=rc(origTotal+sub);
           const krw=cur!=='KRW'?`<div style="color:#a19f9d;font-size:.7rem">≈ ${n0(sub*rate)} KRW</div>`:'';
           return `<tr><td style="${TD}">${escHtml(toText(g.desc||'-'))}</td><td style="${TD};text-align:center">${fq(g.qty)}</td>`
-            +`<td style="${TD};text-align:right">${fc(g.amount)}</td><td style="${TD};text-align:right;white-space:nowrap">${fc(sub)} ${cur}${krw}</td></tr>`;
+            +`<td style="${TD};text-align:right">${fc(g.amount)}</td><td style="${TD};text-align:right;white-space:nowrap">${fc(sub)} ${escHtml(cur)}${krw}</td></tr>`;
         }).join('');
-        const foot=`<tr><td colspan="3" style="${TF};text-align:right">TOTAL</td><td style="${TF};text-align:right;white-space:nowrap">${fc(origTotal)} ${cur}${cur!=='KRW'?`<div style="font-weight:400;color:#605e5c;font-size:.7rem">＝ ${n0(f.TotalAmount)} KRW</div>`:''}</td></tr>`;
+        const foot=`<tr><td colspan="3" style="${TF};text-align:right">TOTAL</td><td style="${TF};text-align:right;white-space:nowrap">${fc(origTotal)} ${escHtml(cur)}${cur!=='KRW'?`<div style="font-weight:400;color:#605e5c;font-size:.7rem">＝ ${n0(f.TotalAmount)} KRW</div>`:''}</td></tr>`;
         info+=sec('Description of Goods')+tbl([['Description of Goods'],['Quantity','center'],['Unit Price','right'],['Sub Total (Excl. VAT)','right']],body,foot);
       } else info+=sec('Description of Goods')+empty;
 
@@ -2725,7 +2786,7 @@ async function showDetail(sysKey,reqId){
         // 상태에 따라 문구를 바꾼다 — 반려 건에 Approved 가 붙으면 안 된다.
         const _dv=(()=>{const _s=String(af.Status||'').trim();return _s==='승인'||_s==='승인완료'?'Approved on behalf of':_s==='반려'?'Rejected on behalf of':_s.indexOf('철회')===0?'Withdrawn on behalf of':'On behalf of';})();
         const _db=_dp?` <span title="${_dv} ${escHtml((_dp.e||_dp.n))}" style="background:#fff4ce;border:1px solid #f2d68c;color:#8a5a00;font-size:10px;font-weight:600;letter-spacing:.1px;border-radius:10px;padding:1px 9px;margin-left:6px;white-space:nowrap;vertical-align:1px"><span style="font-weight:400;opacity:.8">${_dv} </span><b style="font-weight:700">${escHtml((_dp.e||_dp.n))}</b></span>`:'';
-        const _dr=(_lab?`<b>${_o}차</b> 결재자(${escHtml(_lab)})`:`<b>${_o}차</b> 결재자`)+_db;
+        const _dr=(_lab?`<b>${escHtml(_o)}차</b> 결재자(${escHtml(_lab)})`:`<b>${escHtml(_o)}차</b> 결재자`)+_db;
         return`<div class="appr-item">
         <div style="display:flex;align-items:flex-start;flex:1">
           <div class="appr-info">
@@ -2748,13 +2809,13 @@ async function showDetail(sysKey,reqId){
                   const isRadio=l.trim().startsWith('→')||l.trim().startsWith('  →');
                   const isComment=l.trim().startsWith('Comment:')||l.trim().startsWith('Tax risk');
                   const color=isRadio?'#0078d4':isComment?'#605e5c':(l.includes('☑')?'#107c10':'#9ca3af');
-                  return '<div style="font-size:11px;color:'+color+';padding-left:'+(isRadio||isComment?'12px':'0')+'">'+l.trim()+'</div>';
+                  return '<div style="font-size:11px;color:'+color+';padding-left:'+(isRadio||isComment?'12px':'0')+'">'+escHtml(l.trim())+'</div>';
                 }).join('')+
                 '</div></div>';
             })()}
           </div>
         </div>
-        <span style="color:${sc[af.Status]||'#4a5568'};font-weight:700;font-size:.78rem;white-space:nowrap;padding-left:8px">${af.Status||''}</span>
+        <span style="color:${sc[af.Status]||'#4a5568'};font-weight:700;font-size:.78rem;white-space:nowrap;padding-left:8px">${escHtml(af.Status||'')}</span>
       </div>`;}).join('')+'</div>'
       // 회계팀 담당자가 상신해 회계 담당자·Accounting Head·CFO 단계가 제외된 건은
       // 결재 이력만 보면 단계가 적어 보이므로, 이력 바로 아래에 근거를 함께 표시한다.
@@ -2795,10 +2856,10 @@ async function showDetail(sysKey,reqId){
     if(sysKey==='GA_BC') setTimeout(()=>apsFillBcFiles(parseInt(reqId)),0);   // 아래에서 상세 HTML 을 넣은 뒤 채운다
     document.getElementById('detail-content').innerHTML=info+apprHtml+rdExemptHtml+
       (myPending?`<div class="modal-action">
-        <button onclick="showConfirm(${myPending.id},'승인',${reqId},'${sysKey}','${escHtml((myPending.fields.ApproverRole||'').replace(/'/g,''))}',${myPending.fields.ApprovalOrder||0})" class="btn-approve">✅ 승인</button>
-        <button onclick="showConfirm(${myPending.id},'반려',${reqId},'${sysKey}','${escHtml((myPending.fields.ApproverRole||'').replace(/'/g,''))}',${myPending.fields.ApprovalOrder||0})" class="btn-reject">❌ 반려</button>
+        <button onclick="showConfirm(${apsArg(myPending.id)},'승인',${apsArg(reqId)},'${sysKey}',${apsStr((myPending.fields.ApproverRole||'').replace(/'/g,''))},${apsArg(myPending.fields.ApprovalOrder||0)})" class="btn-approve">✅ 승인</button>
+        <button onclick="showConfirm(${apsArg(myPending.id)},'반려',${apsArg(reqId)},'${sysKey}',${apsStr((myPending.fields.ApproverRole||'').replace(/'/g,''))},${apsArg(myPending.fields.ApprovalOrder||0)})" class="btn-reject">❌ 반려</button>
       </div>`:'');
-  }catch(e){document.getElementById('detail-content').innerHTML=`<p style="color:#e53e3e;padding:16px">오류: ${e.message}</p>`;}
+  }catch(e){document.getElementById('detail-content').innerHTML=`<p style="color:#e53e3e;padding:16px">오류: ${escHtml(e.message)}</p>`;}
 }
 function closeDetail(){document.getElementById('detail-modal').className='';}
 
@@ -2927,7 +2988,7 @@ function openSysFromConfirm(key){
 /* AAC 목록 쓰기 — 목록에 있는 열만 보낸다. ClosedDate · ClosedComment · Comment · ApprovalDate 는 나중에 만든 열이라
    없는 목록에 그대로 보내면 PATCH 전체가 거부되어 결재가 멈춘다(AAC patchFields 와 같은 규칙). Status 는 반드시 보낸다. */
 const _aacColCache={};
-async function aacSafePatch(list, itemId, wanted){
+async function aacSafePatch(list, itemId, wanted, hdrs){   // hdrs(10-10): 결재행 쓰기의 If-Match
   let cols=_aacColCache[list];
   if(!cols){
     try{ const r=await api('/sites/'+siteId+'/lists/'+list+'/columns?$select=name'); cols=_aacColCache[list]=new Set((r.value||[]).map(c=>c.name)); }
@@ -2935,7 +2996,7 @@ async function aacSafePatch(list, itemId, wanted){
   }
   const out={};
   Object.entries(wanted).forEach(([k,v])=>{ if(!cols||k==='Status'||cols.has(k)) out[k]=v; });
-  return api('/sites/'+siteId+'/lists/'+list+'/items/'+itemId,'PATCH',{fields:out});
+  return api('/sites/'+siteId+'/lists/'+list+'/items/'+itemId,'PATCH',{fields:out},hdrs);
 }
 async function doApproval(){
   if(!_pending)return;
@@ -2947,6 +3008,7 @@ async function doApproval(){
   // ACC Voucher는 결재이력이 여러 세대(리스트)에 나뉘어 있을 수 있어, 이 apprId가 실제로 속한 리스트를 _currentApprList에서 찾아 사용
   const aprListId = (sysKey==='ACC' && _currentApprList.find(i=>Number(i.id)===Number(apprId))?._accVolId) || sys.apr;
   loading(true,action==='승인'?'승인 처리 중...':'반려 처리 중...');
+  let _apsAudit = null, _apsWrote = false;   // 감사 기록(10-10) — 결재행을 쓴 뒤 오류가 나도 남긴다
   try{
     // 이중 결재 방지: PATCH 전 현재 Status 확인
     const _cur=await api('/sites/'+siteId+'/lists/'+aprListId+'/items/'+apprId+'?$expand=fields');
@@ -2969,6 +3031,23 @@ async function doApproval(){
       }
     }
     const _patch={Status:action==='승인'?'승인':action,ApprovalDate:new Date().toISOString(),Comment:comment};
+    // 동시 처리 방지(10-10) — 위에서 읽은 버전으로만 쓴다(apsApprovalWrite). 412 면 「다른 사용자가 먼저 처리」.
+    const _im = apsIfMatch(_cur);
+    /* 감사 기록(10-10) — 승인 · 반려(대리 포함)를 Logging_data/APS 에 남긴다. 화면 열람 · 내보내기만 남고 결재 처리는 남지 않았다.
+       fire-and-forget(logAction) — 기록이 실패해도 결재는 그대로 진행되고, 실패는 콘솔에 경고로 남는다. */
+    const _title = ((((_allData||{})[sysKey]||{}).reqMap||{})[String(reqId)]||{}).Title || '';
+    _apsAudit = (result, what) => logAction('APS', what || (action==='승인' ? '결재 승인' : '결재 반려'), {
+      시스템: sys.name, 신청번호: reqId, 제목: _title, 결과: result,
+      차수: _cur.fields.ApprovalOrder == null ? '' : _cur.fields.ApprovalOrder, 결재자: _origEmail, 처리자: (user.email||user.username||''),
+      대리: _dgi ? '예 — ' + (_cur.fields.ApproverName||_dgi.name||_origEmail) + ' 님 대신' : '', 의견: comment,
+      역할: String(_cur.fields.ApproverRole||''), 목록: aprListId, 결재행: apprId }, { audit: true });
+    const _conflict = async (w) => {
+      loading(false);
+      _apsAudit('처리 안 함 — 다른 사용자가 먼저 변경(현재 상태: ' + (w.status || '?') + (w.by ? ' · ' + w.by : '') + ')', '결재 처리 충돌');
+      alert(apsConflictMsg(w));
+      _adminDataTime = 0; _myApprovedDataTime = 0;
+      await loadAll(true);
+    };
     if(_dgi){
       _patch.ApproverEmail=(user.email||user.username||'');
       _patch.ApproverName=(user.name||user.email||'');
@@ -2980,27 +3059,35 @@ async function doApproval(){
     }
     if(sysKey==='AAC'){
       // 결재 대리 지정 — AAC doConfirm 과 같은 종결 규칙. 열이 늦게 추가된 목록이 있어 있는 열만 보낸다(AAC 의 patchFields 와 같은 방식).
-      await aacSafePatch(sys.apr, apprId, _patch);
+      const _w0 = await apsApprovalWrite(()=>aacSafePatch(sys.apr, apprId, _patch, _im), sys.apr, apprId, _patch);
+      if(_w0!==true){ await _conflict(_w0); return; }
+      _apsWrote = true;
       if(action==='반려'){
         await aacSafePatch(sys.req, reqId, {Status:'반려', ClosedComment:comment, ClosedDate:new Date().toISOString()});
         const _rows=await fetchApprovalsForRequest(sysKey, reqId);
-        for(const a of _rows.filter(x=>['대기','대기(잠김)'].includes((x.fields.Status||'').trim())))
+        const _lock=_rows.filter(x=>['대기','대기(잠김)'].includes((x.fields.Status||'').trim()));
+        for(const a of _lock)
           await api('/sites/'+siteId+'/lists/'+sys.apr+'/items/'+a.id,'PATCH',{fields:{Status:'반려(잠김)'}});
+        _apsAudit('반려 — 신청 반려' + (_lock.length ? ' · 남은 결재 ' + _lock.length + '건 반려(잠김)' : ''));
       }else{
         const _rows=await fetchApprovalsForRequest(sysKey, reqId);
         if(!_rows.length) throw new Error('결재 행 조회 결과가 비어 있어 상태를 바꾸지 않았습니다.\n승인은 기록되었습니다. 잠시 후 결재함에서 다시 확인해 주세요.');
         const _next=_rows.filter(i=>(i.fields.Status||'').trim()==='대기(잠김)').sort((a,b)=>Number(a.fields.ApprovalOrder)-Number(b.fields.ApprovalOrder));
         if(_next.length) await api('/sites/'+siteId+'/lists/'+sys.apr+'/items/'+_next[0].id,'PATCH',{fields:{Status:'대기'}});
         else if(!_rows.some(i=>(i.fields.Status||'').trim()==='대기')) await aacSafePatch(sys.req, reqId, {Status:'승인완료', ClosedDate:new Date().toISOString()});
+        _apsAudit(_next.length ? '승인 — ' + (_next[0].fields.ApprovalOrder ?? '') + '차 결재자에게 넘김' : (!_rows.some(i=>(i.fields.Status||'').trim()==='대기') ? '승인 — 최종 승인(신청 승인완료)' : '승인'));
       }
       closeDetail();
       _adminDataTime = 0; _myApprovedDataTime = 0;
       await loadAll(true);
       return;
     }
-    await api('/sites/'+siteId+'/lists/'+aprListId+'/items/'+apprId,'PATCH',{fields:_patch});
+    const _w = await apsApprovalWrite(()=>api('/sites/'+siteId+'/lists/'+aprListId+'/items/'+apprId,'PATCH',{fields:_patch},_im), aprListId, apprId, _patch);
+    if(_w!==true){ await _conflict(_w); return; }
+    _apsWrote = true;
     if(action==='반려'){
       await api('/sites/'+siteId+'/lists/'+sys.req+'/items/'+reqId,'PATCH',{fields:{Status:'반려'}});
+      _apsAudit('반려 — 신청 반려');
     }else{
       // 이 건의 결재 행만 조회한다(전량조회 아님). 실패는 예외로 올라온다.
       const rows = await fetchApprovalsForRequest(sysKey, reqId);
@@ -3009,6 +3096,7 @@ async function doApproval(){
       // 이 상태에서 '승인완료'로 넘기면 남은 결재자를 건너뛴 채 마감된다.
       if(!rows.length){
         console.error('[결재] 결재 행 조회 결과가 비어 있음 — 승인완료 전환 중단. sys:', sysKey, 'RequestID:', reqId);
+        _apsAudit('승인 기록 · 다음 단계로 넘기지 못함(결재 행 조회 0건)');
         loading(false);
         alert('승인은 기록되었으나 다음 단계로 넘기지 못했습니다.\n잠시 후 결재함에서 상태를 다시 확인해 주세요.\n계속 같은 증상이면 IT팀(stk_it@hyosung.com)에 알려주세요.');
         closeDetail();
@@ -3019,11 +3107,15 @@ async function doApproval(){
       const next=rows.filter(i=>(i.fields.Status||'').trim()==='대기(잠김)').sort((a,b)=>a.fields.ApprovalOrder-b.fields.ApprovalOrder);
       if(next.length)await api('/sites/'+siteId+'/lists/'+(next[0]._accVolId||sys.apr)+'/items/'+next[0].id,'PATCH',{fields:{Status:'대기'}});
       else await api('/sites/'+siteId+'/lists/'+sys.req+'/items/'+reqId,'PATCH',{fields:{Status:'승인완료'}});
+      _apsAudit(next.length ? '승인 — ' + (next[0].fields.ApprovalOrder ?? '') + '차 결재자에게 넘김' : '승인 — 최종 승인(신청 승인완료)');
     }
     closeDetail();
     _adminDataTime = 0; _myApprovedDataTime = 0; // 다른 탭 캐시도 무효화 (전환 시 최신 상태 보장)
     await loadAll(true);
-  }catch(e){alert('오류: '+e.message);}
+  }catch(e){
+    if(_apsWrote && _apsAudit) _apsAudit('결재행은 기록됨 · 이후 단계 오류 — ' + (e && e.message));   // 결재행을 쓴 뒤의 오류도 감사 기록에 남긴다(10-10)
+    alert('오류: '+e.message);
+  }
   finally{loading(false);}
 }
 
@@ -3418,14 +3510,14 @@ function renderMyApprovedTable(resetPage) {
     const who = r.approverEmail || r.approver || '';
     const whoTip = who + (r.byDeputy ? ' — ' + r.byDeputy + ' 님이 대리로 처리' : '');
     const whoHtml = (r.byDeputy ? '<span class="dg">대리</span>' : '') + (who ? escHtml(who) : '<span class="dash">-</span>');
-    return '<tr onclick="showDetail(\'' + r.sysKey + '\',' + r.reqId + ')">'
+    return '<tr onclick="showDetail(\'' + r.sysKey + '\',' + apsArg(r.reqId) + ')">'
       + '<td class="no">' + rowNum + '</td>'
       + recCell('sys', r.sysLabel)
       + recCell('ttl', r.title)
       + recCell('', r.purpose)
       + recCell('', r.requester)
       + recCell('', whoTip, whoHtml)
-      + '<td class="c step">' + r.aprOrder + (r.totalAprs ? '/' + r.totalAprs : '') + '차</td>'
+      + '<td class="c step">' + escHtml(r.aprOrder) + (r.totalAprs ? '/' + r.totalAprs : '') + '차</td>'
       + '<td class="c">' + recBadge(r.myStatus, stBg[r.myStatus], stColor[r.myStatus]) + '</td>'
       + recCell('dt req', fmtDt(r.requestDate))
       + recCell('dt', fmtDt(r.processedAt))
@@ -3611,7 +3703,7 @@ async function apsLoadSysLogs() {
   const btn = document.getElementById('sys-log-btn'); btn.disabled = true;
   loading(true, range + ' 이력을 찾는 중...');
   try {
-    const d = await _getLogDriveId(); if (!d) throw new Error('이력 저장소(STK-DB Documents)에 연결하지 못했습니다.');
+    const d = await _getLogDriveId(); if (!d) throw new Error('이력 저장소에 연결하지 못했습니다.');
     if (!_sysLog.systems) await apsLoadLogSystems();
     const roots = (_sysLog.systems || []).filter(x => !system || x.name === system);
     if (!roots.length) throw new Error('Logging_data 아래에 시스템 폴더가 없습니다.');
@@ -3895,7 +3987,7 @@ function renderMyRequestsTable(resetPage) {
     const rowNum = rows.length - ((_myRequestsPage - 1) * MYR_PAGE_SIZE + i);
     const live = r.reqStatus==='진행중'||r.reqStatus==='대기';
     const nxtTxt = live && r.nextApprover && r.nextApprover!=='-' ? (r.nextRole && r.nextRole!=='-' ? r.nextApprover+' ('+r.nextRole+')' : r.nextApprover) : '';
-    return '<tr onclick="showDetail(\'' + r.sysKey + '\',' + r.reqId + ')">'
+    return '<tr onclick="showDetail(\'' + r.sysKey + '\',' + apsArg(r.reqId) + ')">'
       + '<td class="no">' + rowNum + '</td>'
       + recCell('sys', r.sysLabel)
       + recCell('ttl', r.title)
@@ -4156,7 +4248,7 @@ function fillEmpList() {
   const dl = document.getElementById('apr-emp-list');
   if (!dl || !_apsEmployees) return;
   dl.innerHTML = _apsEmployees
-    .map(e => '<option value="' + e.email + '">' + (e.name || '') + '</option>')
+    .map(e => '<option value="' + escHtml(e.email) + '">' + escHtml(e.name || '') + '</option>')
     .join('');
 }
 // ── 결재자 변경 진행 팝업 ──────────────────────────────────────────────
@@ -4183,10 +4275,10 @@ function rpStep(done, total, row) {
                       : '<span style="color:#b91c1c;font-weight:700">실패</span>';
   body.insertAdjacentHTML('beforeend',
     '<div style="padding:3px 0;border-bottom:1px solid #f8fafc">'
-    + mark + ' <span style="color:#0078d4;font-weight:600">' + row.sys + '</span> '
-    + '<span style="color:#475569">' + row.title + '</span> '
-    + '<span style="color:#64748b">' + row.order + '차 ' + row.role + '</span>'
-    + (row.ok ? '' : ' <span style="color:#b91c1c">— ' + row.note + '</span>')
+    + mark + ' <span style="color:#0078d4;font-weight:600">' + escHtml(row.sys) + '</span> '
+    + '<span style="color:#475569">' + escHtml(row.title) + '</span> '
+    + '<span style="color:#64748b">' + escHtml(row.order) + '차 ' + escHtml(row.role) + '</span>'
+    + (row.ok ? '' : ' <span style="color:#b91c1c">— ' + escHtml(row.note) + '</span>')
     + '</div>');
   body.scrollTop = body.scrollHeight;
 }
@@ -4265,9 +4357,17 @@ async function runAprReplace() {
   rpOpen(targets.length, emp.name, emp.email);
 
   let ok = 0, fail = 0, done = 0;
+  const _me = (user.email || user.username || '');
   for (const t of targets) {
     const base = { sys: t.r.sysLabel, title: t.r.title, order: t.a.order, role: t.a.role,
                    oldEmail: t.a.email, newEmail: emp.email };
+    /* 감사 기록(10-10) — 행마다 이전 → 새 결재자와 목록 · 항목 번호를 Logging_data/APS 에 남긴다.
+       예전에는 사용자가 결과 CSV 를 직접 저장하는 것뿐이었다. 기록 실패는 교체를 막지 않는다(콘솔 경고). */
+    const _log = (okRow, note) => logAction('APS', '결재자 교체', {
+      시스템: (SYSTEMS.find(s => s.key === t.r.sysKey) || {}).name || t.r.sysKey, 신청번호: t.r.reqId, 제목: t.r.title,
+      결과: okRow ? '완료' : '실패 — ' + note, 차수: t.a.order, 역할: t.a.role,
+      이전: (t.a.name ? t.a.name + ' ' : '') + '<' + t.a.email + '>', 새: emp.name + ' <' + emp.email + '>', 처리자: _me,
+      목록: t.a.listId, 결재행: t.a.aprId }, { audit: true });
     try {
       // 쓰기 직전에 현재 상태를 다시 확인한다.
       // 조회한 뒤 누군가 결재했을 수 있고, 그 행을 바꾸면 처리자가 뒤바뀐다.
@@ -4276,17 +4376,30 @@ async function runAprReplace() {
       if (st !== '대기' && st !== '대기(잠김)') {
         fail++; done++;
         rpStep(done, targets.length, Object.assign({}, base, { ok:false, note:'이미 «'+st+'» 처리됨' }));
+        _log(false, '이미 «'+st+'» 처리됨');
         continue;
       }
-      await api('/sites/'+siteId+'/lists/'+t.a.listId+'/items/'+t.a.aprId, 'PATCH',
-        { fields: { ApproverEmail: emp.email, ApproverName: emp.name } });
+      // 확인한 그 버전일 때만 바꾼다(If-Match, 10-10) — 확인과 쓰기 사이에 결재되면 412 로 거부된다.
+      const _rp = { ApproverEmail: emp.email, ApproverName: emp.name };
+      const _w = await apsApprovalWrite(() => api('/sites/'+siteId+'/lists/'+t.a.listId+'/items/'+t.a.aprId, 'PATCH',
+        { fields: _rp }, apsIfMatch(cur)), t.a.listId, t.a.aprId, _rp);
+      if (_w !== true) {
+        const note = '다른 사용자가 먼저 처리함' + (_w.status ? ' (현재 «' + _w.status + '»)' : '');
+        fail++; done++;
+        rpStep(done, targets.length, Object.assign({}, base, { ok:false, note }));
+        _log(false, note);
+        continue;
+      }
       ok++; done++;
       rpStep(done, targets.length, Object.assign({}, base, { ok:true, note:'' }));
+      _log(true, '');
     } catch(e) {
       fail++; done++;
       rpStep(done, targets.length, Object.assign({}, base, { ok:false, note:e.message }));
+      _log(false, e && e.message);
     }
   }
+  logAction('APS', '결재자 교체 실행', { 새: emp.name + ' <' + emp.email + '>', 대상: targets.length, 성공: ok, 실패: fail, 처리자: _me }, { audit: true });
   if (btn) { btn.disabled = false; btn.textContent = '결재자 변경'; }
   rpFinish(ok, fail);
 
@@ -4339,14 +4452,14 @@ function adminMatchedAprs(r, kw) {
         const box = (_isApsAdmin && a.aprId)
           ? '<input type="checkbox" style="vertical-align:middle;margin-right:4px;cursor:pointer"'
             + (_apsPicked.has(key) ? ' checked' : '')
-            + ' onchange="toggleAprPick(\'' + key + '\', this.checked)">'
+            + ' onchange="toggleAprPick(' + apsStr(key) + ', this.checked)">'
           : '';
         return box
           + '<span style="color:' + (a.status === '대기' ? '#b45309' : '#64748b') + ';font-weight:700">'
-          + a.order + '차</span> '
-          + '<span style="color:#475569">' + (a.name || '-') + '</span> '
-          + '<span style="color:#94a3b8">' + (a.role || '') + '</span> '
-          + '<span style="color:#94a3b8">(' + a.status + ')</span>';
+          + escHtml(a.order) + '차</span> '
+          + '<span style="color:#475569">' + escHtml(a.name || '-') + '</span> '
+          + '<span style="color:#94a3b8">' + escHtml(a.role || '') + '</span> '
+          + '<span style="color:#94a3b8">(' + escHtml(a.status) + ')</span>';
       }).join('<br>')
     + '</div>';
 }
@@ -4443,7 +4556,7 @@ function renderAdminTable(resetPage) {
     const nxtTd = matched
       ? '<td class="multi">' + nextApproverCell(r) + matched + '</td>'
       : recCell('', nxtTxt, nextApproverCell(r));
-    return '<tr onclick="showDetail(\'' + r.sysKey + '\',' + r.reqId + ')">'
+    return '<tr onclick="showDetail(\'' + r.sysKey + '\',' + apsArg(r.reqId) + ')">'
       + recCell('sys', r.sysLabel)
       + '<td class="no">' + rowNum + '</td>'
       + recCell('ttl', r.title)
@@ -4637,7 +4750,7 @@ async function generateExecReport(lang) {
   const p = n=>String(n).padStart(2,'0');
   const dateStr = `${rd.getUTCFullYear()}-${p(rd.getUTCMonth()+1)}-${p(rd.getUTCDate())} ${p(rd.getUTCHours())}:${p(rd.getUTCMinutes())}`;
 
-  const esc = s => String(s==null?'':s).replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const esc = s => escHtml(s==null?'':s);   // 10-10: < > 만 바꾸던 것을 & · 따옴표까지 — 보고서 창은 APS 와 같은 출처라 같은 함수로
 
   // ── 차트 데이터 (전체 시스템 표시 — 개수 제한 없음, APS 연동 시스템이 아직 20개 미만이라 다 보여줘도 안 복잡함) ──
   const sysChartData = Object.entries(bySys).filter(([,s])=>s.pending>0).sort((a,b)=>b[1].pending-a[1].pending)
