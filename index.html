@@ -2078,6 +2078,7 @@ function renderApvPopup(){
       var s=(i.fields.Status||'').trim();
       return s==='철회(잠김)'||s==='철회';
     }).map(function(i){return String(i.fields.RequestID);}));
+    apsWithdrawnReqIds(d).forEach(function(k){wids.add(k);});   // 신청이 철회(10-10)
     d.apprItems.forEach(function(i){
       var f=i.fields;
       var st=(f.Status||'').trim();
@@ -2156,6 +2157,7 @@ function updateApvBadge(){
       var s=(i.fields.Status||'').trim();
       return s==='철회(잠김)'||s==='철회';
     }).map(function(i){return String(i.fields.RequestID);}));
+    apsWithdrawnReqIds(d).forEach(function(k){wids.add(k);});   // 신청이 철회(10-10)
     d.apprItems.forEach(function(i){
       var f=i.fields;
       if((f.Status||'').trim()!=='대기')return;
@@ -2206,6 +2208,7 @@ function renderAll(){
         .filter(i=>{ const st=(i.fields.Status||'').trim(); return st==='철회(잠김)'||st==='철회'; })
         .map(i=>String(i.fields.RequestID))
     );
+    apsWithdrawnReqIds(d).forEach(k=>_withdrawnIds.add(k));   // 신청이 철회(자동 철회 · 결재행 잠금 실패 포함) — 10-10
     const _myAll = d.apprItems.filter(i=>{
       const st=(i.fields.Status||'').trim();
       if(st==='철회(잠김)')return false;
@@ -2389,6 +2392,82 @@ async function apsApprovalWrite(doPatch, listId, itemId, patch){
     console.warn('[결재] 412 — 다른 사용자가 먼저 변경:', listId, itemId, f.Status);
     return { status: String(f.Status || '').trim(), by: String(f.ApproverName || f.ApproverEmail || '').trim() };
   }
+}
+/* 신청이 철회됐는가(10-10) — Status 가 「철회」 로 시작(철회 · 철회(잠김) …).
+   연동 시스템의 상신 중단 자동 철회(SCC · BP · MC 등)는 신청을 「철회」, 만든 결재행을 「철회(잠김)」 으로 닫는데,
+   결재행 잠금이 실패하면 「대기」 결재행이 남는다. 예전에는 결재행으로만 철회를 판정해 그런 건이 결재함에 대기로 보였고
+   APS 에서 승인하면 신청이 「승인완료」 로 덮어써졌다. 신청 상태를 함께 본다. */
+function apsReqWithdrawn(rf){ return String((rf && rf.Status && rf.Status.Value) ? rf.Status.Value : ((rf && rf.Status) || '')).trim().indexOf('철회') === 0; }
+function apsWithdrawnReqIds(d){   // 결재함 · 팝업 · 배지 공통 — 신청 목록(reqMap)에서 철회된 신청 번호
+  const s = new Set(); const m = (d && d.reqMap) || {};
+  Object.keys(m).forEach(k => { if (apsReqWithdrawn(m[k])) s.add(String(k)); });
+  return s;
+}
+/* ── CTR PR 기준 환율 경고(10-10) — CTR_PR 상세(exRateCheck · exRateWarnHtml · 결재선 누락 단계)와 같은 규칙 · 같은 문구 ──
+   CTR PR 은 상신 때 기준 환율(acc_voucher_exchange.xlsx)을 Remarks 끝에 「RefRate:통화=값」(값이 없으면 「=NONE」)으로 남긴다.
+   APS 는 그 꼬리만 읽는다 — 꼬리가 없는 지난 신청은 CTR 이 환율 파일(제출일 기준)로 비교하지만, APS 는 그 파일을 읽지 않아
+   (새 Graph 요청 없음) 표시하지 않는다. 결재 규칙 · 역할 이름은 CTR_PR 의 APPROVAL_RULES.PR · ROLE_LABELS 와 같게 둔다. */
+const APS_CTR_REFRATE_TAG = 'RefRate:';
+const APS_CTR_RULES = { TL:'필수', DH:'필수', CEO:'-', RD:'>= 20,000,000', BC:'필수', CM:'필수', CFO:'>= 20,000,000' };
+const APS_CTR_ROLE_LABELS = { TL:'Team Leader', DH:'Department Head', CEO:'CEO', RD:'RD', BC:'Budget Controller', CM:'Controlling Manager', CFO:'CFO' };
+function apsCtrNeeded(rule, amt){
+  if(!rule||rule==='-') return false;
+  if(rule==='필수'||rule==='필요시') return true;
+  const c=rule.replace(/,/g,'').replace(/\s/g,'');
+  const m=c.match(/^([<>]=?)([\d]+)$/);
+  if(!m) return true;
+  const op=m[1], th=parseInt(m[2]);
+  if(op==='<') return amt<th; if(op==='<=') return amt<=th;
+  if(op==='>') return amt>th; if(op==='>=') return amt>=th;
+  return true;
+}
+function _apsCtrRound(n, cur){ const f=Math.pow(10, String(cur||'KRW').toUpperCase()==='KRW'?0:2); const x=Number(n)||0; return Math.round((x+(x>=0?1:-1)*Number.EPSILON)*f)/f; }
+function _apsCtrGoodsTotal(lines, cur){ return _apsCtrRound((lines||[]).reduce((s,l)=>s+_apsCtrRound((parseFloat(l && l.amount)||0)*(parseFloat(l && l.qty)||1), cur),0), cur); }
+function _apsCtrRateDiffers(a, b){ return Math.abs((Number(a)||0)-(Number(b)||0)) > 0.00005; }
+function _apsCtrFmtRate(n){ return (Number(n)||0).toLocaleString('en-US',{maximumFractionDigits:4}); }
+function apsCtrRefRate(remarks){
+  const t = String(remarks||'').split(';').map(s=>s.trim()).find(s=>s.indexOf(APS_CTR_REFRATE_TAG)===0);
+  if(!t) return null;
+  const m = t.slice(APS_CTR_REFRATE_TAG.length).match(/^([A-Za-z]{3})=(.+)$/);
+  if(!m) return null;
+  const r = parseFloat(m[2]);
+  return { cur:m[1].toUpperCase(), rate: r>0 ? r : 0 };
+}
+// null(문제 없음 · 판단 불가) | {kind:'none', saved} | {kind:'diff', ref, saved, refKRW, savedKRW}
+function apsCtrRateCheck(v, goods){
+  if(!v) return null;
+  const cur = String(v.Currency||'KRW').toUpperCase();
+  if(cur==='KRW') return null;
+  const saved = parseFloat(v.ExchangeRate)||0;
+  const tok = apsCtrRefRate(v.Remarks);
+  if(!tok || tok.cur!==cur) return null;   // 지난 신청(꼬리 없음) — 위 주석
+  if(!tok.rate) return { kind:'none', saved };
+  const ref = tok.rate;
+  if(!_apsCtrRateDiffers(saved, ref)) return null;
+  const orig = _apsCtrGoodsTotal(Array.isArray(goods)?goods:[], cur);
+  return { kind:'diff', ref, saved, refKRW: Math.round(orig*ref), savedKRW: Math.round(orig*saved) };
+}
+// 상세 한 줄 — 정상(같은 환율 · KRW · 꼬리 없음)이면 빈 문자열이라 화면이 바뀌지 않는다
+function apsCtrRateWarnRow(v, goods, apprList){
+  const c = apsCtrRateCheck(v, goods); if(!c) return '';
+  let lbl, body;
+  if(c.kind==='none'){
+    lbl = '기준 환율';
+    body = `<span style="color:#a4262c;font-weight:600">⚠ 기준 환율 없음</span><br><span style="font-size:.72rem;color:#605e5c">제출 때 환율 파일에서 ${escHtml(v.Currency)} 기준 환율을 찾지 못해(값 없음 · 읽기 실패) 신청자가 입력한 환율(${escHtml(_apsCtrFmtRate(c.saved))})로 결재선을 정했습니다. 환율을 확인해 주세요.</span>`;
+  } else {
+    const pct = (c.saved - c.ref) / c.ref * 100;
+    lbl = '기준 환율 대비 차이';
+    body = `<span style="color:#a4262c;font-weight:600">⚠ 입력 환율 ${escHtml(_apsCtrFmtRate(c.saved))} · 기준 환율 ${escHtml(_apsCtrFmtRate(c.ref))} (${pct>0?'+':''}${pct.toFixed(2)}%)</span><br><span style="font-size:.72rem;color:#605e5c">기준 환율 환산 ≈ ${c.refKRW.toLocaleString()} KRW · 입력 환율 환산 ≈ ${c.savedKRW.toLocaleString()} KRW</span>`;
+    // 기준 환율 금액이면 필요한 결재 단계가 결재선에 없는지 — CTR 과 같은 판정(CEO 제외, 두 환산 중 큰 금액)
+    const items = apprList || [];
+    if(items.length){
+      const _base = r => { const s = String(r==null?'':r); const m = s.match(/^([\s\S]*?)\s*\u00B7\s*대리\(/); return (m ? m[1] : s).trim(); };
+      const _have = new Set(items.map(a=>_base((a.fields||a).ApproverRole)));
+      const _miss = Object.keys(APS_CTR_RULES).filter(r=>r!=='CEO' && apsCtrNeeded(APS_CTR_RULES[r], Math.max(c.refKRW, c.savedKRW)) && !_have.has(r));
+      if(_miss.length) body += '<br><span style="font-size:.72rem;color:#a4262c;font-weight:600">기준 환율 금액이면 필요한 결재 단계가 결재선에 없습니다: '+escHtml(_miss.map(r=>APS_CTR_ROLE_LABELS[r]||r).join(', '))+'</span>';
+    }
+  }
+  return `<div class="modal-row"><div class="modal-label">${lbl}</div><div class="modal-val">${body}</div></div>`;
 }
 function apsConflictMsg(w){
   return (w && w.status && w.status !== '대기')
@@ -2738,6 +2817,7 @@ async function showDetail(sysKey,reqId){
         +row('Department / Cost Center',(f.Department||'-')+' / '+(f.CostCenter||'-'))
         +(f.PhoneExt?row('내선',f.PhoneExt):'')
         +row('Currency / Exchange Rate', cur==='KRW' ? 'KRW' : cur+' / '+Number(f.ExchangeRate||0).toLocaleString())
+        +apsCtrRateWarnRow(f, goods, apprList)   // 기준 환율 대비 차이 · 기준 환율 없음 · 빠진 결재 단계(10-10, CTR PR 과 같은 규칙)
         +rowRaw('Total (KRW)', `<b>${n0(f.TotalKRW||f.TotalAmount)}원</b>${Number(f.VATAmount)>0?` <span style="color:#605e5c;font-size:.76rem">(VAT 포함 · VAT ${n0(cur==='KRW'?f.VATAmount:f.VATAmount*rate)}원)</span>`:''}`);
 
       // Description of Goods
@@ -3042,6 +3122,15 @@ async function doApproval(){
         loading(false); alert(_why+'\n화면을 새로고침한 뒤 다시 확인해 주세요.');
         await loadAll(true); return;
       }
+    }
+    /* 신청 상태 다시 읽기(10-10) — 연동 시스템의 상신 중단 자동 철회는 결재행 잠금이 실패하면 「대기」 결재행을 남긴다.
+       신청이 「철회」 면 아무것도 쓰지 않고 멈춘다(예전에는 승인하면 신청이 「승인완료」 로 덮어써졌다). 읽기 실패는 아래 catch 로 — 쓰지 않는다. */
+    const _reqNow=await api('/sites/'+siteId+'/lists/'+sys.req+'/items/'+reqId+'?$expand=fields($select=Status)');
+    if(apsReqWithdrawn(_reqNow && _reqNow.fields)){
+      loading(false);
+      alert('철회된 신청입니다(신청 상태: '+String(_reqNow.fields.Status||'').trim()+').\n결재를 처리하지 않았습니다. 화면을 새로 불러옵니다.');
+      _adminDataTime = 0; _myApprovedDataTime = 0;
+      await loadAll(true); return;
     }
     const _patch={Status:action==='승인'?'승인':action,ApprovalDate:new Date().toISOString(),Comment:comment};
     // 동시 처리 방지(10-10) — 위에서 읽은 버전으로만 쓴다(apsApprovalWrite). 412 면 「다른 사용자가 먼저 처리」.
@@ -3363,6 +3452,7 @@ async function loadMyApprovedPage(force=false) {
         if (aprStatuses.some(s => s === '반려')) st = '반려';
         else if (aprStatuses.length && aprStatuses.every(s => s === '승인')) st = '승인완료';
         else if (aprStatuses.some(s => s === '대기')) st = '진행중';
+        if (apsReqWithdrawn(rf)) st = '철회';   // 신청이 철회(자동 철회 · 결재행 일부 잠금 실패 포함)면 결재행과 상관없이 철회(10-10)
         ticketStatusMap[rid] = st;
       });
 
@@ -3921,8 +4011,9 @@ async function loadMyRequestsPage(force=false) {
           if (aprStatuses.some(s => s === '반려')) reqStatus = '반려';
           else if (aprStatuses.length && aprStatuses.every(s => s === '승인')) reqStatus = '승인완료';
           else if (aprStatuses.some(s => s === '대기')) reqStatus = '진행중';
+          const _wd = apsReqWithdrawn(rf); if (_wd) reqStatus = '철회';   // 신청이 철회면 그대로 철회 · 다음 결재자 없음(10-10)
           const doneAprs = aprs.filter(a => {const s=(a.Status&&a.Status.Value?a.Status.Value:a.Status||'').trim();return s==='승인'||s==='반려';}).sort((a,b)=>(a.ApprovalOrder||0)-(b.ApprovalOrder||0));
-          const pendingAprs = aprs.filter(a => (a.Status&&a.Status.Value?a.Status.Value:a.Status||'').trim()==='대기').sort((a,b)=>(a.ApprovalOrder||0)-(b.ApprovalOrder||0));
+          const pendingAprs = _wd ? [] : aprs.filter(a => (a.Status&&a.Status.Value?a.Status.Value:a.Status||'').trim()==='대기').sort((a,b)=>(a.ApprovalOrder||0)-(b.ApprovalOrder||0));
           _rows.push({
             sysKey: sys.key, sysLabel: sys.name,
             reqId: r.id,
@@ -4150,8 +4241,10 @@ async function loadAdminPage(force=false) {
         if (aprStatuses.some(s => s === '반려')) reqStatus = '반려';
         else if (aprStatuses.length && aprStatuses.every(s => s === '승인')) reqStatus = '승인완료';
         else if (aprStatuses.some(s => s === '대기')) reqStatus = '진행중';
+        // 신청이 철회면 그대로 철회 — 다음 결재자 · 미처리 결재행(결재자 검색 · 교체 대상)에서 빼고, 지연/정체 · 보고서 진행중 집계에서도 빠진다(10-10)
+        const _wd = apsReqWithdrawn(rf); if (_wd) reqStatus = '철회';
         const doneAprs = aprs.filter(a => {const s=(a.Status&&a.Status.Value?a.Status.Value:a.Status||'').trim();return s==='승인'||s==='반려';}).sort((a,b)=>(a.ApprovalOrder||0)-(b.ApprovalOrder||0));
-        const pendingAprs = aprs.filter(a => (a.Status&&a.Status.Value?a.Status.Value:a.Status||'').trim()==='대기').sort((a,b)=>(a.ApprovalOrder||0)-(b.ApprovalOrder||0));
+        const pendingAprs = _wd ? [] : aprs.filter(a => (a.Status&&a.Status.Value?a.Status.Value:a.Status||'').trim()==='대기').sort((a,b)=>(a.ApprovalOrder||0)-(b.ApprovalOrder||0));
         _rows.push({
           sysKey: sys.key, sysLabel: sys.label || sys.key,
           reqId: r.id,
@@ -4167,7 +4260,7 @@ async function loadAdminPage(force=false) {
           // 아직 처리되지 않은 결재행 전부(대기 + 대기(잠김)).
           // 담당자가 바뀌었을 때 이미 만들어진 결재선에 옛 사람이 남는데,
           // 「다음 결재자」만 보면 3차·4차에 걸린 건은 찾을 수 없어 전부 담아 둔다.
-          openAprs: aprs
+          openAprs: (_wd ? [] : aprs)
             .filter(a => {
               const st = (a.Status && a.Status.Value ? a.Status.Value : a.Status || '').trim();
               return st === '대기' || st === '대기(잠김)';
@@ -4906,9 +4999,14 @@ async function generateExecReport(lang) {
 </body></html>`;
 
   const w = window.open('', '_blank');
-  if (!w) { alert(lang==='en' ? 'Popup blocked. Please allow popups for this site.' : '팝업이 차단되어 보고서를 열 수 없습니다. 팝업 차단을 해제해주세요.'); return; }
+  /* 출력 기록(10-10) — 보고서 창 열기 · 인쇄(「인쇄 / PDF로 저장」 단추와 Ctrl+P 모두 afterprint)를 Excel 내보내기와 같은 logAction 으로.
+     비차단(logAction 은 fire-and-forget) · 실패해도 보고서 · 인쇄는 그대로. 보고서 HTML 은 바꾸지 않는다. */
+  const _repLog = { 화면: '전체 결재관리', 보고서: '경영진 보고서', 언어: lang==='en' ? 'English' : '한국어', 건수: _adminData.length, 시스템수: Object.keys(bySys).length };
+  if (!w) { try { logAction('APS', '경영진 보고서 출력 실패', Object.assign({}, _repLog, { 사유: '팝업 차단' })); } catch(e) {} alert(lang==='en' ? 'Popup blocked. Please allow popups for this site.' : '팝업이 차단되어 보고서를 열 수 없습니다. 팝업 차단을 해제해주세요.'); return; }
   w.document.write(html);
   w.document.close();
+  try { logAction('APS', '경영진 보고서 출력', Object.assign({}, _repLog, { 결과: '보고서 창 열기' })); } catch(e) { console.warn('[Log] 기록 호출 실패(무시됨):', e && e.message); }
+  try { w.addEventListener('afterprint', () => { try { logAction('APS', '경영진 보고서 인쇄', Object.assign({}, _repLog, { 결과: '인쇄 창(인쇄 · PDF로 저장) 닫힘' })); } catch(e) { console.warn('[Log] 기록 호출 실패(무시됨):', e && e.message); } }); } catch(e) {}
 }
 
 function exportAdminExcel() {
