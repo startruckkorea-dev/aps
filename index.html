@@ -3106,7 +3106,7 @@ async function doApproval(){
   // ACC Voucher는 결재이력이 여러 세대(리스트)에 나뉘어 있을 수 있어, 이 apprId가 실제로 속한 리스트를 _currentApprList에서 찾아 사용
   const aprListId = (sysKey==='ACC' && _currentApprList.find(i=>Number(i.id)===Number(apprId))?._accVolId) || sys.apr;
   loading(true,action==='승인'?'승인 처리 중...':'반려 처리 중...');
-  let _apsAudit = null, _apsWrote = false;   // 감사 기록(10-10) — 결재행을 쓴 뒤 오류가 나도 남긴다
+  let _apsAudit = null, _apsWrote = false, _apsLogged = false;   // 감사 기록(10-10) — 결재행을 쓴 뒤 오류가 나도 남긴다 · _apsLogged: 이미 남겼는지(10-15)
   try{
     // 이중 결재 방지: PATCH 전 현재 Status 확인
     const _cur=await api('/sites/'+siteId+'/lists/'+aprListId+'/items/'+apprId+'?$expand=fields');
@@ -3148,6 +3148,9 @@ async function doApproval(){
       차수: _cur.fields.ApprovalOrder == null ? '' : _cur.fields.ApprovalOrder, 결재자: _origEmail, 처리자: (user.email||user.username||''),
       대리: _dgi ? '예 — ' + (_cur.fields.ApproverName||_dgi.name||_origEmail) + ' 님 대신' : '', 의견: comment,
       역할: String(_cur.fields.ApproverRole||''), 목록: aprListId, 결재행: apprId }, { audit: true });
+    /* 한 번 남겼으면 표시(10-15) — 결과를 남긴 뒤 closeDetail · loadAll(새로고침)에서 오류가 나면 catch 가 같은 결재를
+       「결재행은 기록됨 · 이후 단계 오류」 로 한 번 더 남기던 것. 결재행을 쓴 뒤 결과를 남기기 전에 난 오류만 catch 가 남긴다. */
+    { const _a0 = _apsAudit; _apsAudit = (r, w) => { _apsLogged = true; return _a0(r, w); }; }
     const _conflict = async (w) => {
       loading(false);
       _apsAudit('처리 안 함 — 다른 사용자가 먼저 변경(현재 상태: ' + (w.status || '?') + (w.by ? ' · ' + w.by : '') + ')', '결재 처리 충돌');
@@ -3220,7 +3223,7 @@ async function doApproval(){
     _adminDataTime = 0; _myApprovedDataTime = 0; // 다른 탭 캐시도 무효화 (전환 시 최신 상태 보장)
     await loadAll(true);
   }catch(e){
-    if(_apsWrote && _apsAudit) _apsAudit('결재행은 기록됨 · 이후 단계 오류 — ' + (e && e.message));   // 결재행을 쓴 뒤의 오류도 감사 기록에 남긴다(10-10)
+    if(_apsWrote && _apsAudit && !_apsLogged) _apsAudit('결재행은 기록됨 · 이후 단계 오류 — ' + (e && e.message));   // 결재행을 쓴 뒤의 오류도 감사 기록에 남긴다(10-10)
     alert('오류: '+e.message);
   }
   finally{loading(false);}
@@ -3663,7 +3666,9 @@ function exportMyApprovedExcel() {
     (!fStatus || r.myStatus === fStatus) &&
     (!fSearch || r.title.toLowerCase().includes(fSearch) || (r.purpose||'').toLowerCase().includes(fSearch) || r.requester.toLowerCase().includes(fSearch))
   );
-  logAction('APS', 'Excel 내보내기', { 화면: 'My Approvals Record', 대상: _myApvTarget ? _myApvTarget.email : '본인', 건수: rows.length, 필터: { 시스템: fSys||'전체', 결과: fStatus||'전체', 검색어: fSearch||'' } });
+  // 기록은 파일을 만든 뒤에 남긴다(10-15) — 예전에는 만들기 전에 남겨 실패해도 「Excel 내보내기」 가 남았다. 실패는 「Excel 내보내기 실패」.
+  const _xlLog = { 화면: 'My Approvals Record', 대상: _myApvTarget ? _myApvTarget.email : '본인', 건수: rows.length, 필터: { 시스템: fSys||'전체', 결과: fStatus||'전체', 검색어: fSearch||'' } };
+  try {
   const _lbl = _myApvTarget ? '' : '내 ';
   // 번호 = 신청 순서(가장 오래된 건이 1). 화면 정렬과 무관하게 신청일 오름차순으로 매긴다(09-10).
   const _xlRank = (() => { const m = new Map(); rows.map((r,i) => i).sort((a,b) => new Date(rows[a].requestDate||0) - new Date(rows[b].requestDate||0)).forEach((ri,k) => m.set(ri,k+1)); return i => m.get(i); })();
@@ -3680,6 +3685,8 @@ function exportMyApprovedExcel() {
   XLSX.utils.book_append_sheet(wb, ws, _myApvTarget ? 'Approvals Record' : 'My Approvals Record');
   const _fnWho = _myApvTarget ? 'Approvals_Record_' + _myApvTarget.email.split('@')[0].replace(/[^\w.-]/g,'_') + '_' : 'My_Approvals_Record_';
   XLSX.writeFile(wb, _fnWho+new Date(new Date().getTime()+9*3600*1000).toISOString().slice(0,10)+'.xlsx');
+  } catch (e) { logAction('APS', 'Excel 내보내기 실패', Object.assign({}, _xlLog, { 오류: String((e && e.message) || e).slice(0, 200) })); throw e; }
+  logAction('APS', 'Excel 내보내기', _xlLog);
 }
 
 // ── 관리자: 결재자 이력 조회 ──────────────────────────────────────────
@@ -3857,7 +3864,18 @@ async function apsLoadSysLogs() {
 }
 // 한 줄 요약 — 시스템마다 detail 모양이 달라 「키: 값」 으로 편다(빈 값은 빼고, 안쪽 객체는 괄호로, 참/거짓은 예/아니오). 오류가 있으면 그것부터.
 // ACC Others BP Master 기록은 그쪽 화면과 같은 문장으로(검색어 → 결과 수, 수정은 전 → 후).
+/* MKQR(mkLog) · Training365(t365Log) 기록은 무엇을 바꿨는지를 detail 이 아니라 최상위 target(대상)에 둔다(category · verb · userName 도).
+   요약 · 원본 펼침 · Excel 어디에도 안 보여 대상이 빠졌다(10-15) — 요약 앞에 「대상: …」, 원본 · Excel 에 그대로. 다른 시스템 기록에는 없는 필드라 변화 없음. */
+const APS_LOG_TOP = ['target', 'category', 'verb', 'userName'];
+function apsSysLogTop(e) { const o = {}; APS_LOG_TOP.forEach(k => { if (e && e[k] != null && e[k] !== '') o[k] = e[k]; }); return o; }
+function apsSysLogTarget(e) { const v = e && e.target; return v == null || v === '' ? '' : (typeof v === 'object' ? JSON.stringify(v) : String(v)); }
 function apsSysLogSummary(e) {
+  const s = apsSysLogSummaryBase(e), tg = apsSysLogTarget(e);
+  if (!tg) return s;
+  const r = '대상: ' + tg + (s ? ' · ' + s : '');
+  return r.length > 240 ? r.slice(0, 240) + '…' : r;
+}
+function apsSysLogSummaryBase(e) {
   const d = e.detail; if (!d || typeof d !== 'object') return d == null ? '' : String(d);
   if (d.error) return '오류: ' + d.error;
   if (/BP-Master/.test(e.label || e.system || '')) { const t = apsBpLogSummary(e.action || '', d); if (t != null) return t; }
@@ -3924,17 +3942,19 @@ function apsToggleSysLog(tr, idx) {
   const e = _sysLog.view[idx]; if (!e) return;
   const d = document.createElement('tr'); d.dataset.detail = '1';
   d.innerHTML = '<td colspan="5" style="background:#f8fafc;padding:8px 12px 10px 28px;border-bottom:1px solid #f1f5f9"><pre style="margin:0;font-size:.7rem;line-height:1.5;white-space:pre-wrap;word-break:break-all;color:#334155;font-family:inherit">' +
-    escHtml(JSON.stringify({ timestampKST: e.timestampKST || e.ts, user: e.user, system: e.system, action: e.action, detail: e.detail || {}, file: e.label + '/' + e.day + '/' + e.name }, null, 2)) + '</pre></td>';
+    escHtml(JSON.stringify(Object.assign({ timestampKST: e.timestampKST || e.ts, user: e.user, system: e.system, action: e.action }, apsSysLogTop(e), { detail: e.detail || {}, file: e.label + '/' + e.day + '/' + e.name }), null, 2)) + '</pre></td>';
   tr.after(d);
 }
 function apsExportSysLogs() {
   if (!_sysLog.items.length) { alert('먼저 이력을 불러오세요.'); return; }
-  const rows = [['일시', '시스템', '사용자', '행위', '내용', '상세(JSON)', '파일']];
-  _sysLog.view.forEach(e => rows.push([e.ts, e.label, e.user || '', e.action || '', apsSysLogSummary(e), JSON.stringify(e.detail || {}), e.label + '/' + e.day + '/' + e.name]));
+  const rows = [['일시', '시스템', '사용자', '행위', '대상', '내용', '상세(JSON)', '파일']];   // 대상 = MKQR · Training365 의 target(10-15) — 내용 칸은 대상 없이(겹치지 않게)
+  _sysLog.view.forEach(e => rows.push([e.ts, e.label, e.user || '', e.action || '', apsSysLogTarget(e), apsSysLogSummaryBase(e), JSON.stringify(e.detail || {}), e.label + '/' + e.day + '/' + e.name]));
   const wb = XLSX.utils.book_new(), ws = XLSX.utils.aoa_to_sheet(rows);
-  ws['!cols'] = [{ wch: 19 }, { wch: 28 }, { wch: 30 }, { wch: 18 }, { wch: 60 }, { wch: 70 }, { wch: 50 }];
+  ws['!cols'] = [{ wch: 19 }, { wch: 28 }, { wch: 30 }, { wch: 18 }, { wch: 28 }, { wch: 60 }, { wch: 70 }, { wch: 50 }];
   XLSX.utils.book_append_sheet(wb, ws, '시스템 이력');
+  try {   // 파일 생성 실패도 남긴다(10-15)
   XLSX.writeFile(wb, 'APS_시스템이력_' + _sysLog.from.replace(/-/g, '') + '-' + _sysLog.to.replace(/-/g, '') + (_sysLog.system ? '_' + _sysLog.system.replace(/[\\/:*?"<>|]/g, '_') : '') + '.xlsx');
+  } catch (e) { logAction('APS', '시스템 이력 내보내기 실패', { 시스템: _sysLog.system || '전체', 기간: _sysLog.range, 건수: rows.length - 1, 오류: String((e && e.message) || e).slice(0, 200) }); throw e; }
   logAction('APS', '시스템 이력 내보내기', { 시스템: _sysLog.system || '전체', 기간: _sysLog.range, 건수: rows.length - 1 });
 }
 
@@ -4138,7 +4158,9 @@ function exportMyRequestsExcel() {
     (!fStatus || r.reqStatus === fStatus) &&
     (!fSearch || r.title.toLowerCase().includes(fSearch) || (r.purpose||'').toLowerCase().includes(fSearch))
   );
-  logAction('APS', 'Excel 내보내기', { 화면: 'My Requests Record', 건수: rows.length, 필터: { 시스템: fSys||'전체', 결과: fStatus||'전체', 검색어: fSearch||'' } });
+  // 기록은 파일을 만든 뒤에 남긴다(10-15) — 예전에는 만들기 전에 남겨 실패해도 「Excel 내보내기」 가 남았다. 실패는 「Excel 내보내기 실패」.
+  const _xlLog = { 화면: 'My Requests Record', 건수: rows.length, 필터: { 시스템: fSys||'전체', 결과: fStatus||'전체', 검색어: fSearch||'' } };
+  try {
   // 번호 = 신청 순서(가장 오래된 건이 1). 화면 정렬과 무관하게 신청일 오름차순으로 매긴다(09-10).
   const _xlRank = (() => { const m = new Map(); rows.map((r,i) => i).sort((a,b) => new Date(rows[a].requestDate||0) - new Date(rows[b].requestDate||0)).forEach((ri,k) => m.set(ri,k+1)); return i => m.get(i); })();
   const ws = XLSX.utils.json_to_sheet(rows.map((r,i) => ({
@@ -4152,6 +4174,8 @@ function exportMyRequestsExcel() {
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'My Requests Record');
   XLSX.writeFile(wb, 'My_Requests_Record_'+new Date(new Date().getTime()+9*3600*1000).toISOString().slice(0,10)+'.xlsx');
+  } catch (e) { logAction('APS', 'Excel 내보내기 실패', Object.assign({}, _xlLog, { 오류: String((e && e.message) || e).slice(0, 200) })); throw e; }
+  logAction('APS', 'Excel 내보내기', _xlLog);
 }
 
 // 처리된 결재 중 실제로 가장 늦게 승인·반려된 날짜를 고른다.
@@ -5046,7 +5070,9 @@ function exportAdminExcel() {
              || (a.email||'').includes(fApprover)
              || (a.role||'').toLowerCase().includes(fApprover)));
   });
-  logAction('APS', 'Excel 내보내기', { 화면: '전체 결재관리', 건수: rows.length, 필터: { 시스템: fSys||'전체', 상태: fStatus||'전체', 검색어: fSearch||'', 결재자검색: fApprover||'' } });
+  // 기록은 파일을 만든 뒤에 남긴다(10-15) — 예전에는 만들기 전에 남겨 실패해도 「Excel 내보내기」 가 남았다. 실패는 「Excel 내보내기 실패」.
+  const _xlLog = { 화면: '전체 결재관리', 건수: rows.length, 필터: { 시스템: fSys||'전체', 상태: fStatus||'전체', 검색어: fSearch||'', 결재자검색: fApprover||'' } };
+  try {
   // 번호 = 신청 순서(가장 오래된 건이 1). 다른 화면·시스템의 Excel 과 같은 규칙(09-10). 신청번호(목록 ID)는 그대로 둔다.
   const _xlRank = (() => { const m = new Map(); rows.map((r,i) => i).sort((a,b) => new Date(rows[a].requestDate||0) - new Date(rows[b].requestDate||0)).forEach((ri,k) => m.set(ri,k+1)); return i => m.get(i); })();
   const ws = XLSX.utils.json_to_sheet(rows.map((r, _i) => {
@@ -5067,6 +5093,8 @@ function exportAdminExcel() {
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'APS 전체결재');
   XLSX.writeFile(wb, 'APS_전체결재_'+new Date(new Date().getTime()+9*3600*1000).toISOString().slice(0,10)+'.xlsx');
+  } catch (e) { logAction('APS', 'Excel 내보내기 실패', Object.assign({}, _xlLog, { 오류: String((e && e.message) || e).slice(0, 200) })); throw e; }
+  logAction('APS', 'Excel 내보내기', _xlLog);
 }
 </script>
 
