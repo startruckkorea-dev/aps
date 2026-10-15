@@ -2870,19 +2870,19 @@ async function showDetail(sysKey,reqId){
       const _d=v=>v?String(v).slice(0,10):'-';
       const _cur=String(f.Currency||'KRW').toUpperCase();
       const _num=(v,dec)=>{ const n=Number(v); if(v===''||v==null||!isFinite(n)) return '-'; return n.toLocaleString('en-US',{minimumFractionDigits:(dec&&!Number.isInteger(n))?2:0,maximumFractionDigits:dec?2:6}); };
-      const _amt=(v,c)=>{ const n=Number(v); if(v===''||v==null||!isFinite(n)) return '-'; return c==='KRW'&&Number.isInteger(n)?n.toLocaleString('en-US'):n.toLocaleString('en-US',{minimumFractionDigits:Number.isInteger(n)?0:2,maximumFractionDigits:2}); };
+      const _amt=(v,c)=>{ const n=Number(v); if(v===''||v==null||!isFinite(n)) return '-'; return c==='KRW'?Math.round(n).toLocaleString('en-US'):n.toLocaleString('en-US',{minimumFractionDigits:Number.isInteger(n)?0:2,maximumFractionDigits:2}); };
       const _manual=f.ExchangeRateManual===true||/^(true|yes|예|1)$/i.test(String(f.ExchangeRateManual==null?'':f.ExchangeRateManual).trim());
       const _rate=Number(f.ExchangeRate);
       info+=row('신청자 (Name · Dept)',[f.RequesterName,f.RequesterDept].filter(Boolean).join(' · ')||'-')
         +sec('Single Source Letter of Justification')
-        +rowFull('Req-number of the respective requisition (해당 구매요청(PR) 번호)',f.ReqNumber)
-        +rowFull('Description of product or service (specification, quantity,) (제품 · 서비스 내용(사양 · 수량))',f.Description)
+        +rowFull('Req-number of the respective requisition (구매요청 번호)',f.ReqNumber)
+        +rowFull('Description of product or service (specification, quantity,) (품목 · 서비스 내용)',f.Description)
         +rowFull('Recommended Supplier (추천 공급업체)',f.RecommendedSupplier)
-        +rowFull('Reason for single source recommendation (단일 공급 추천 사유)',f.Reason)
-        +rowFull('Date the requirement was first known (요구 사항을 처음 안 날)',_d(f.DateFirstKnown))
+        +rowFull('Reason for single source recommendation (단일 공급 사유)',f.Reason)
+        +rowFull('Date the requirement was first known (필요를 알게 된 날)',_d(f.DateFirstKnown))
         +rowFull('Lead time allowed purchasing for order placement (발주까지 허용 기간)',f.LeadTime)
-        +rowFull('Eventual total volume of buy anticipated (총 예상 구매 금액)',_amt(f.TotalVolume,_cur)+' '+_cur)
-        +(_cur!=='KRW'?rowFull('KRW 환산 (Exchange rate '+(isFinite(_rate)&&_rate?_rate.toLocaleString('en-US',{maximumFractionDigits:6}):'-')+' · '+(_manual?'직접 입력':String(f.ExchangeRateDate||'').slice(0,10).replace(/-/g,'.')+' ACC Voucher')+')',_num(f.KRWAmount,true)+' KRW'):'')
+        +rowFull('Eventual total volume of buy anticipated (예상 총 구매 금액)',_amt(f.TotalVolume,_cur)+' '+_cur)
+        +(_cur!=='KRW'?rowFull('KRW 환산 (Exchange rate '+(isFinite(_rate)&&_rate?_rate.toLocaleString('en-US',{maximumFractionDigits:6}):'-')+' · '+(_manual?'직접 입력':String(f.ExchangeRateDate||'').slice(0,10).replace(/-/g,'.')+' ACC Voucher')+')',(isFinite(Number(f.KRWAmount))&&f.KRWAmount!==''&&f.KRWAmount!=null?Math.round(Number(f.KRWAmount)).toLocaleString('en-US'):'-')+' KRW'):'')
         +row('결재 구간 (Approval Limit)',f.ApprovalTier);
       info+=sec('첨부파일')+parseFiles(f.AttachedFiles)
         +`<div style="font-size:12px;color:#1e40af;background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;padding:8px 10px;margin:8px 0 4px">📄 공식 양식 PDF(첨부 병합)는 STK Procurement 에서 볼 수 있습니다. <a href="${_sysUrl}" target="_blank" rel="noopener" style="color:#1d4ed8;font-weight:700;text-decoration:underline">→ STK Procurement 에서 열기</a></div>`;
