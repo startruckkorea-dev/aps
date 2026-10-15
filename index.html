@@ -2358,6 +2358,54 @@ function apsPlogHtml(f, sec, toText) {   // toText: 상세 화면의 SharePoint 
             +'</div>'
           : '<div style="font-size:12px;color:#a19f9d;padding:6px 0">등록된 의견이 없습니다.</div>');
 }
+/* ══ ACC Accounting 결재라인 지정 안내(10-15) — ACC Voucher accLineSkipInfo 와 같은 판정 ══
+   APS 상세는 예전 고정 문구(「Accounting staff · Accounting Head · CFO」 제외)를 그대로 보여 ACC 화면과 달랐다(사용자 제보).
+   규칙표는 ACC Voucher APPROVAL_RULES 의 TL · MC · CFO 열과 ACC_RULE_HISTORY 를 그대로 옮긴 것 — ACC 쪽을 바꾸면 여기도 같이 바꾼다.
+   금액 = 전표의 TotalDR_KRW(ACC 상세 · 공식 양식의 KRW DR 합계와 같은 값), 규칙 = 상신 시점. 유형을 모르면 예전 문구. */
+const APS_ACC_RULES = {
+  AP:{TL:'필수',MC:'>= 1,000,000',CFO:'>= 1,000,000'}, AP_IMS:{TL:'필수',MC:'>= 1,000,000',CFO:'>= 1,000,000'},
+  AP_CR:{TL:'필수',MC:'필수',CFO:'필수'}, AR:{TL:'필수',MC:'필수',CFO:'>= 20,000,000'},
+  GL:{TL:'필수',MC:'>= 1,000,000',CFO:'>= 1,000,000'}, FA:{TL:'필수',MC:'필수',CFO:'필수'},
+  ADV:{TL:'필수',MC:'>= 1,000,000',CFO:'>= 1,000,000'}, SET:{TL:'필수',MC:'필수',CFO:'필수'},
+};
+const APS_ACC_RULE_HISTORY = [
+  { before: '2026-08-21T06:40:08Z', types: ['AP', 'AP_IMS', 'ADV'], set: { CFO: '필수' } },
+  { before: '2026-08-27T01:48:37Z', types: ['GL'], set: { MC: '필수', CFO: '필수' } },
+];
+function apsAccRuleNeeded(rule, amt) {
+  if (!rule || rule === '-') return false;
+  if (rule === '필수' || rule === '필요시') return true;
+  const m = String(rule).replace(/[,\s]/g, '').match(/^([<>]=?)(\d+)$/);
+  if (!m) return true;
+  const op = m[1], th = parseInt(m[2]);
+  if (op === '<') return amt < th; if (op === '<=') return amt <= th;
+  if (op === '>') return amt > th; if (op === '>=') return amt >= th;
+  return true;
+}
+function apsAccLineSkipInfo(f) {
+  const OLD = { excluded: 'Accounting staff · Accounting Head · CFO', cover: 'the Team Lead and Dept Head steps already correspond to the Accounting Head and the CFO', notReq: '' };
+  const type = String((f && f.VoucherType) || '').trim();
+  const base = APS_ACC_RULES[type];
+  const amt = Number(f && f.TotalDR_KRW);
+  if (!base || !isFinite(amt)) return OLD;
+  const rules = Object.assign({}, base);
+  const at = f.SubmittedDate ? new Date(f.SubmittedDate).getTime() : NaN;
+  if (isFinite(at)) APS_ACC_RULE_HISTORY.forEach(x => { if (x.types.includes(type) && at < new Date(x.before).getTime()) Object.assign(rules, x.set); });
+  const tl = apsAccRuleNeeded(rules.TL, amt), mc = apsAccRuleNeeded(rules.MC, amt), cfo = apsAccRuleNeeded(rules.CFO, amt);
+  const fmt = n => Math.round(n || 0).toLocaleString('en-US');
+  const thOf = rule => { const m = String(rule || '').replace(/[,\s]/g, '').match(/^>=?(\d+)$/); return m ? Number(m[1]) : null; };
+  const out = { excluded: ['Accounting staff', 'Accounting Head'].concat(cfo ? ['CFO'] : []).join(' · ') };
+  out.cover = (tl && cfo && mc) ? OLD.cover : tl ? 'the Team Lead step already corresponds to the Accounting Head' : '';
+  const nr = [];
+  if (!cfo && rules.CFO && rules.CFO !== '-') nr.push(['CFO', thOf(rules.CFO)]);
+  if (!mc && rules.MC && rules.MC !== '-') nr.push(['Dept Head', thOf(rules.MC)]);
+  if (nr.length) {
+    const ths = [...new Set(nr.map(x => x[1]))];
+    out.notReq = nr.map(x => x[0]).join(' and ') + (nr.length > 1 ? ' were' : ' was') + ' not required'
+      + (ths.length === 1 && ths[0] != null ? ' — KRW ' + fmt(amt) + ' is below the KRW ' + fmt(ths[0]) + ' threshold' : ' for this amount — KRW ' + fmt(amt));
+  } else out.notReq = '';
+  return out;
+}
 function escHtml(str){return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
 /* 인라인 onclick="…" 에 넣는 인자(10-10). RequestID · ApprovalOrder 는 대부분 숫자 열이지만 AAC 는 텍스트 열(ridText)이라
    값에 ) ; 같은 글자가 들어가면 그대로 코드가 됐다. 숫자면 예전처럼 숫자 그대로, 아니면 JS 문자열(JSON)로 만들어 속성용으로 이스케이프한다. */
@@ -2922,13 +2970,16 @@ async function showDetail(sysKey,reqId){
               // RD 승인 제외 안내와 같은 3단 구조(제목 → 라벨:값 → 회색 설명)로 맞춘다.
               const _acLbl = t => '<span style="display:inline-block;min-width:78px;text-align:right;color:#3d7fb8;font-weight:600">' + t + '</span>'
                                 + '<span style="display:inline-block;width:15px;text-align:center;color:#8fb8d8;font-weight:600">:</span>';
+              // 10-15: 그 전표에서 실제로 빠진 단계 · 설명(ACC Voucher 와 같은 판정)
+              const _acInfo = apsAccLineSkipInfo(f);
+              const _acCover = _acInfo.cover ? _acInfo.cover.charAt(0).toUpperCase() + _acInfo.cover.slice(1) + ', so the duplicate accounting review was excluded' : 'The duplicate accounting review was excluded';
               return '<div style="margin-top:10px;background:#eaf3fd;border:1px solid #b6d7f2;border-radius:8px;padding:9px 12px">'
                 + '<div style="font-size:11.5px;font-weight:700;color:#0b5fa5;margin-bottom:5px">Accounting Approval Line — Duplicate accounting review excluded</div>'
                 + '<div style="font-size:11px;color:#0b5fa5;line-height:1.65">'
                 + _acLbl('Submitted by') + '<span style="font-weight:600">' + escHtml(f.RequesterEmail || f.RequesterName || '-') + '</span><br>'
-                + _acLbl('Excluded') + '<span style="font-weight:700">Accounting staff · Accounting Head · CFO</span>'
+                + _acLbl('Excluded') + '<span style="font-weight:700">' + escHtml(_acInfo.excluded) + '</span>'
                 + '</div>'
-                + '<div style="font-size:10px;color:#a19f9d;margin-top:5px">(The Team Lead and Dept Head steps already correspond to the Accounting Head and the CFO, so the duplicate accounting review was excluded)</div>'
+                + '<div style="font-size:10px;color:#a19f9d;margin-top:5px">(' + escHtml(_acCover + (_acInfo.notReq ? '. ' + _acInfo.notReq : '')) + ')</div>'
                 + '</div>';
             })()
           : '');
