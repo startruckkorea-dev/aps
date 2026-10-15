@@ -825,7 +825,7 @@ window.apsYear = (function () {
         <a id="ql-aco" href="https://acc-others.startruckkorea.com/" target="_self" class="ql-btn"><div class="qi" style="background:#0d948818;color:#0d9488"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"/><circle cx="8.6" cy="12" r="1.15" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.15" fill="currentColor" stroke="none"/><circle cx="15.4" cy="12" r="1.15" fill="currentColor" stroke="none"/></svg></div><span class="ql">ACC Others</span></a>
         <!-- STK Procurement(10-15) — 첫 항목 Single Source Letter(SSL). 결재함(SYSTEMS 의 PROC_SSL)에도 묶여 있다.
              입장 통제는 Procurement 앱이 한다(PROCUREMENT_ACCESS_N). 아이콘은 장바구니. -->
-        <a id="ql-proc" href="https://procurement.startruckkorea.com/" target="_self" class="ql-btn" style="display:none"><div class="qi" style="background:#2563eb18;color:#2563eb"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="20" r="1.4"/><circle cx="17.5" cy="20" r="1.4"/><path d="M2.5 3.5h2.6l2.4 11.2a1.6 1.6 0 0 0 1.6 1.3h8.3a1.6 1.6 0 0 0 1.6-1.2l1.6-6.6H6.2"/></svg></div><span class="ql">Procurement</span></a>
+        <a id="ql-proc" href="https://procu.startruckkorea.com/" target="_self" class="ql-btn" style="display:none"><div class="qi" style="background:#2563eb18;color:#2563eb"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="20" r="1.4"/><circle cx="17.5" cy="20" r="1.4"/><path d="M2.5 3.5h2.6l2.4 11.2a1.6 1.6 0 0 0 1.6 1.3h8.3a1.6 1.6 0 0 0 1.6-1.2l1.6-6.6H6.2"/></svg></div><span class="ql">Procurement</span></a>
       </div>
     </div>
     <div class="ql-group-sep"></div>
@@ -1218,7 +1218,7 @@ const SYSTEMS=[
      optional: 목록을 사용자가 아직 만들지 않았으면(404) 오류 · 경고 없이 이 시스템만 빼고 그린다(apsOptionalMissing).
      linkType: 딥링크에 &type=ssl 을 붙인다(Procurement 는 항목이 늘어날 수 있어 type 으로 항목 탭을 고른다).
      lockRestOnReject: 반려 시 남은 대기 · 대기(잠김) 행을 반려(잠김)으로 — Procurement 앱 processApproval 과 같은 쓰기. */
-  {key:'PROC_SSL', name:'Procurement · SSL', apr:'SSL_Approvals', req:'SSL_Requests', url:'https://procurement.startruckkorea.com/', historyList:'SSL_Approvals', aac:'PROC', reqFields:'Title,RequesterEmail,Status,RequestDate', optional:true, linkType:'ssl', lockRestOnReject:true},
+  {key:'PROC_SSL', name:'Procurement · SSL', apr:'SSL_Approvals', req:'SSL_Requests', url:'https://procu.startruckkorea.com/', historyList:'SSL_Approvals', aac:'PROC', reqFields:'Title,RequesterEmail,Status,RequestDate', optional:true, linkType:'ssl', lockRestOnReject:true},
   /* 결재 대리 지정(AAC, 09-30) — 대리인 수락(대신 신청이면 위임자 확인 → 대리인 수락)도 결재선을 탄다. GW · IT 와 같이 APS 결재함에 싣고 바로 수락 · 거절한다.
      AAC_Approvals 는 RequestID · ApprovalOrder 가 한 줄 텍스트 열이다(ridText — 서버 필터에 따옴표). 신청 목록에 SubmittedDate 가 없다(reqFields).
      noDelegate: 대리 지정 자체는 다시 대리 처리하지 않는다 — 대리인이 위임자 대신 「위임자 확인」 을 누르면 본인 확인이 무의미해진다(AAC 의 재위임 금지와 같은 뜻).
