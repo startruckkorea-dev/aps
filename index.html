@@ -2978,7 +2978,7 @@ async function showDetail(sysKey,reqId){
         const _o=String(af.ApprovalOrder||'');
         const _r=af.ApproverRole||'';
         // ' · 대리(원 결재자)' 꼬리를 먼저 떼어 낸다. 남겨 두면 아래 괄호 조립이
-        // '결재자(· 대리(Jimmy Lee))' 처럼 통째로 괄호에 넣어 버린다(대리 처리된 건에서 발생).
+        // '결재자(· 대리(Gildong Hong))' 처럼 통째로 괄호에 넣어 버린다(대리 처리된 건에서 발생).
         const _dm=_r.match(/\s*·\s*대리\((.+)\)\s*$/);
         const _rb=_dm?_r.slice(0,_dm.index):_r;
         const _rc=_rb.startsWith(_o+'차')?_rb.slice(_o.length+1).trim():_rb;
@@ -3645,7 +3645,7 @@ async function loadMyApprovedPage(force=false) {
    서버 필터로는 부분 문자열을 거를 수 없어 클라이언트에서 판정한다 —
    이 화면은 이미 전 시스템 결재행을 받아 오므로 추가 조회가 없다. */
 /* 내가 맡긴 대리 지정의 기간·대리인 목록.
-   메일 없는 옛 형식('· 대리(Jimmy Lee)')으로 저장된 건은 ApproverRole 만으로는
+   메일 없는 옛 형식('· 대리(Gildong Hong)')으로 저장된 건은 ApproverRole 만으로는
    내 것인지 알 수 없다(이름 비교는 동명이인에 취약하다). 그래서 AAC_Requests 에서
    「내가 위임자이고 수락된」 건을 읽어, 대리인 메일 + 기간 창으로 맞춘다.
    목록이 작아 조회 한 번이면 되고, 판정이 정확하다. */
