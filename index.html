@@ -1552,6 +1552,33 @@ async function loadSystemConfig() {
     return null;
   }
 }
+/* IT 문의 메일(10-17) — 코드에 메일 주소를 두지 않는다. system_config_final.xlsx 의 APS_IT_CONTACT(C열) → 없으면 CONTACT_EMAIL 순으로 채우고,
+   설정을 못 읽었으면(로그인 전 · 읽기 실패) 메일 없이 「IT팀」 만 보인다. 형식이 맞는 메일만 받으므로 HTML 에 그대로 넣어도 안전하다.
+   data-it-contact 가 붙은 화면 칸은 설정을 읽은 뒤 메일 링크로 바뀐다. */
+var IT_CONTACT_KEY = 'APS_IT_CONTACT', __itMail = '';
+function itTeam(label) { label = label || 'IT팀'; return __itMail ? label + '(' + __itMail + ')' : label; }
+function itApplyDom() {
+  try {
+    document.querySelectorAll('[data-it-contact]').forEach(function (el) {
+      el.textContent = '';
+      if (!__itMail) { el.textContent = el.getAttribute('data-it-contact') || 'IT팀'; return; }
+      var a = document.createElement('a'); a.href = 'mailto:' + __itMail; a.textContent = __itMail;
+      a.style.color = '#0078d4'; a.style.textDecoration = 'none'; el.appendChild(a);
+    });
+  } catch (e) {}
+}
+function itSetFromCfg(cfg) {
+  try {
+    if (!cfg || typeof cfg !== 'object') return;
+    var keys = Object.keys(cfg);
+    var pick = function (k) { var kk = keys.find(function (x) { return String(x).trim().toUpperCase() === k.toUpperCase(); }); return kk && cfg[kk] ? String(cfg[kk].email || '').trim().toLowerCase() : ''; };
+    var ok = function (v) { return /^[a-z0-9._%+-]+@[a-z0-9-]+(\.[a-z0-9-]+)+$/.test(v); };
+    var mail = [pick(IT_CONTACT_KEY), pick('CONTACT_EMAIL')].find(ok);
+    if (mail) __itMail = mail;
+    itApplyDom();
+  } catch (e) {}
+}
+loadSystemConfig = (function (orig) { return async function () { var c = await orig.apply(this, arguments); itSetFromCfg(c || (typeof _sysConfig !== 'undefined' ? _sysConfig : null)); return c; }; })(loadSystemConfig);
 // ACC Voucher는 ApproverRole에 "TL"/"MC" 같은 짧은 코드만 저장돼 있어(다른 시스템들은 이미 "1차결재자(CFO)" 형태로 저장됨),
 // 여기서 ACC Voucher 자체 앱의 roleLabelMap과 동일한 매핑으로 변환해서 다른 시스템들과 표시 형식을 통일한다.
 // FA 결재 역할 → 화면 표기 (ACC 와 같은 「N차 결재자(역할)」 형식). 저장값은 바꾸지 않는다 —
@@ -3324,7 +3351,7 @@ async function doApproval(){
         console.error('[결재] 결재 행 조회 결과가 비어 있음 — 승인완료 전환 중단. sys:', sysKey, 'RequestID:', reqId);
         _apsAudit('승인 기록 · 다음 단계로 넘기지 못함(결재 행 조회 0건)');
         loading(false);
-        alert('승인은 기록되었으나 다음 단계로 넘기지 못했습니다.\n잠시 후 결재함에서 상태를 다시 확인해 주세요.\n계속 같은 증상이면 IT팀(stk_it@hyosung.com)에 알려주세요.');
+        alert('승인은 기록되었으나 다음 단계로 넘기지 못했습니다.\n잠시 후 결재함에서 상태를 다시 확인해 주세요.\n계속 같은 증상이면 '+itTeam('IT팀')+'에 알려주세요.');
         closeDetail();
         _adminDataTime = 0; _myApprovedDataTime = 0;
         await loadAll(true);
