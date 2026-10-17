@@ -1041,6 +1041,7 @@ window.apsYear = (function () {
         <span style="font-size:.7rem;color:#64748b">각 시스템이 Logging_data 에 남긴 접근 · 조회 · 내보내기 · 편집 기록을 7일 단위로 읽습니다(기본: 오늘까지 7일). 조회 사실도 기록에 남습니다.</span>
         <span style="margin-left:auto;display:flex;gap:6px;align-items:center;flex-wrap:wrap">
           <select id="sys-log-system" style="min-width:190px;padding:5px 8px;border:1px solid #d1d5db;border-radius:6px;font-size:.75rem;font-family:inherit;background:#fff"><option value="">전체 시스템</option></select>
+          <label id="sys-log-it-wrap" title="IT 운영 계정(설정 파일 Role: IT Manager · IT system service)의 기록만 따로 봅니다 — Logging_data/System 에 따로 쌓입니다" style="display:inline-flex;align-items:center;gap:5px;padding:4px 9px;border:1px solid #d1d5db;border-radius:6px;background:#fff;color:#475569;font-size:.74rem;cursor:pointer;user-select:none;white-space:nowrap"><input type="checkbox" id="sys-log-it" onchange="apsSysLogItMode()" style="margin:0;cursor:pointer;accent-color:#475569"><span aria-hidden="true">⚙</span>System</label>
           <button onclick="apsSysLogShift(-1)" title="고른 기간 길이만큼 앞으로" style="padding:5px 8px;border:1px solid #d1d5db;border-radius:6px;background:#fff;color:#64748b;font-size:.72rem;cursor:pointer;font-family:inherit">‹ 이전</button>
           <input type="date" id="sys-log-from" onchange="apsSysLogRangeFix('from')" style="padding:4px 8px;border:1px solid #d1d5db;border-radius:6px;font-size:.75rem;font-family:inherit;background:#fff"><span style="color:#94a3b8;font-size:.74rem">~</span><input type="date" id="sys-log-to" onchange="apsSysLogRangeFix('to')" style="padding:4px 8px;border:1px solid #d1d5db;border-radius:6px;font-size:.75rem;font-family:inherit;background:#fff">
           <button onclick="apsSysLogShift(1)" title="고른 기간 길이만큼 뒤로" style="padding:5px 8px;border:1px solid #d1d5db;border-radius:6px;background:#fff;color:#64748b;font-size:.72rem;cursor:pointer;font-family:inherit">다음 ›</button>
@@ -1472,7 +1473,7 @@ async function _ensureLogFolder(driveId, folderPath, t) {
 //           (4) 파일 하나 크기가 1KB 미만이라 SharePoint 용량/성능에 주는 부담이 사실상 없음
 /* ══ 이력 제외 계정(10-01) ══
    system_config_final.xlsx 의 Role(D열)이 「IT Manager」 · 「IT system service」 인 이메일(IT 담당자 · 서비스 계정)은 시스템 운영 · 점검으로
-   이력이 너무 쌓여 Logging_data 에 남기지 않는다. 명단은 loadSystemConfig 가 설정을 읽을 때 모은다(logSkipCollect).
+   이력이 너무 쌓여 각 시스템 폴더가 아니라 Logging_data/System/<시스템>/… 에 따로 남긴다(10-17 · 예전엔 남기지 않았다 — APS 이력 조회의 「System」 칸에서 따로 본다). 명단은 loadSystemConfig 가 설정을 읽을 때 모은다(logSkipCollect).
    설정을 아직 읽는 중이면 잠깐 기다렸다가 판단하고, 끝내 못 읽으면 전처럼 남긴다(열린 쪽이 기본 — 이력을 잃지 않게). */
 const LOG_SKIP_ROLES = ['it manager', 'it system service'];
 const _logSkipEmails = new Set();
@@ -1495,7 +1496,7 @@ async function logSkipped() {
 function logAction(systemName, action, detail, opts) {
   (async () => {
     try {
-      if (!(opts && opts.audit) && await logSkipped()) return;   // IT 운영 계정(IT Manager · IT system service)은 남기지 않는다(10-01) — 감사 기록 제외
+      const _itLog = !(opts && opts.audit) && await logSkipped();   // IT 운영 계정(설정 Role: IT Manager · IT system service) 기록은 Logging_data/System/<시스템>/… 에 따로 쌓는다(10-17 — 예전엔 남기지 않았다) · 감사 기록(결재 처리)은 예전처럼 이 시스템 폴더에
       const driveId = await _getLogDriveId();
       if (!driveId) { console.warn('[Log] 기록 실패(무시됨, 원 기능엔 영향 없음): 문서 드라이브를 찾지 못했습니다 —', systemName, action); return; }
       const t = await token();
@@ -1506,7 +1507,7 @@ function logAction(systemName, action, detail, opts) {
       const rawUser = (user && (user.email || user.username)) || 'unknown';
       const userTag = rawUser.split('@')[0].replace(/[^a-zA-Z0-9._-]/g, '_');
       const rand = Math.random().toString(36).slice(2, 6); // 같은 초에 여러 로그가 생겨도 파일명 충돌 방지
-      const folderPath = `Logging_data/${systemName}/${dateStr}`;
+      const folderPath = `Logging_data/${_itLog ? 'System/' : ''}${systemName}/${dateStr}`;
       const folderOk = await _ensureLogFolder(driveId, folderPath, t);
       if (!folderOk) { console.warn('[Log] 기록 실패(무시됨, 원 기능엔 영향 없음): 폴더를 만들지 못했습니다 —', folderPath, action); return; }
       const path = `/${folderPath}/${timeStr}_${userTag}_${rand}.json`;
@@ -3939,11 +3940,30 @@ async function apsLoadLogSystems() {
   try {
     const d = await _getLogDriveId(); if (!d) return;
     const r = await apiAll('/drives/' + d + '/root:/Logging_data:/children?$select=id,name,folder&$top=200');
-    _sysLog.systems = (r.value || []).filter(x => x.folder).map(x => ({ id: x.id, name: x.name })).sort((a, b) => a.name.localeCompare(b.name));
-    const sel = document.getElementById('sys-log-system'), cur = sel.value;
-    sel.innerHTML = '<option value="">전체 시스템</option>' + _sysLog.systems.map(x => '<option value="' + escHtml(x.name) + '">' + escHtml(x.name) + '</option>').join('');
-    sel.value = cur;
+    const all = (r.value || []).filter(x => x.folder).map(x => ({ id: x.id, name: x.name })).sort((a, b) => a.name.localeCompare(b.name));
+    // 10-17 System 폴더(IT 운영 계정 기록)는 일반 조회에서 빼고 「⚙ System」 을 켰을 때만 읽는다
+    _sysLog.itRoot = all.find(x => x.name === APS_IT_LOG_DIR) || null;
+    _sysLog.systems = all.filter(x => x.name !== APS_IT_LOG_DIR);
+    if (_sysLog.itRoot) { try { _sysLog.itSystems = ((await apiAll('/drives/' + d + '/items/' + _sysLog.itRoot.id + '/children?$select=id,name,folder&$top=200')).value || []).filter(x => x.folder && !/^\d{4}-\d{2}-\d{2}$/.test(x.name)).map(x => x.name).sort(); } catch (e) { _sysLog.itSystems = []; } }
+    else _sysLog.itSystems = [];
+    apsSysLogFillSystems();
   } catch (e) { console.warn('[SysLog] 시스템 폴더 조회 실패:', e.message); }
+}
+/* 10-17 IT 운영 계정 기록 — 각 시스템이 Logging_data/System/<시스템>/YYYY-MM-DD/ 에 따로 쌓는다(예전엔 남기지 않았다).
+   「⚙ System」 을 켜면 그 폴더만 읽고, 시스템 드롭다운은 System 아래에 기록이 있는 시스템으로 바뀐다. 끄면 지금처럼 System 을 뺀 전체. */
+const APS_IT_LOG_DIR = 'System';
+function apsSysLogItOn() { const c = document.getElementById('sys-log-it'); return !!(c && c.checked); }
+function apsSysLogFillSystems() {
+  const sel = document.getElementById('sys-log-system'); if (!sel) return;
+  const cur = sel.value, it = apsSysLogItOn();
+  const names = it ? (_sysLog.itSystems || []) : (_sysLog.systems || []).map(x => x.name);
+  sel.innerHTML = '<option value="">' + (it ? 'System 전체' : '전체 시스템') + '</option>' + names.map(n => '<option value="' + escHtml(n) + '">' + escHtml(n) + '</option>').join('');
+  sel.value = names.includes(cur) ? cur : '';
+}
+function apsSysLogItMode() {
+  const it = apsSysLogItOn(), w = document.getElementById('sys-log-it-wrap');
+  if (w) { w.style.background = it ? '#334155' : '#fff'; w.style.color = it ? '#fff' : '#475569'; w.style.borderColor = it ? '#334155' : '#d1d5db'; }
+  apsSysLogFillSystems();
 }
 async function apsReadLogFile(d, f, t, _retry = 0) {
   const url = f.downloadUrl || (GRAPH + '/drives/' + d + '/items/' + f.id + '/content');
@@ -3963,10 +3983,21 @@ async function apsLoadSysLogs() {
   try {
     const d = await _getLogDriveId(); if (!d) throw new Error('이력 저장소에 연결하지 못했습니다.');
     if (!_sysLog.systems) await apsLoadLogSystems();
-    const roots = (_sysLog.systems || []).filter(x => !system || x.name === system);
-    if (!roots.length) throw new Error('Logging_data 아래에 시스템 폴더가 없습니다.');
+    const itMode = apsSysLogItOn();
+    let queue;
+    if (itMode) {   // IT 운영 계정 기록(Logging_data/System/<시스템>/…) — 시스템을 골랐으면 그 하위 폴더만
+      if (!_sysLog.itRoot) throw new Error('System 폴더에 아직 기록이 없습니다(IT 운영 계정 기록은 10-17 이후부터 쌓입니다).');
+      if (system) {
+        const ch = ((await apiAll('/drives/' + d + '/items/' + _sysLog.itRoot.id + '/children?$select=id,name,folder&$top=200')).value || []).find(x => x.folder && x.name === system);
+        if (!ch) throw new Error('System 아래에 ' + system + ' 기록이 없습니다.');
+        queue = [{ id: ch.id, label: APS_IT_LOG_DIR + '/' + ch.name, depth: 1 }];
+      } else queue = [{ id: _sysLog.itRoot.id, label: APS_IT_LOG_DIR, depth: 0 }];
+    } else {
+      const roots = (_sysLog.systems || []).filter(x => !system || x.name === system);
+      if (!roots.length) throw new Error('Logging_data 아래에 시스템 폴더가 없습니다.');
+      queue = roots.map(x => ({ id: x.id, label: x.name, depth: 0 }));
+    }
     const files = []; let folders = 0;
-    const queue = roots.map(x => ({ id: x.id, label: x.name, depth: 0 }));
     const walker = async () => {
       while (queue.length) {
         const f = queue.shift(); let ch;
@@ -3976,7 +4007,7 @@ async function apsLoadSysLogs() {
         for (const c of ch) {
           if (c.folder) {
             if (/^\d{4}-\d{2}-\d{2}$/.test(c.name)) { if (c.name >= from && c.name <= to) queue.push({ id: c.id, label: f.label, day: c.name, depth: f.depth + 1, isDay: true }); }
-            else if (!f.isDay && f.depth < 4) queue.push({ id: c.id, label: f.label + '/' + c.name, depth: f.depth + 1 });
+            else if (!f.isDay && f.depth < (itMode ? 5 : 4)) queue.push({ id: c.id, label: f.label + '/' + c.name, depth: f.depth + 1 });
           } else if (f.isDay && c.file && /\.json$/i.test(c.name)) files.push({ id: c.id, name: c.name, label: f.label, day: f.day, downloadUrl: c['@microsoft.graph.downloadUrl'] || '' });
         }
         if (folders % 10 === 0) loading(true, range + ' 이력을 찾는 중... ' + files.length.toLocaleString() + '건 확인');
@@ -3997,11 +4028,11 @@ async function apsLoadSysLogs() {
     await Promise.all(Array.from({ length: Math.min(6, Math.max(1, files.length)) }, reader));
     out.forEach(e => { e.ts = e.timestampKST || (e.day + ' ' + e.name.slice(0, 2) + ':' + e.name.slice(2, 4) + ':' + e.name.slice(4, 6)); });
     out.sort((a, b) => (b.ts > a.ts ? 1 : b.ts < a.ts ? -1 : 0));
-    Object.assign(_sysLog, { items: out, range, from, to, system });
+    Object.assign(_sysLog, { items: out, range, from, to, system, itMode });
     document.getElementById('sys-log-body').style.display = '';
     document.getElementById('sys-log-q').value = '';
     apsRenderSysLogs(true);
-    logAction('APS', '시스템 이력 조회', { 시스템: system || '전체', 기간: range, 건수: out.length });
+    logAction('APS', '시스템 이력 조회', { 시스템: (itMode ? 'System · ' : '') + (system || '전체'), 기간: range, 건수: out.length });
   } catch (e) { alert('이력을 읽지 못했습니다.\n\n' + e.message); }
   finally { loading(false); btn.disabled = false; }
 }
@@ -4058,10 +4089,10 @@ function apsRenderSysLogs(resetPage) {
   _sysLog.view = items;
   if (resetPage) _sysLog.page = 1;
   const pages = Math.max(1, Math.ceil(items.length / SYS_LOG_PAGE)); _sysLog.page = Math.min(_sysLog.page, pages);
-  const bySys = {}; _sysLog.items.forEach(e => { const k = e.label.split('/')[0]; bySys[k] = (bySys[k] || 0) + 1; });
+  const bySys = {}; _sysLog.items.forEach(e => { const sp = e.label.split('/'); const k = sp[0] === APS_IT_LOG_DIR && sp[1] ? sp[1] : sp[0]; bySys[k] = (bySys[k] || 0) + 1; });
   const top = Object.entries(bySys).sort((a, b) => b[1] - a[1]).slice(0, 6).map(([k, n]) => escHtml(k) + ' ' + n.toLocaleString()).join(' · ');
   const users = new Set(_sysLog.items.map(e => String(e.user || '').toLowerCase())).size;
-  document.getElementById('sys-log-count').innerHTML = '<b>' + escHtml(_sysLog.range) + '</b> · 총 ' + _sysLog.items.length.toLocaleString() + '건 · 사용자 ' + users + '명' + (top ? ' · ' + top : '') + (q ? ' · <b>거른 결과 ' + items.length.toLocaleString() + '건</b>' : '');
+  document.getElementById('sys-log-count').innerHTML = (_sysLog.itMode ? '<span style="background:#334155;color:#fff;border-radius:4px;padding:1px 6px;margin-right:4px">⚙ System</span>' : '') + '<b>' + escHtml(_sysLog.range) + '</b> · 총 ' + _sysLog.items.length.toLocaleString() + '건 · 사용자 ' + users + '명' + (top ? ' · ' + top : '') + (q ? ' · <b>거른 결과 ' + items.length.toLocaleString() + '건</b>' : '');
   const start = (_sysLog.page - 1) * SYS_LOG_PAGE, slice = items.slice(start, start + SYS_LOG_PAGE);
   // 모든 칸 한 줄 — 넘치면 줄임표(전체 글은 title, 행을 누르면 원본). 두 줄로 내려가 행 높이가 들쭉날쭉하던 것(09-28).
   const cell = 'padding:6px 10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;';
