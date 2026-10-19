@@ -1743,13 +1743,12 @@ async function boot(account){
   await loadAll();
   loadAnnouncements();
 }
-/* Procurement 공개 여부(10-15 사용자 요청) — 테스트 · BU 승인 전이라 일반 사용자에게는 감춘다.
-   · 설정 파일 PROCUREMENT_APS_OPEN 의 B열(이름 칸)이 Y 이면 전 직원에게 공개.
-   · 그 전에는 APS 관리자(ADMIN_SP_N)에게만 바로가기 · 결재함 · 필터가 보인다(테스트용).
-   · 설정을 못 읽으면 감춘다. 감출 때는 SYSTEMS 에서 빼므로 SSL 목록을 조회하지도 않는다. */
+/* Procurement 공개 여부 — 10-20 사용자 요청으로 GW 처럼 전 직원에게 공개(10-15 ~ 10-19 는 APS 관리자에게만 보이던 시험 기간).
+   · 기본 공개. 설정 파일 PROCUREMENT_APS_OPEN 의 B열(이름 칸)이 N(no · off · false · 0)일 때만 다시 감춘다(APS 관리자에게만 보임).
+   · 감출 때는 SYSTEMS 에서 빼므로 SSL 목록을 조회하지도 않는다. */
 function apsProcGate(cfg){
-  let open = false;
-  try { const v = cfg && cfg['PROCUREMENT_APS_OPEN']; open = !!v && /^(y|yes|on|true|1)$/i.test(String(v.name || v.email || '').trim()); } catch (e) {}
+  let open = true;
+  try { const v = cfg && cfg['PROCUREMENT_APS_OPEN']; if (v && /^(n|no|off|false|0)$/i.test(String(v.name || v.email || '').trim())) open = false; } catch (e) {}
   const show = open || _isApsAdmin;
   const card = document.getElementById('ql-proc'); if (card) card.style.display = show ? '' : 'none';
   if (show) return;
