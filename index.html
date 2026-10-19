@@ -2900,8 +2900,8 @@ async function showDetail(sysKey,reqId){
       const _amt=(v,c)=>{ const n=Number(v); if(v===''||v==null||!isFinite(n)) return '-'; return c==='KRW'?Math.round(n).toLocaleString('en-US'):n.toLocaleString('en-US',{minimumFractionDigits:Number.isInteger(n)?0:2,maximumFractionDigits:2}); };
       const _manual=f.ExchangeRateManual===true||/^(true|yes|예|1)$/i.test(String(f.ExchangeRateManual==null?'':f.ExchangeRateManual).trim());
       const _rate=Number(f.ExchangeRate);
-      info+=row('신청자 (Name · Dept)',[f.RequesterName,f.RequesterDept].filter(Boolean).join(' · ')||'-')
-        +sec('Single Source Letter of Justification')
+      // 10-20: 「신청자 (Name · Dept)」 줄은 뺐다 — 위 기본 정보의 신청자(메일)가 곧 상신한 사람이다
+      info+=sec('Single Source Letter of Justification')
         +rowFull('Req-number of the respective requisition (구매요청 번호)',f.ReqNumber)
         +rowFull('Description of product or service (specification, quantity,) (품목 · 서비스 내용)',f.Description)
         +rowFull('Recommended Supplier (추천 공급업체)',f.RecommendedSupplier)
@@ -2910,9 +2910,10 @@ async function showDetail(sysKey,reqId){
         +rowFull('Lead time allowed purchasing for order placement (발주까지 허용 기간)',f.LeadTime)
         +rowFull('Eventual total volume of buy anticipated (예상 총 구매 금액)',_amt(f.TotalVolume,_cur)+' '+_cur)
         +(_cur!=='KRW'?rowFull('KRW 환산 (Exchange rate '+(isFinite(_rate)&&_rate?_rate.toLocaleString('en-US',{maximumFractionDigits:6}):'-')+' · '+(_manual?'직접 입력':String(f.ExchangeRateDate||'').slice(0,10).replace(/-/g,'.')+' ACC Voucher')+')',(isFinite(Number(f.KRWAmount))&&f.KRWAmount!==''&&f.KRWAmount!=null?Math.round(Number(f.KRWAmount)).toLocaleString('en-US'):'-')+' KRW'):'')
-        +row('결재 구간 (Approval Limit)',f.ApprovalTier);
-      info+=sec('첨부파일')+parseFiles(f.AttachedFiles)
-        +`<div style="font-size:12px;color:#1e40af;background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;padding:8px 10px;margin:8px 0 4px">📄 공식 양식 PDF(첨부 병합)는 STK Procurement 에서 볼 수 있습니다. <a href="${_sysUrl}" target="_blank" rel="noopener" style="color:#1d4ed8;font-weight:700;text-decoration:underline">→ STK Procurement 에서 열기</a></div>`;
+        +row('결재 구간 (Approval Limit)',f.ApprovalTier)
+        // 10-20: ACC Voucher 「📌 회계 라인 … → ACC Voucher 바로가기」 와 같은 노란 안내
+        +`<div style="font-size:12px;color:#8a5a00;background:#fff8e1;border:1px solid #ffe08a;border-radius:6px;padding:8px 10px;margin:8px 0 10px">📌 공식 양식 PDF · 상세화면 PDF(첨부 병합)는 STK Procurement에서 직접 확인해주세요. <a href="${_sysUrl}" target="_blank" rel="noopener" style="color:#0078d4;font-weight:700;text-decoration:underline">→ STK Procurement 바로가기</a></div>`;
+      info+=sec('첨부파일')+parseFiles(f.AttachedFiles);
     }
     else if(sysKey==='AAC'){
       /* 결재 대리 지정 — AAC 상세(openDetail)와 같은 구성: 위임자(대신 신청이면 신청한 사람 · 사유) → 대리 내용 → 첨부.
