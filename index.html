@@ -302,6 +302,18 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#f5f7f
 .modal-close:hover{background:#e2e8f0;color:#1e293b}
 .modal-sys-badge{display:inline-flex;align-items:center;gap:6px;margin-bottom:12px}
 .modal-title{font-size:1.05rem;font-weight:700;color:#1e293b;margin-bottom:18px;padding-bottom:14px;border-bottom:1px solid #f1f5f9}
+/* 10-20 Procurement · SSL 상세 — 질문(번호 · 영문 · 한글) 과 답(상자)을 나눠 구분(STK Procurement 상세와 같은 모양) */
+.qa{padding:9px 0 10px;border-bottom:1px solid #f1f5f9}
+.qa:last-of-type{border-bottom:none}
+.qa-q{display:flex;gap:7px;align-items:flex-start;font-size:.76rem;line-height:1.45;color:#334155;font-weight:600}
+.qa-n{flex:0 0 18px;height:18px;border-radius:9px;background:#e8f1fb;color:#0b5cad;font-size:.66rem;font-weight:700;display:inline-flex;align-items:center;justify-content:center}
+.qa-ko{color:#94a3b8;font-weight:400}
+.qa-a{margin:5px 0 0 25px;background:#f8fafc;border:1px solid #edf0f4;border-radius:6px;padding:7px 11px;font-size:.82rem;line-height:1.55;color:#1e293b;white-space:pre-wrap;word-break:break-word}
+.qa-a.num{font-weight:700;font-variant-numeric:tabular-nums}
+.qa-a.empty{color:#94a3b8;background:#fff}
+.qa-sub{margin:5px 0 0 25px;font-size:.74rem;color:#64748b;display:flex;gap:4px 10px;flex-wrap:wrap}
+.qa-sub b{color:#334155;font-weight:600;font-variant-numeric:tabular-nums}
+@media(max-width:600px){.qa-a,.qa-sub{margin-left:0}}
 .modal-sec{margin:16px 0 10px;font-size:.68rem;font-weight:800;color:#3b82f6;text-transform:uppercase;letter-spacing:.6px;padding:5px 10px;background:#eff6ff;border-left:3px solid #3b82f6;border-radius:6px}
 .modal-row{display:flex;padding:8px 0;border-bottom:1px solid #f8fafc;font-size:.82rem}
 .modal-row:last-child{border-bottom:none}
@@ -2898,16 +2910,21 @@ async function showDetail(sysKey,reqId){
       const _manual=f.ExchangeRateManual===true||/^(true|yes|예|1)$/i.test(String(f.ExchangeRateManual==null?'':f.ExchangeRateManual).trim());
       const _rate=Number(f.ExchangeRate);
       // 10-20: 「신청자 (Name · Dept)」 줄은 뺐다 — 위 기본 정보의 신청자(메일)가 곧 상신한 사람이다
+      // 10-20 질문 · 답 블록 — 번호 · 영문(굵게) · 한글(흐리게) / 답은 상자. 금액은 굵게 + 아래 줄에 KRW 환산 · 결재 구간
+      const _q=(n,en,ko)=>'<div class="qa-q"><span class="qa-n">'+n+'</span><span><span class="qa-en">'+escHtml(en)+'</span> <span class="qa-ko">('+escHtml(ko)+')</span></span></div>';
+      const _a=(v,cls)=>{ const t=(v===undefined||v===null)?'':toText(v); const e=String(t).trim()===''||t==='-'; return '<div class="qa-a'+(cls?' '+cls:'')+(e?' empty':'')+'">'+escHtml(e?'-':t)+'</div>'; };
+      const _qa=(n,en,ko,v)=>'<div class="qa">'+_q(n,en,ko)+_a(v)+'</div>';
+      const _krw=(isFinite(Number(f.KRWAmount))&&f.KRWAmount!==''&&f.KRWAmount!=null?Math.round(Number(f.KRWAmount)).toLocaleString('en-US'):'-');
       info+=sec('Single Source Letter of Justification')
-        +rowFull('Req-number of the respective requisition (구매요청 번호)',f.ReqNumber)
-        +rowFull('Description of product or service (specification, quantity,) (품목 · 서비스 내용)',f.Description)
-        +rowFull('Recommended Supplier (추천 공급업체)',f.RecommendedSupplier)
-        +rowFull('Reason for single source recommendation (단일 공급 사유)',f.Reason)
-        +rowFull('Date the requirement was first known (필요를 알게 된 날)',_d(f.DateFirstKnown))
-        +rowFull('Lead time allowed purchasing for order placement (발주까지 허용 기간)',f.LeadTime)
-        +rowFull('Eventual total volume of buy anticipated (예상 총 구매 금액)',_amt(f.TotalVolume,_cur)+' '+_cur)
-        +(_cur!=='KRW'?rowFull('KRW 환산 (Exchange rate '+(isFinite(_rate)&&_rate?_rate.toLocaleString('en-US',{maximumFractionDigits:6}):'-')+' · '+(_manual?'직접 입력':String(f.ExchangeRateDate||'').slice(0,10).replace(/-/g,'.')+' ACC Voucher')+')',(isFinite(Number(f.KRWAmount))&&f.KRWAmount!==''&&f.KRWAmount!=null?Math.round(Number(f.KRWAmount)).toLocaleString('en-US'):'-')+' KRW'):'')
-        +row('결재 구간 (Approval Limit)',f.ApprovalTier)
+        +_qa(1,'Req-number of the respective requisition','구매요청 번호',f.ReqNumber)
+        +_qa(2,'Description of product or service (specification, quantity,)','품목 · 서비스 내용',f.Description)
+        +_qa(3,'Recommended Supplier','추천 공급업체',f.RecommendedSupplier)
+        +_qa(4,'Reason for single source recommendation','단일 공급 사유',f.Reason)
+        +_qa(5,'Date the requirement was first known','필요를 알게 된 날',_d(f.DateFirstKnown))
+        +_qa(6,'Lead time allowed purchasing for order placement','발주까지 허용 기간',f.LeadTime)
+        +'<div class="qa">'+_q(7,'Eventual total volume of buy anticipated (incl. anticipated add on requirements)','예상 총 구매 금액(추가분 포함)')+_a(_amt(f.TotalVolume,_cur)+' '+_cur,'num')
+          +'<div class="qa-sub">'+(_cur!=='KRW'?'<span>KRW 환산 <b>'+escHtml(_krw)+' KRW</b> (Exchange rate '+escHtml(isFinite(_rate)&&_rate?_rate.toLocaleString('en-US',{maximumFractionDigits:6}):'-')+' · '+escHtml(_manual?'직접 입력':String(f.ExchangeRateDate||'').slice(0,10).replace(/-/g,'.')+' ACC Voucher')+')</span>':'')
+          +'<span>결재 구간 (Approval Limit) <b>'+escHtml(f.ApprovalTier||'-')+'</b></span></div></div>'
         // 10-20: ACC Voucher 「📌 회계 라인 … → ACC Voucher 바로가기」 와 같은 노란 안내
         +`<div style="font-size:12px;color:#8a5a00;background:#fff8e1;border:1px solid #ffe08a;border-radius:6px;padding:8px 10px;margin:8px 0 10px">📌 공식 양식 PDF · 상세화면 PDF(첨부 병합)는 STK Procurement에서 직접 확인해주세요. <a href="${_sysUrl}" target="_blank" rel="noopener" style="color:#0078d4;font-weight:700;text-decoration:underline">→ STK Procurement 바로가기</a></div>`;
       info+=sec('첨부파일')+parseFiles(f.AttachedFiles);
