@@ -1942,6 +1942,37 @@ async function loadMyDelegations(){
     if(_aacDelegated.size) console.log('[AAC] 대리 결재 가능:',[..._aacDelegated].map(([k,v])=>k+'['+v.scope.join('/')+']').join(', '));
   }catch(e){ console.warn('[AAC] 위임 조회 실패 — 내 결재만 표시:',e&&e.message); }
 }
+/* ── AAC 수락 시점 사슬 재검증(10-21) — AAC 앱 doConfirm 의 aacAcceptBlock 과 같은 규칙 ──
+   대리 지정 건의 마지막 단계(남은 대기 · 대기(잠김) 행이 이 행뿐)를 승인하기 직전에 서버 값으로 본다.
+   ① 위임자가 그 기간에 누군가의 대리인(승인완료)이면 수락 불가 — 대리인은 자기 결재를 다시 넘길 수 없다.
+   ② 대리인이 기간 · 대상 시스템이 겹치는 자기 위임(대기 · 승인완료)을 걸어 두었으면 수락 불가 — 대리는 한 단계만이라 막다른 길.
+   'ALL' 은 AAC 의 자동 시스템 전체(AAC_AUTO_KEYS — AAC SYSTEMS 의 !ext 키와 같아야 한다)로 푼다. 조회 실패는 막지 않는다(AAC 와 같은 정책).
+   돌려주는 값: 막는 사유(빈 문자열이면 통과). */
+const AAC_AUTO_KEYS=['ACC','GW','SCC','IT','FA','BP','MC','RR','GA_STN','GA_BC','GA_IDC','LTR','CTR_PR','ACO','PROC'];
+function _aacScopeSet(v){ const ks=String(v||'').split(',').map(x=>x.trim()).filter(Boolean); const o=new Set(); (ks.length?ks:['ALL']).forEach(k=>{ if(k==='ALL') AAC_AUTO_KEYS.forEach(a=>o.add(a)); else o.add(k); }); return o; }
+function _aacRange(f){ const s=_aacKst(f.StartDate), e=_aacKst(f.EndDate); if(!s||!e) return null; return { s: s.length<=10?s+' 00:00':s, e: e.length<=10?e+' 23:59':e }; }
+function _aacDay(v){ const t=_aacKst(v); return !t?'-':(t.length<=10?t:t.slice(0,16)); }
+async function aacChainBlock(reqId, apprId){
+  try{
+    const rows=await fetchApprovalsForRequest('AAC', reqId);
+    if(rows.some(x=>String(x.id)!==String(apprId) && ['대기','대기(잠김)'].includes((x.fields.Status||'').trim()))) return '';   // 마지막 단계가 아니면 효력이 아직 안 생긴다
+    const f=(await api('/sites/'+siteId+'/lists/'+LIST_AAC+'/items/'+reqId+'?$expand=fields')).fields||{};
+    const r=_aacRange(f); if(!r) return '';
+    const q=e=>"'"+String(e||'').trim().toLowerCase().replace(/'/g,"''")+"'";
+    const dgE=String(f.RequesterEmail||'').trim(), dpE=String(f.DeputyEmail||'').trim();
+    const ov=x=>{ const g=_aacRange(x); return !!g && !(g.e<r.s || g.s>r.e); };
+    const a=(await apiAll('/sites/'+siteId+'/lists/'+LIST_AAC+"/items?$expand=fields&$top=500&$filter=fields/Status eq '승인완료' and fields/DeputyEmail eq "+q(dgE))).value||[];
+    const l=a.map(x=>x.fields).find(ov);
+    if(l) return '위임자 '+(f.RequesterName||dgE)+' 님이 이 기간에 '+(l.RequesterName||l.RequesterEmail||'')+' 님의 대리인으로 지정되어 있습니다 ('+(l.Title||'')+' · '+_aacDay(l.StartDate)+' ~ '+_aacDay(l.EndDate)+').\n'
+      +'대리인으로 지정된 기간에는 결재를 다른 사람에게 다시 넘길 수 없어 이 건을 수락할 수 없습니다. 그 지정이 끝나거나 철회된 뒤 다시 신청해 주세요.';
+    const b=(await apiAll('/sites/'+siteId+'/lists/'+LIST_AAC+"/items?$expand=fields&$top=500&$filter=fields/RequesterEmail eq "+q(dpE))).value||[];
+    const S=_aacScopeSet(f.Scope);
+    const o=b.map(x=>x.fields).find(x=>['대기','승인완료'].includes((x.Status||'').trim()) && ov(x) && [..._aacScopeSet(x.Scope)].some(k=>S.has(k)));
+    if(o){ const to=o.DeputyName||o.DeputyEmail||''; return '대리인 '+(f.DeputyName||dpE)+' 님은 '+_aacDay(o.StartDate)+' ~ '+_aacDay(o.EndDate)+' 자기 결재를 '+to+' 님에게 '+((o.Status||'').trim()==='대기'?'넘기는 중이라':'넘겨 두어')+' 이 건을 수락할 수 없습니다 ('+(o.Title||'')+').\n'
+      +'대리는 한 단계만 적용되어 '+to+' 님에게 이어지지 않습니다. 그 신청을 철회하거나 이 건을 거절해 주세요.'; }
+    return '';
+  }catch(e){ console.warn('[AAC] 수락 시점 재검증 실패(진행):', e&&e.message); return ''; }
+}
 // 이 위임이 이 시스템에 미치는가 — 'ALL' 이거나 시스템 키가 Scope 에 있을 때. 키를 안 주면 시스템을 따지지 않는다.
 // APS 키 → AAC 위임 범위 키. ACC Others 는 DEV · CCL 두 목록이 한 시스템이라 둘 다 'ACO' 로 본다(SYSTEMS 의 aac).
 function aacScopeKey(sysKey){ const s=SYSTEMS.find(x=>x.key===sysKey); return (s&&s.aac)||sysKey; }
@@ -3425,6 +3456,15 @@ async function doApproval(){
     }
     if(sysKey==='AAC'){
       // 결재 대리 지정 — AAC doConfirm 과 같은 종결 규칙. 열이 늦게 추가된 목록이 있어 있는 열만 보낸다(AAC 의 patchFields 와 같은 방식).
+      if(action==='승인'){   // 수락 시점 사슬 재검증(10-21) — 막히면 아무것도 쓰지 않는다
+        const _why=await aacChainBlock(reqId, apprId);
+        if(_why){
+          loading(false);
+          _apsAudit('처리 안 함 — 수락 차단(대리 사슬 · 수락 시점 재검증): '+_why.split('\n')[0], '결재 승인 차단');
+          alert('이 대리 지정을 수락할 수 없습니다.\n\n'+_why);
+          closeDetail(); _adminDataTime = 0; _myApprovedDataTime = 0; await loadAll(true); return;
+        }
+      }
       const _w0 = await apsApprovalWrite(()=>aacSafePatch(sys.apr, apprId, _patch, _im), sys.apr, apprId, _patch);
       if(_w0!==true){ await _conflict(_w0); return; }
       _apsWrote = true;
