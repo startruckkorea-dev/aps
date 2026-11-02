@@ -1714,7 +1714,7 @@ function faRoleLabel(role){
   if(/최종|CFO/i.test(r)) return 'CFO';
   return r.replace(/^\d+차\s*결재자\s*/,'').replace(/^\((.+)\)$/,'$1').trim();
 }
-const ACC_ROLE_LABELS = { TL:'Line Manager', MC:'Department Head', CEO:'CEO', RD:'RD', CTRL:'Controlling Head', AMGR:'Accounting Head', CFO:'CFO', ACC_AP:'AP 담당자', ACC_AR:'AR 담당자', ACC_GL:'GL 담당자', ACC:'담당자' };
+const ACC_ROLE_LABELS = { TL:'Team Leader', MC:'Department Head', CEO:'CEO', RD:'RD', CTRL:'Controlling Head', AMGR:'Accounting Head', CFO:'CFO', ACC_AP:'AP 담당자', ACC_AR:'AR 담당자', ACC_GL:'GL 담당자', ACC:'담당자' };
 // 「다음 결재자」 한 칸. 이름과 역할을 두 줄로 쌓았더니 이 열만 두 줄이라
 // 행 높이가 들쭉날쭉했다. 이름 (역할) 한 줄로 둔다 —
 // Excel 내보내기(3256행)가 이미 쓰던 표기와 같다.
@@ -1738,7 +1738,7 @@ function formatNextRole(sysKey, apr) {
     const label = ACC_ROLE_LABELS[apr.ApproverRole] || apr.ApproverRole || '-';
     return `${apr.ApprovalOrder||'?'}차결재자(${label})`;
   }
-  return apr.ApproverRole || '-';
+  return apr.ApproverRole === 'MC' ? 'DH' : (apr.ApproverRole || '-');   // 11-02: LTR-PC 부서장 코드 MC → DH (결재 이력과 같은 표기)
 }
 
 function cfgVal(cfg, key, defaultObj) {
@@ -3193,7 +3193,8 @@ async function showDetail(sysKey,reqId){
         const _rc=_rb.startsWith(_o+'차')?_rb.slice(_o.length+1).trim():_rb;
         const _rp=_rc.replace(/^결재자\s*/,'').replace(/^\((.+)\)$/,'$1').trim();
         // FA 는 저장 역할(1차결재자·회계담당자·이동전/후…)을 ACC 처럼 영문 라벨로 바꿔 보여준다
-        const _lab = sysKey==='FA' ? faRoleLabel(_rb) : _rp;
+        // 11-02: 부서장 단계 코드 MC(ACC Voucher · LTR-PC 저장값)는 Mobility Car 와 헷갈려 DH(Department Head)로 표기 — 저장값은 그대로
+        const _lab = sysKey==='FA' ? faRoleLabel(_rb) : (_rp==='MC' ? 'DH' : _rp);
         // 저장값은 'Name <mail>' 또는 예전 'Name' 두 형태다 — 양쪽을 읽는다.
         const _dp=_dm?(()=>{const _m=String(_dm[1]).match(/^(.*?)\s*<([^>]+)>\s*$/);return {n:(_m?_m[1]:_dm[1]).trim(),e:_m?_m[2].trim():''};})():null;
         // 한 줄짜리 알약 하나로 합친다. 예전에는 배지 + 아래 별도 줄이라 3줄이 됐다.
