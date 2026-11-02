@@ -1728,6 +1728,14 @@ function nextApproverCell(r) {
   return '<span style="font-weight:600">' + escHtml(nm) + '</span>' + role;
 }
 
+// 11-02 시스템별 결재 역할 표기 — 저장값은 그대로 두고 화면만 바꾼다(각 시스템 화면과 같은 표기).
+//   Procurement · SSL: RBO MC → MC · Controller → Controlling Manager / Goodwill: Controlling → Controlling Manager
+//   여기 있는 시스템은 MC → DH(ACC Voucher · LTR-PC 부서장 코드) 바꿈을 하지 않는다 — SSL 의 MC 는 그대로 MC.
+const SYS_ROLE_TEXT = {
+  PROC_SSL: [[/\bRBO MC\b/g, 'MC'], [/\bController\b/g, 'Controlling Manager']],
+  GW: [[/\bControlling\b(?! Manager)/g, 'Controlling Manager']],
+};
+function sysRoleText(sysKey, r) { let s = String(r == null ? '' : r); (SYS_ROLE_TEXT[sysKey] || []).forEach(([re, to]) => { s = s.replace(re, to); }); return s; }
 function formatNextRole(sysKey, apr) {
   if (!apr) return '-';
   if (sysKey === 'FA') {
@@ -1738,6 +1746,7 @@ function formatNextRole(sysKey, apr) {
     const label = ACC_ROLE_LABELS[apr.ApproverRole] || apr.ApproverRole || '-';
     return `${apr.ApprovalOrder||'?'}차결재자(${label})`;
   }
+  if (SYS_ROLE_TEXT[sysKey]) return sysRoleText(sysKey, apr.ApproverRole) || '-';
   return apr.ApproverRole === 'MC' ? 'DH' : (apr.ApproverRole || '-');   // 11-02: LTR-PC 부서장 코드 MC → DH (결재 이력과 같은 표기)
 }
 
@@ -2360,7 +2369,7 @@ function renderApvPopup(){
     var sumText=summary(sys.key,rf)||'-';
     var email=(rf.RequesterEmail||'-').replace(/@.*/,'');
     var dateStr=fmt(rf.RequestDate);
-    var role=f.ApproverRole||'';
+    var role=sysRoleText(sys.key, f.ApproverRole||'');   // 11-02 SSL · GW 역할 표기
     var isSCC=sys.key==='SCC';
     var isBP=sys.key==='BP';
     var isFAAccountant=(sys.key==='FA');
@@ -3291,7 +3300,7 @@ async function showDetail(sysKey,reqId){
         const _rp=_rc.replace(/^결재자\s*/,'').replace(/^\((.+)\)$/,'$1').trim();
         // FA 는 저장 역할(1차결재자·회계담당자·이동전/후…)을 ACC 처럼 영문 라벨로 바꿔 보여준다
         // 11-02: 부서장 단계 코드 MC(ACC Voucher · LTR-PC 저장값)는 Mobility Car 와 헷갈려 DH(Department Head)로 표기 — 저장값은 그대로
-        const _lab = sysKey==='FA' ? faRoleLabel(_rb) : (_rp==='MC' ? 'DH' : _rp);
+        const _lab = sysKey==='FA' ? faRoleLabel(_rb) : SYS_ROLE_TEXT[sysKey] ? sysRoleText(sysKey, _rp) : (_rp==='MC' ? 'DH' : _rp);
         // 저장값은 'Name <mail>' 또는 예전 'Name' 두 형태다 — 양쪽을 읽는다.
         const _dp=_dm?(()=>{const _m=String(_dm[1]).match(/^(.*?)\s*<([^>]+)>\s*$/);return {n:(_m?_m[1]:_dm[1]).trim(),e:_m?_m[2].trim():''};})():null;
         // 한 줄짜리 알약 하나로 합친다. 예전에는 배지 + 아래 별도 줄이라 3줄이 됐다.
