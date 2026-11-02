@@ -1698,16 +1698,16 @@ loadSystemConfig = (function (orig) { return async function () { var c = await o
 // 옛 기록도 같은 표기가 되고, 「회계담당자」 로 FA Code 입력을 여는 판정(processApproval)도 그대로다.
 // Transfer 는 이동 전/후 팀장·부서장이 나뉘어 Transfer-out / Transfer-in 으로 구분한다.
 const FA_ROLE_LABELS = {
-  '1차결재자':'Line Manager', '2차결재자':'Department Head', '회계담당자':'GL 담당자', '회계팀장':'Accounting Head', '최종결재자':'CFO',
-  '1차결재자(이동전 Line Manager)':'Transfer-out Line Manager', '2차결재자(이동전 부서장)':'Transfer-out Department Head',
-  '3차결재자(이동후 Line Manager)':'Transfer-in Line Manager', '4차결재자(이동후 부서장)':'Transfer-in Department Head' };
+  '1차결재자':'Team Leader', '2차결재자':'Department Head', '회계담당자':'GL 담당자', '회계팀장':'Accounting Head', '최종결재자':'CFO',
+  '1차결재자(이동전 Line Manager)':'Transfer-out Team Leader', '2차결재자(이동전 부서장)':'Transfer-out Department Head',
+  '3차결재자(이동후 Line Manager)':'Transfer-in Team Leader', '4차결재자(이동후 부서장)':'Transfer-in Department Head' };
 function faRoleLabel(role){
   const r=String(role||'').trim();
   if(FA_ROLE_LABELS[r]) return FA_ROLE_LABELS[r];
   // 저장 문구가 조금 달라도(공백·「결재자」 유무) 뜻으로 맞춘다
-  if(/이동\s*전.*(Line|팀장)/i.test(r)) return 'Transfer-out Line Manager';
+  if(/이동\s*전.*(Line|팀장)/i.test(r)) return 'Transfer-out Team Leader';
   if(/이동\s*전.*(부서장|Dept)/i.test(r)) return 'Transfer-out Department Head';
-  if(/이동\s*후.*(Line|팀장)/i.test(r)) return 'Transfer-in Line Manager';
+  if(/이동\s*후.*(Line|팀장)/i.test(r)) return 'Transfer-in Team Leader';
   if(/이동\s*후.*(부서장|Dept)/i.test(r)) return 'Transfer-in Department Head';
   if(/회계\s*팀장|Accounting\s*Head/i.test(r)) return 'Accounting Head';   // FA 회계팀장(09-30) — /회계/ 보다 먼저
   if(/회계/.test(r)) return 'GL 담당자';
@@ -2738,6 +2738,67 @@ function apsCtrRateCheck(v, goods){
   const orig = _apsCtrGoodsTotal(Array.isArray(goods)?goods:[], cur);
   return { kind:'diff', ref, saved, refKRW: Math.round(orig*ref), savedKRW: Math.round(orig*saved) };
 }
+/* ── LTR-PC 유류비 금액 재검증(11-02 · LTR-PC 상세와 같은 규칙) ──
+   단가 · 금액(TotalKm · TotalKRW)은 신청자 브라우저가 계산해 저장한다. 줄 금액은 「그 신청의 단가」(LinesJSON 각 줄 rate)로 계산하고,
+   rate 가 없는 지난 신청은 저장된 Total(KRW) 를 그대로 재현하는 단가(당시 기준 단가 → 현재 단가 → 합계 ÷ 거리)를 찾는다.
+   km × 단가 합 ≠ 저장 Total(KRW), 거리 합 ≠ 저장 총 거리, 신청 단가 ≠ 신청 당시 기준 단가(LTR-PC.json history) 이면 경고만 한다.
+   APS 에서 바로 승인할 수 있는 시스템이라 결재자가 LTR-PC 상세와 같은 근거를 보게 한다. */
+let _apsLtrCfg;   // undefined = 아직 안 읽음 · null = 못 읽음(기준 단가 판정은 건너뜀)
+async function apsLtrRateCfg(){
+  if (_apsLtrCfg !== undefined) return _apsLtrCfg;
+  try {
+    const drivesRes = await api('/sites/' + siteId + '/drives');
+    const docDrive = (drivesRes.value||[]).find(d=>['Documents','문서','Shared Documents'].includes(d.name)) || (drivesRes.value||[])[0];
+    const t = await token();
+    const res = await fetch(GRAPH+'/drives/'+docDrive.id+'/root:/LTR-PC.json:/content', {headers:{Authorization:'Bearer '+t}});
+    const text = res.ok ? (await res.text()).trim() : '';
+    _apsLtrCfg = text ? JSON.parse(text) : null;
+  } catch(e) { console.warn('[LTR] 단가 파일을 읽지 못했습니다 — 기준 단가 판정 생략:', e.message); _apsLtrCfg = null; }
+  return _apsLtrCfg;
+}
+function apsLtrRateHistory(cfg){
+  if(cfg && Array.isArray(cfg.history) && cfg.history.length) return cfg.history.filter(x=>x && Number(x.ratePerKm)>0).map(x=>({ratePerKm:Number(x.ratePerKm), from:x.from||null}));
+  if(cfg && Number(cfg.ratePerKm)>0) return [{ratePerKm:Number(cfg.ratePerKm), from:cfg.updatedAt||null}];
+  return [];
+}
+function apsLtrRateAt(cfg, iso){
+  const t = Date.parse(iso||''); if(isNaN(t)) return null;
+  let r = null;
+  apsLtrRateHistory(cfg).filter(x=>!isNaN(Date.parse(x.from||''))).sort((a,b)=>Date.parse(a.from)-Date.parse(b.from))
+    .forEach(x=>{ if(Date.parse(x.from)<=t) r = x.ratePerKm; });
+  return r;
+}
+function apsLtrLineAmt(km, rate){ const t = (parseFloat(km)||0) * (Number(rate)||0); return t<=0 ? 0 : Math.round(t); }
+function apsLtrAmountCheck(v, ls, cfg){
+  ls = Array.isArray(ls) ? ls : [];
+  const kms = ls.map(l=>parseFloat(l && l.mileage)||0);
+  const kmSum = kms.reduce((s,k)=>s+k, 0);
+  const savedKRW = Math.round(Number(v && v.TotalKRW)||0);
+  const official = apsLtrRateAt(cfg, v && (v.SubmittedDate || v.RequestDate));
+  const current = cfg && Number(cfg.ratePerKm) > 0 ? Number(cfg.ratePerKm) : null;
+  const hasRate = ls.length>0 && ls.every(l=>l && Number(l.rate)>0);
+  let rates;
+  if(hasRate) rates = ls.map(l=>Number(l.rate));
+  else {
+    const sumAt = r => kms.reduce((s,k)=>s+apsLtrLineAmt(k, r), 0);
+    const r0 = kmSum>0 ? savedKRW/kmSum : 0;
+    const cands = [official, current, Math.round(r0), Math.round(r0*10)/10, Math.round(r0*100)/100].filter(r=>r>0);
+    const hit = cands.find(r=>sumAt(r)===savedKRW);
+    const r = hit || official || current || r0;
+    rates = ls.map(()=>r);
+  }
+  const lineAmt = kms.map((k,i)=>apsLtrLineAmt(k, rates[i]));
+  const calcKRW = lineAmt.reduce((s,a)=>s+a, 0);
+  const issues = [];
+  const fk = n => (Math.round(n*100)/100).toLocaleString('ko-KR');
+  if(calcKRW !== savedKRW) issues.push('거리 × 단가 재계산 '+calcKRW.toLocaleString('ko-KR')+'원 ≠ 저장된 Total(KRW) '+savedKRW.toLocaleString('ko-KR')+'원');
+  if(Math.abs(kmSum - (Number(v && v.TotalKm)||0)) > 0.05) issues.push('이동 내역 거리 합 '+fk(kmSum)+' km ≠ 저장된 총 거리 '+fk(Number(v && v.TotalKm)||0)+' km');
+  if(official){
+    const bad = [...new Set(rates)].filter(r=>Math.abs(r-official) > 0.0001);
+    if(bad.length) issues.push('신청 단가 '+bad.map(fk).join(', ')+'원/km ≠ 신청 당시 기준 단가 '+fk(official)+'원/km');
+  }
+  return { lineAmt, calcKRW, savedKRW, kmSum, rates, official, issues };
+}
 // 상세 한 줄 — 정상(같은 환율 · KRW · 꼬리 없음)이면 빈 문자열이라 화면이 바뀌지 않는다
 function apsCtrRateWarnRow(v, goods, apprList){
   const c = apsCtrRateCheck(v, goods); if(!c) return '';
@@ -2818,7 +2879,7 @@ async function showDetail(sysKey,reqId){
   const modal=document.getElementById('detail-modal');
   document.getElementById('detail-content').innerHTML='<div style="text-align:center;padding:32px;color:#718096"><div class="spinner" style="margin:0 auto 12px"></div>불러오는 중...</div>';
   // 배지 — 키가 그대로 읽히는 시스템은 키, ACC · ACC Others 는 이름(ACO_DEV 같은 내부 키는 사용자가 모른다).
-  document.getElementById('detail-sys-badge').innerHTML=`<span class="sys-badge sys-${sysKey}">${sysKey==='ACC'?'ACC Voucher':((sysKey.startsWith('ACO_')||sysKey.startsWith('PROC_')||sysKey==='AAC')&&_sysObj?_sysObj.name:sysKey)}</span>`;
+  document.getElementById('detail-sys-badge').innerHTML=`<span class="sys-badge sys-${sysKey}">${sysKey==='ACC'?'ACC Voucher':sysKey==='LTR'?'LTR-PC':((sysKey.startsWith('ACO_')||sysKey.startsWith('PROC_')||sysKey==='AAC')&&_sysObj?_sysObj.name:sysKey)}</span>`;
   document.getElementById('detail-title').textContent='신청 상세 내용';
   modal.className='open';
   const sys=SYSTEMS.find(s=>s.key===sysKey);
@@ -2873,7 +2934,7 @@ async function showDetail(sysKey,reqId){
     const rowFullRaw=(l,v)=>`<div style="padding:7px 0;border-bottom:0.5px solid #edebe9;font-size:13px"><div style="font-size:11px;color:#605e5c;margin-bottom:3px">${l}</div><div style="white-space:pre-wrap;color:#323130">${v||'-'}</div></div>`;
     const rowFull=(l,v)=>rowFullRaw(l, (v===undefined||v===null||v==='') ? '' : escHtml(toText(v)));
 
-    const _baseTitle = (['GW','IT','SCC','BP','FA','MC','RR','GA_STN','GA_BC','GA_IDC','CTR_PR','ACC','ACO_DEV','ACO_CCL','AAC','PROC_SSL'].includes(sys.key)?f.Title:('#'+reqId));
+    const _baseTitle = (['GW','IT','SCC','BP','FA','MC','RR','GA_STN','GA_BC','GA_IDC','CTR_PR','ACC','ACO_DEV','ACO_CCL','AAC','PROC_SSL','LTR'].includes(sys.key)?f.Title:('#'+reqId));   // 11-02: LTR 도 Title(LTR-PC-…_ID-n) — 예전엔 「#8」
     // 요청 제목(IT: TicketTitle, GW: RequestTitle)은 각 시스템의 상세 섹션에서 이미 표시되므로
     // 기본 정보에서는 제외한다. 두 곳에 같은 값이 나와 화면이 중복돼 보이던 문제 해소.
     let info=sec('기본 정보')+row('제목',_baseTitle||'-')+row('신청자',f.RequesterEmail)+
@@ -3110,6 +3171,42 @@ async function showDetail(sysKey,reqId){
         +row('대상 시스템',_scope)+rowFull('사유',f.Reason);
       if(f.ClosedComment) info+=rowFull('종결 의견',f.ClosedComment);
       info+=sec('첨부파일')+parseFiles(f.AttachedFiles);
+    }
+    else if(sysKey==='LTR'){
+      /* LTR-PC 유류비 청구(11-02) — LTR-PC 상세와 같은 구성: 첨부파일 · 필수 첨부 안내 · 이동 내역(Mileage Log) · 합계 · 금액 확인.
+         예전에는 분기가 없어 기본 정보 · 결재 이력만 나왔다(제목도 「#8」).
+         저장 형식(LTR-PC 상신): LinesJSON [{date,from,to,purpose,mileage,rate}] · TotalKm · TotalKRW · AttachmentRef(ENC) · DeptHeadName/Email. */
+      let ls=[];
+      try{ const j=JSON.parse(f.LinesJSON||'[]'); ls=Array.isArray(j)?j:[]; }
+      catch(e){ try{ const j=JSON.parse(toText(f.LinesJSON||'[]')); ls=Array.isArray(j)?j:[]; }catch(e2){ ls=[]; } }
+      const _chk=apsLtrAmountCheck(f, ls, await apsLtrRateCfg());
+      const _rates=[...new Set(_chk.rates)];
+      const fk=n=>(Math.round((Number(n)||0)*100)/100).toLocaleString('ko-KR');
+      const TH='padding:7px 9px;font-weight:600;color:#334155;background:#EEF2F7;border-bottom:1px solid #d9dee6;white-space:nowrap';
+      const TD='padding:6px 9px;border-bottom:1px solid #edf0f4;vertical-align:top';
+      const TF='padding:7px 9px;font-weight:700;background:#F6F8FA;border-top:1px solid #d9dee6';
+      info+=sec('청구 정보')
+        +row('Department Head', f.DeptHeadName ? f.DeptHeadName+(f.DeptHeadEmail?' · '+f.DeptHeadEmail:'') : (f.DeptHeadEmail||'-'))
+        +row('유류비 단가', _rates.length===1 && _rates[0]>0 ? fk(_rates[0])+' 원/km' : (_rates.length>1 ? _rates.map(fk).join(' · ')+' 원/km' : '-'))
+        +rowRaw('총 거리 / Total', `${escHtml(fk(f.TotalKm))} km &nbsp;·&nbsp; <b>${escHtml(Math.round(Number(f.TotalKRW)||0).toLocaleString('ko-KR'))}원</b>`);
+      info+=sec('첨부파일')+parseFiles(f.AttachmentRef)
+        +`<div style="background:#fde7e9;border:1px solid #a4262c;border-radius:6px;padding:7px 11px;margin:8px 0 4px">`
+        +`<div style="font-weight:700;color:#a4262c;font-size:.74rem;margin-bottom:1px;line-height:1.4">필수 첨부 — Mandatory Attachment</div>`
+        +`<div style="font-size:.7rem;font-weight:500;color:#a4262c;line-height:1.45">Please attach the email confirmation that the Mobility Car was not available at Hiparking. This evidence is mandatory for the Concur approval request.<br>`
+        +`당시 회사 차량이 불가했다는 증빙 이메일을 반드시 첨부해 주세요. Concur 승인 요청 시 첨부 증빙 자료로 반드시 필요합니다.</div></div>`;
+      const body=ls.map((l,i)=>{ l=l||{}; const a=_chk.lineAmt[i];
+        return `<tr><td style="${TD};color:#605e5c">${i+1}</td><td style="${TD};white-space:nowrap">${escHtml(String(l.date||'-'))}</td>`
+          +`<td style="${TD}">${escHtml(toText(l.from||'-'))}</td><td style="${TD}">${escHtml(toText(l.to||'-'))}</td><td style="${TD}">${escHtml(toText(l.purpose||'-'))}</td>`
+          +`<td style="${TD};text-align:right">${escHtml(l.mileage===undefined||l.mileage===''?'-':fk(l.mileage))}</td>`
+          +`<td style="${TD};text-align:right;font-weight:600;white-space:nowrap">${a?a.toLocaleString('ko-KR'):'-'}</td></tr>`; }).join('');
+      const foot=`<tr><td colspan="5" style="${TF};text-align:right">TOTAL</td><td style="${TF};text-align:right;white-space:nowrap">${escHtml(fk(f.TotalKm))}</td>`
+        +`<td style="${TF};text-align:right;white-space:nowrap;color:#0078d4">${escHtml(Math.round(Number(f.TotalKRW)||0).toLocaleString('ko-KR'))}</td></tr>`;
+      info+=sec('이동 내역 (Mileage Log)')+(ls.length
+        ? `<div style="overflow-x:auto;margin:4px 0 10px;border:1px solid #d9dee6;border-radius:6px"><table style="width:100%;border-collapse:collapse;font-size:.78rem;margin:0;min-width:560px">`
+          +`<thead><tr>${[['No'],['Date'],['From'],['To'],['Purpose'],['Mileage(km)','right'],['Total(KRW)','right']].map(([t,al])=>`<th style="${TH};text-align:${al||'left'}">${t}</th>`).join('')}</tr></thead>`
+          +`<tbody>${body}</tbody><tfoot>${foot}</tfoot></table></div>`
+        : `<div style="font-size:.82rem;color:#a19f9d;padding:4px 0 10px">라인 없음</div>`);
+      if(_chk.issues.length) info+=`<div style="background:#fde7e9;border:1px solid #a4262c;border-radius:6px;padding:7px 11px;margin:0 0 10px;font-size:.74rem;color:#a4262c;line-height:1.5"><b>⚠ 금액 확인 필요</b><br>${_chk.issues.map(escHtml).join('<br>')}</div>`;
     }
     else if(sysKey==='CTR_PR'){
       /* CTR 구매요청서(PR) — CTR PR 상세와 같은 구성으로(09-22 요청). 예전에는 분기가 없어 기본 정보 · 결재 이력만 나왔다.
