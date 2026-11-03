@@ -1731,9 +1731,11 @@ function nextApproverCell(r) {
 // 11-02 시스템별 결재 역할 표기 — 저장값은 그대로 두고 화면만 바꾼다(각 시스템 화면과 같은 표기).
 //   Procurement · SSL: RBO MC → MC · Controller → Controlling Manager / Goodwill: Controlling → Controlling Manager
 //   여기 있는 시스템은 MC → DH(ACC Voucher · LTR-PC 부서장 코드) 바꿈을 하지 않는다 — SSL 의 MC 는 그대로 MC.
+//   11-03 STK Contract(SCC): 1차 Line Manager → Team Leader (SCC 화면과 같은 표기, SCC 역할에는 MC 가 없음)
 const SYS_ROLE_TEXT = {
   PROC_SSL: [[/\bRBO MC\b/g, 'MC'], [/\bController\b/g, 'Controlling Manager']],
   GW: [[/\bControlling\b(?! Manager)/g, 'Controlling Manager']],
+  SCC: [[/\bLine Manager\b/g, 'Team Leader']],
 };
 function sysRoleText(sysKey, r) { let s = String(r == null ? '' : r); (SYS_ROLE_TEXT[sysKey] || []).forEach(([re, to]) => { s = s.replace(re, to); }); return s; }
 function formatNextRole(sysKey, apr) {
