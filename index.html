@@ -1732,11 +1732,12 @@ function nextApproverCell(r) {
 //   Procurement · SSL: RBO MC → MC · Controller → Controlling Manager / Goodwill: Controlling → Controlling Manager
 //   여기 있는 시스템은 MC → DH(ACC Voucher · LTR-PC 부서장 코드) 바꿈을 하지 않는다 — SSL 의 MC 는 그대로 MC.
 //   11-03 STK Contract(SCC) · IT Ticket · Mobility Car: 1차 Line Manager → Team Leader (각 시스템 화면과 같은 표기, 이 시스템들의 역할에는 MC 코드가 없음)
+//   11-03 IT Ticket 1차는 괄호 없는 「1차결재자」 로 저장돼 역할이 비어 보였다 → 「1차결재자(Team Leader)」 (대리 꼬리 앞까지만)
 const SYS_ROLE_TEXT = {
   PROC_SSL: [[/\bRBO MC\b/g, 'MC'], [/\bController\b/g, 'Controlling Manager']],
   GW: [[/\bControlling\b(?! Manager)/g, 'Controlling Manager']],
   SCC: [[/\bLine Manager\b/g, 'Team Leader']],
-  IT: [[/\bLine Manager\b/g, 'Team Leader']],
+  IT: [[/\bLine Manager\b/g, 'Team Leader'], [/^1차결재자(?=\s*(?:\u00B7|$))/, '1차결재자(Team Leader)']],
   MC: [[/\bLine Manager\b/g, 'Team Leader']],
 };
 function sysRoleText(sysKey, r) { let s = String(r == null ? '' : r); (SYS_ROLE_TEXT[sysKey] || []).forEach(([re, to]) => { s = s.replace(re, to); }); return s; }
@@ -3299,7 +3300,7 @@ async function showDetail(sysKey,reqId){
         // ' · 대리(원 결재자)' 꼬리를 먼저 떼어 낸다. 남겨 두면 아래 괄호 조립이
         // '결재자(· 대리(Gildong Hong))' 처럼 통째로 괄호에 넣어 버린다(대리 처리된 건에서 발생).
         const _dm=_r.match(/\s*·\s*대리\((.+)\)\s*$/);
-        const _rb=_dm?_r.slice(0,_dm.index):_r;
+        const _rb=sysRoleText(sysKey, _dm?_r.slice(0,_dm.index):_r);   // 11-03 표기표를 먼저(IT 1차결재자 → 1차결재자(Team Leader)) — 표에 없는 시스템은 그대로
         const _rc=_rb.startsWith(_o+'차')?_rb.slice(_o.length+1).trim():_rb;
         const _rp=_rc.replace(/^결재자\s*/,'').replace(/^\((.+)\)$/,'$1').trim();
         // FA 는 저장 역할(1차결재자·회계담당자·이동전/후…)을 ACC 처럼 영문 라벨로 바꿔 보여준다
