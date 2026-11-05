@@ -5579,73 +5579,155 @@ function adminGoPage(p) { _adminPage = p; renderAdminTable(false); }
 
 // ── 경영진 보고용 결재 현황 보고서 (관리자 탭 전용) ──
 // ── 경영진 보고용 결재 현황 보고서 (관리자 탭 전용) ──
+// 11-05 A4 가로 문서형으로 다시 만듦 — 1 요약(핵심 지표 · 판단 문장 · 월별 추이 · 정체 경과) · 2 시스템별 현황(상태 구성 · 처리 기간 · 판정)
+//   · 3 결재 병목(결재자 · 결재 단계) · 4 조치 필요 건(정체 3일 이상, 권고 조치). 집계 기준은 그대로:
+//   철회 제외 · 지연 = 신청일부터 · 정체 = 최근 결재일(없으면 신청일)부터 · 3일 / 7일. 데이터는 관리자 표(_adminData) 그대로.
 const _REPORT_T = {
   ko: {
-    title: 'STK APS 통합 결재 현황 보고서', printBtn: '인쇄 / PDF로 저장', langBtn: 'English',
-    meta: (d,n,t)=>`작성일시: ${d} (KST) · 대상 시스템: ${n}개 · 전체 ${t}건`,
-    total:'전체 신청 건수', inProgress:'진행중(결재 대기)', approved:'승인완료', rejected:'반려',
-    delay3:'지연 3일 이상<br>(신청일 기준)', delay7:'지연 7일 이상<br>(신청일 기준)',
-    stag3:'정체 3일 이상<br>(최근결재 기준)', stag7:'정체 7일 이상<br>(최근결재 기준)',
-    chartSection:'현황 시각화', chartSysTitle:d=>`시스템별 진행중 건수 (${d} 기준)`, chartStatusTitle:'전체 상태 분포', chartDelayTitle:'지연 구간별 분포(건)', chartTotalTitle:'시스템별 전체 처리 건수(누적)',
-    totalVolTitle:'시스템별 신청 처리 건수 (전체 누적)', totalVolCols:['시스템','총 건수'],
-    bottleneckSection:'결재 대기 상위 결재자 Top 10', bottleneckCols:['결재자','역할','시스템별 대기 건수','합계'],
-    sysSection:'시스템별 현황', sysCols:['시스템','총건수','진행중','지연 3일+','지연 7일+','정체 3일+','정체 7일+'],
-    delaySection:(n,total)=>`지연 상세 (지연일수 순, 상위 ${n}건 / 전체 ${total}건)`,
-    delayCols:['시스템','제목','신청자','다음 결재자','신청일','지연일수<br><span style="font-weight:400;font-size:10px">(신청일 기준)</span>','정체일수<br><span style="font-weight:400;font-size:10px">(최근결재 기준)</span>'],
-    none:'해당 없음', unit:'일', footer:'본 보고서는 APS(Approval Portal System)에서 자동 생성되었습니다. © Star Truck Korea',
-    statusLabels:{approved:'승인완료',rejected:'반려',inProgress:'진행중'},
-    withdrawnNote:n=>n>0?`※ 철회된 ${n}건은 모든 집계에서 제외되었습니다.`:'',
+    title: 'APS 통합 결재 현황 보고서', org: 'STAR TRUCK KOREA', tag: '사내 한정 · APS 자동 생성',
+    printBtn: '인쇄 / PDF 저장', langBtn: 'English',
+    asOf: '작성 기준', range: '신청일 범위', sys: '대상 시스템', base: '집계 대상',
+    sysN: n => n + '개', cnt: n => n.toLocaleString('ko-KR') + '건', wdEx: n => (n ? '철회 ' + n + '건 제외' : ''),
+    sec: ['요약', '시스템별 현황', '결재 병목', '조치 필요 건'], cont: '(계속)',
+    k: { total: '전체 신청', done: '처리 완료', prog: '진행 중', stag: '3일 이상 정체', lead: '처리 기간 중앙값', rej: '반려율' },
+    ks: { total: n => '이번 달 신청 ' + n + '건', done: p => '완료율 ' + p, prog: n => '7일 이상 정체 ' + n + '건', stag: p => '진행 중의 ' + p, lead: v => '90%가 ' + v + ' 이내', rej: n => '반려 ' + n + '건' },
+    findT: '핵심 판단', trendT: '월별 신청 건수', trendS: '신청월 기준 · 현재 상태별', agingT: '진행 중 건의 정체 경과', agingS: '최근 결재(없으면 신청) 후 지난 일수',
+    lg: { prog: '진행 중', ok: '승인완료', rej: '반려' },
+    d: v => v + '일', n: v => v + '건', mon: (y, m) => m + '월', monY: (y, m) => String(y).slice(2) + '년 ' + m + '월',
+    buckets: ['0~2일', '3~6일', '7~13일', '14~29일', '30일+'],
+    sysCols: ['시스템', '전체', '상태 구성', '승인', '반려', '반려율', '진행 중', '정체 3일+', '정체 7일+', '처리 기간 중앙', '처리 기간 P90', '최장 정체', '판정'],
+    sum: '합계', vd: { ok: '정상', warn: '주의', risk: '위험' },
+    vdRule: '판정 — 위험: 7일 이상 정체 1건 이상 · 주의: 3일 이상 정체 1건 이상 · 정상: 정체 없음.  처리 기간 — 신청일부터 마지막 결재일까지(승인완료 · 반려 건).',
+    obsT: '시스템별 관찰',
+    obs: {
+      risk: (s, n, d) => `<b>${s}</b> — 7일 이상 정체 ${n}건, 가장 긴 건은 ${d}일째 멈춰 있습니다.`,
+      warn: (s, n) => `<b>${s}</b> — 3일 이상 정체 ${n}건이 있습니다.`,
+      lead: (s, m, all) => `<b>${s}</b> — 처리 기간 중앙값 ${m}로 전체(${all})보다 깁니다.`,
+      rej: (s, r, n) => `<b>${s}</b> — 반려율 ${r}(${n}건)로 가장 높습니다.`,
+      none: '정체된 시스템이 없습니다.',
+    },
+    apT: '결재자별 대기', apS: '다음 결재 차례 기준 · 상위 10', apCols: ['결재자', '역할', '대기', '시스템별', '최장 정체', '평균 정체'],
+    roleT: '결재 단계(역할)별 대기', roleS: '진행 중 건의 현재 단계',
+    mxT: '시스템별 정체 경과', mxS: '진행 중 건 · 최근 결재 후 지난 일수 · 3일 이상 칸은 건수가 많을수록 진하게', mxCols: ['시스템', '진행 중', '최장 정체', '판정'], more: n => `외 ${n}명은 생략했습니다.`, etc: n => `외 ${n}`,
+    concT: '대기 집중도', conc: (n, p, k) => `상위 ${k}명이 진행 중 결재의 <b>${p}</b>(${n}건)를 갖고 있습니다.`,
+    stepT: '결재 단계 진행률', step: (a, b) => `진행 중 건은 평균 <b>${a}</b>단계 중 <b>${b}</b>단계까지 결재됐습니다.`,
+    acT: '조치 필요 건', acS: '진행 중 · 최근 결재 후 3일 이상 정체 · 정체 긴 순',
+    acRule: '권고 조치 — 정체 3~6일: 결재 요청 알림 · 7일 이상: 결재자 부재 여부 확인, 결재 대리(AAC) 지정 또는 결재선 변경 검토',
+    acCols: ['No', '시스템', '제목', '신청자', '신청일', '단계', '현재 결재자', '지연', '정체', '권고 조치'],
+    ac: { remind: '결재 요청 알림', esc: '부재 확인 · 대리 지정 검토' },
+    none: '해당 없음', noAct: '3일 이상 정체된 진행 중 건이 없습니다.',
+    foot: n => '지연: 신청일부터 · 정체: 최근 결재일(없으면 신청일)부터 · 달력일 기준' + (n ? ' · 철회 ' + n + '건 제외' : '') + ' · 출처: APS 연동 시스템 SharePoint 목록',
+    f: {
+      done: (t, d, p, ip) => `<b>처리 현황</b> 전체 ${t}건 중 ${d}건(${p})을 처리했고, ${ip}건이 결재 진행 중입니다.`,
+      noProg: '<b>정체</b> 진행 중인 결재가 없습니다.',
+      noStag: ip => `<b>정체</b> 진행 중 ${ip}건 모두 최근 결재 후 3일 이내로, 정체된 건이 없습니다.`,
+      stag: (ip, s3, p, s7) => `<b>정체</b> 진행 중 ${ip}건 중 ${s3}건(${p})이 최근 결재 후 3일 이상 멈춰 있고, 그중 ${s7}건은 7일 이상입니다.`,
+      worst: (s, t, d, w) => `<b>최장 정체</b> ${s} 「${t}」 건이 ${d}일째 ${w} 결재를 기다리고 있습니다.`,
+      conc: (w, n, p, s, sn) => `<b>대기 집중</b> ${w}에게 ${n}건(진행 중의 ${p})이 몰려 있습니다. 시스템별로는 ${s}에서 ${sn}건으로 가장 많습니다.`,
+      lead: (m, p90, s, sm) => `<b>처리 기간</b> 완료 건의 중앙값은 ${m}, 90%는 ${p90} 안에 끝났습니다.` + (s ? ` 가장 오래 걸리는 시스템은 ${s}(중앙값 ${sm})입니다.` : ''),
+      rej: (r, s, sr, n) => `<b>반려</b> 반려율은 ${r}입니다.` + (s ? ` ${s}의 반려율이 ${sr}(${n}건)로 가장 높습니다.` : ''),
+      month: (mo, d, a, b, c) => `<b>이번 달</b> ${mo}월 1~${d}일 신청 ${a}건 · 처리 ${b}건 (지난달 같은 기간 신청 ${c}건).`,
+    },
   },
   en: {
-    title: 'STK APS Integrated Approval Status Report', printBtn: 'Print / Save as PDF', langBtn: '한국어',
-    meta: (d,n,t)=>`Generated: ${d} (KST) · Systems: ${n} · Total ${t} items`,
-    total:'Total Requests', inProgress:'In Progress (Pending)', approved:'Approved', rejected:'Rejected',
-    delay3:'Delayed 3+ days<br>(from request date)', delay7:'Delayed 7+ days<br>(from request date)',
-    stag3:'Stalled 3+ days<br>(from last action)', stag7:'Stalled 7+ days<br>(from last action)',
-    chartSection:'Visual Overview', chartSysTitle:d=>`In-Progress Count by System (as of ${d})`, chartStatusTitle:'Overall Status Distribution', chartDelayTitle:'Delay Severity Distribution (items)', chartTotalTitle:'Total Processed by System (cumulative)',
-    totalVolTitle:'Total Requests Processed by System (cumulative)', totalVolCols:['System','Total'],
-    bottleneckSection:'Top 10 Approvers by Pending Items', bottleneckCols:['Approver','Role','Pending by System','Total'],
-    sysSection:'Status by System', sysCols:['System','Total','In Progress','Delay 3+d','Delay 7+d','Stall 3+d','Stall 7+d'],
-    delaySection:(n,total)=>`Delay Details (sorted by delay, top ${n} of ${total})`,
-    delayCols:['System','Title','Requester','Next Approver','Request Date','Delay<br><span style="font-weight:400;font-size:10px">(from request)</span>','Stall<br><span style="font-weight:400;font-size:10px">(from last action)</span>'],
-    none:'None', unit:'d', footer:'This report was automatically generated by APS (Approval Portal System). © Star Truck Korea',
-    statusLabels:{approved:'Approved',rejected:'Rejected',inProgress:'In Progress'},
-    withdrawnNote:n=>n>0?`※ ${n} withdrawn item(s) excluded from all figures.`:'',
-  }
+    title: 'APS Integrated Approval Status Report', org: 'STAR TRUCK KOREA', tag: 'Internal use · generated by APS',
+    printBtn: 'Print / Save PDF', langBtn: '한국어',
+    asOf: 'As of', range: 'Request dates', sys: 'Systems', base: 'In scope',
+    sysN: n => String(n), cnt: n => n.toLocaleString('en-US') + ' items', wdEx: n => (n ? n + ' withdrawn excluded' : ''),
+    sec: ['Summary', 'Status by System', 'Approval Bottlenecks', 'Items Requiring Action'], cont: '(cont.)',
+    k: { total: 'Total requests', done: 'Completed', prog: 'In progress', stag: 'Stalled 3+ days', lead: 'Median lead time', rej: 'Rejection rate' },
+    ks: { total: n => n + ' this month', done: p => p + ' completion', prog: n => n + ' stalled 7+ days', stag: p => p + ' of in-progress', lead: v => '90% within ' + v, rej: n => n + ' rejected' },
+    findT: 'Key findings', trendT: 'Requests by month', trendS: 'by request month · current status', agingT: 'Stall age of in-progress items', agingS: 'days since last approval (or request)',
+    lg: { prog: 'In progress', ok: 'Approved', rej: 'Rejected' },
+    d: v => v + 'd', n: v => String(v), mon: (y, m) => ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][m - 1], monY: (y, m) => ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][m - 1] + " '" + String(y).slice(2),
+    buckets: ['0–2d', '3–6d', '7–13d', '14–29d', '30d+'],
+    sysCols: ['System', 'Total', 'Status mix', 'Approved', 'Rejected', 'Rej. rate', 'In prog.', 'Stall 3d+', 'Stall 7d+', 'Lead median', 'Lead P90', 'Longest stall', 'Rating'],
+    sum: 'Total', vd: { ok: 'Normal', warn: 'Watch', risk: 'At risk' },
+    vdRule: 'Rating — At risk: 1+ item stalled 7+ days · Watch: 1+ item stalled 3+ days · Normal: no stalls.  Lead time — request date to last approval (approved and rejected items).',
+    obsT: 'Observations',
+    obs: {
+      risk: (s, n, d) => `<b>${s}</b> — ${n} item(s) stalled 7+ days; the longest has waited ${d} days.`,
+      warn: (s, n) => `<b>${s}</b> — ${n} item(s) stalled 3+ days.`,
+      lead: (s, m, all) => `<b>${s}</b> — median lead time ${m}, longer than overall (${all}).`,
+      rej: (s, r, n) => `<b>${s}</b> — highest rejection rate at ${r} (${n} items).`,
+      none: 'No system has stalled items.',
+    },
+    apT: 'Pending by approver', apS: 'whose turn it is · top 10', apCols: ['Approver', 'Role', 'Pending', 'By system', 'Longest stall', 'Avg stall'],
+    roleT: 'Pending by approval step (role)', roleS: 'current step of in-progress items',
+    mxT: 'Stall age by system', mxS: 'in-progress items · days since last approval · 3d+ cells darker with more items', mxCols: ['System', 'In prog.', 'Longest stall', 'Rating'], more: n => `${n} more approver(s) not shown.`, etc: n => `+${n}`,
+    concT: 'Concentration', conc: (n, p, k) => `The top ${k} approvers hold <b>${p}</b> (${n} items) of in-progress approvals.`,
+    stepT: 'Step progress', step: (a, b) => `In-progress items have cleared <b>${b}</b> of <b>${a}</b> steps on average.`,
+    acT: 'Items requiring action', acS: 'in progress · stalled 3+ days since last approval · longest first',
+    acRule: 'Recommended action — stalled 3–6 days: send a reminder · 7+ days: check approver availability; consider a delegate (AAC) or changing the approval line',
+    acCols: ['No', 'System', 'Title', 'Requester', 'Requested', 'Step', 'Current approver', 'Delay', 'Stall', 'Recommended action'],
+    ac: { remind: 'Send reminder', esc: 'Check availability · delegate' },
+    none: 'None', noAct: 'No in-progress item has stalled for 3+ days.',
+    foot: n => 'Delay: from request date · Stall: from last approval (or request) · calendar days' + (n ? ' · ' + n + ' withdrawn excluded' : '') + ' · Source: SharePoint lists of APS-linked systems',
+    f: {
+      done: (t, d, p, ip) => `<b>Throughput</b> ${d} of ${t} requests (${p}) are completed; ${ip} are in approval.`,
+      noProg: '<b>Stalls</b> There are no approvals in progress.',
+      noStag: ip => `<b>Stalls</b> All ${ip} in-progress items moved within the last 3 days.`,
+      stag: (ip, s3, p, s7) => `<b>Stalls</b> ${s3} of ${ip} in-progress items (${p}) have not moved for 3+ days; ${s7} of them for 7+ days.`,
+      worst: (s, t, d, w) => `<b>Longest stall</b> ${s} “${t}” has waited ${d} days for ${w}.`,
+      conc: (w, n, p, s, sn) => `<b>Concentration</b> ${w} holds ${n} items (${p} of in-progress). By system, ${s} has the most with ${sn}.`,
+      lead: (m, p90, s, sm) => `<b>Lead time</b> Completed items took a median of ${m}; 90% finished within ${p90}.` + (s ? ` Slowest system: ${s} (median ${sm}).` : ''),
+      rej: (r, s, sr, n) => `<b>Rejections</b> The rejection rate is ${r}.` + (s ? ` ${s} is highest at ${sr} (${n} items).` : ''),
+      month: (mo, d, a, b, c) => `<b>This month</b> ${a} requests and ${b} completions in ${['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][mo - 1]} 1–${d} (same period last month: ${c} requests).`,
+    },
+  },
 };
 
-function _svgHBarChart(data, esc) {
-  const labelW = 92, chartW = 230, barH = 24, gap = 12;
-  const maxVal = Math.max(1, ...data.map(d=>d.value));
-  const h = data.length * (barH+gap);
-  const bars = data.map((d,i) => {
-    const y = i*(barH+gap);
-    const bw = Math.max(2, Math.round((d.value/maxVal)*chartW));
-    return `<text x="0" y="${y+barH*0.68}" font-size="14" font-weight="600" fill="#374151">${esc(d.label)}</text>
-      <rect x="${labelW}" y="${y}" width="${bw}" height="${barH}" fill="${d.color||'#1a5fb4'}" rx="4"/>
-      <text x="${labelW+bw+10}" y="${y+barH*0.68}" font-size="14" fill="#1f2937" font-weight="700">${d.value}</text>`;
-  }).join('');
-  return `<svg viewBox="0 0 ${labelW+chartW+40} ${h+6}" width="100%" style="max-width:400px">${bars}</svg>`;
-}
+// 보고서 그림 색 — 상태 3색(진행 중 · 승인완료 · 반려)은 쌓는 순서 그대로 색약 구분 검사 통과(dataviz validate_palette), 정체 경과는 파랑 한 색의 단계
+const _REP_C = { prog: '#eb6834', ok: '#2a78d6', rej: '#e34948', ramp: ['#86b6ef', '#5598e7', '#2a78d6', '#1c5cab', '#104281'], grid: '#e1e0d9', axis: '#c3c2b7', ink: '#0b0b0b', ink2: '#52514e', mute: '#898781' };
 
-function _svgDonutChart(data, esc) {
-  const size = 150, r = size/2-8, cx=size/2, cy=size/2, cr = r*0.58;
-  const total = data.reduce((s,d)=>s+d.value,0) || 1;
-  let angle = -90, paths = '';
-  data.forEach(d => {
-    const frac = d.value/total;
-    if (frac <= 0) return;
-    const a1 = angle, a2 = angle + frac*360; angle = a2;
-    const large = (a2-a1)>180?1:0;
-    const x1 = cx + r*Math.cos(a1*Math.PI/180), y1 = cy + r*Math.sin(a1*Math.PI/180);
-    const x2 = cx + r*Math.cos(a2*Math.PI/180), y2 = cy + r*Math.sin(a2*Math.PI/180);
-    paths += `<path d="M${cx},${cy} L${x1},${y1} A${r},${r} 0 ${large} 1 ${x2},${y2} Z" fill="${d.color}"/>`;
+function _repMedian(a) { if (!a.length) return null; const s = a.slice().sort((x, y) => x - y), m = s.length >> 1; return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; }
+function _repPct(a) { return function (p) { if (!a.length) return null; const s = a.slice().sort((x, y) => x - y); return s[Math.min(s.length - 1, Math.max(0, Math.ceil(p * s.length) - 1))]; }; }
+function _repNice(v) { if (v <= 5) return 5; const p = Math.pow(10, Math.floor(Math.log10(v))), f = v / p; return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 2.5 ? 2.5 : f <= 5 ? 5 : 10) * p; }
+// 위가 둥근 막대(밑은 기준선에 붙어 각진 채) — r 은 막대 크기보다 크지 않게
+function _repTopRound(x, y, w, h, r) { r = Math.max(0, Math.min(r, w / 2, h)); return `M${x},${y + h}V${y + r}Q${x},${y} ${x + r},${y}H${x + w - r}Q${x + w},${y} ${x + w},${y + r}V${y + h}Z`; }
+function _repRightRound(x, y, w, h, r) { r = Math.max(0, Math.min(r, h / 2, w)); return `M${x},${y}H${x + w - r}Q${x + w},${y} ${x + w},${y + r}V${y + h - r}Q${x + w},${y + h} ${x + w - r},${y + h}H${x}Z`; }
+
+// 월별 신청(쌓은 세로 막대) — 아래부터 진행 중 · 승인완료 · 반려, 막대 위에 그달 합계
+function _repTrendSvg(months, T, esc) {
+  const W = 600, H = 236, L = 34, R = 8, Tp = 20, B = 30, pw = W - L - R, ph = H - Tp - B;
+  const max = _repNice(Math.max(1, ...months.map(m => m.prog + m.ok + m.rej)));
+  const band = pw / Math.max(1, months.length), bw = Math.min(34, band * 0.58);
+  let g = '';
+  for (let i = 0; i <= 4; i++) { const v = max * i / 4, y = Tp + ph - ph * i / 4; g += `<line x1="${L}" x2="${W - R}" y1="${y}" y2="${y}" stroke="${i ? _REP_C.grid : _REP_C.axis}" stroke-width="1"/><text x="${L - 6}" y="${y + 3.5}" text-anchor="end" font-size="10" fill="${_REP_C.mute}">${Math.round(v)}</text>`; }
+  months.forEach((m, i) => {
+    const x = L + band * i + (band - bw) / 2, tot = m.prog + m.ok + m.rej;
+    let y0 = Tp + ph; const segs = [['prog', m.prog], ['ok', m.ok], ['rej', m.rej]].filter(s => s[1] > 0);
+    segs.forEach(([k, v], j) => {
+      const h = ph * v / max, top = j === segs.length - 1, gap = segs.length > 1 && h > 3 ? 1 : 0;
+      const yy = y0 - h + (j ? gap : 0), hh = h - (j ? gap : 0) - (top ? 0 : gap);
+      const tip = `<title>${esc(T.monY(m.y, m.m))} · ${esc(T.lg[k])} ${v}</title>`;
+      g += top ? `<path d="${_repTopRound(x, yy, bw, Math.max(0.5, hh), 3)}" fill="${_REP_C[k]}">${tip}</path>` : `<rect x="${x}" y="${yy}" width="${bw}" height="${Math.max(0.5, hh)}" fill="${_REP_C[k]}">${tip}</rect>`;
+      y0 -= h;
+    });
+    if (tot) g += `<text x="${x + bw / 2}" y="${Tp + ph - ph * tot / max - 5}" text-anchor="middle" font-size="10.5" font-weight="600" fill="${_REP_C.ink}">${tot}</text>`;
+    const lab = (i === 0 || m.m === 1) ? T.monY(m.y, m.m) : T.mon(m.y, m.m);
+    g += `<text x="${x + bw / 2}" y="${H - B + 15}" text-anchor="middle" font-size="10" fill="${_REP_C.ink2}">${esc(lab)}</text>`;
   });
-  const legend = data.map(d=>`<div style="display:flex;align-items:center;gap:7px;font-size:12.5px;margin-bottom:7px"><span style="width:11px;height:11px;background:${d.color};display:inline-block;border-radius:2px;flex-shrink:0"></span>${esc(d.label)}: <b>${d.value}</b> (${Math.round(d.value/total*100)}%)</div>`).join('');
-  return `<div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap">
-    <svg viewBox="0 0 ${size} ${size}" width="${size}" height="${size}">${paths}<circle cx="${cx}" cy="${cy}" r="${cr}" fill="#fff"/></svg>
-    <div>${legend}</div>
-  </div>`;
+  return `<svg class="viz" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(T.trendT)}">${g}</svg>`;
+}
+// 가로 막대(라벨 · 막대 · 값) — 정체 경과 · 결재 단계
+function _repHBarsSvg(rows, colorOf, esc, opt) {
+  opt = opt || {}; const LW = opt.labelW || 64, W = opt.width || 360, bh = 13, gap = 9, VW = 34, pw = W - LW - VW;
+  const max = Math.max(1, ...rows.map(r => r.v)), H = rows.length * (bh + gap) - gap + 2;
+  let g = `<line x1="${LW}" x2="${LW}" y1="0" y2="${H}" stroke="${_REP_C.axis}" stroke-width="1"/>`;
+  rows.forEach((r, i) => {
+    const y = i * (bh + gap) + 1, w = r.v ? Math.max(2, pw * r.v / max) : 0;
+    g += `<text x="${LW - 8}" y="${y + bh - 2.5}" text-anchor="end" font-size="10.5" fill="${_REP_C.ink2}">${esc(r.label)}</text>`;
+    if (w) g += `<path d="${_repRightRound(LW + 1, y, w, bh, 3)}" fill="${colorOf(r, i)}"><title>${esc(r.label)} ${r.v}</title></path>`;
+    g += `<text x="${LW + 1 + w + 6}" y="${y + bh - 2.5}" font-size="10.5" font-weight="600" fill="${_REP_C.ink}">${r.v}</text>`;
+  });
+  return `<svg class="viz" viewBox="0 0 ${W} ${H}" role="img">${g}</svg>`;
+}
+// 상태 구성 한 줄 막대(표 안) — 진행 중 · 승인완료 · 반려, 사이 1px 흰 틈
+function _repMixBar(s, T) {
+  const t = s.prog + s.ok + s.rej; if (!t) return '';
+  return `<span class="mix" title="${T.lg.prog} ${s.prog} · ${T.lg.ok} ${s.ok} · ${T.lg.rej} ${s.rej}">` +
+    [['prog', s.prog], ['ok', s.ok], ['rej', s.rej]].filter(x => x[1] > 0).map(([k, v]) => `<i style="flex:${v};background:${_REP_C[k]}"></i>`).join('') + '</span>';
 }
 
 async function generateExecReport(lang) {
@@ -5654,210 +5736,265 @@ async function generateExecReport(lang) {
   // 보고서 생성 시점에 항상 최신 + 전체 시스템 데이터를 강제로 다시 불러옴 (일부 시스템 누락 방지)
   const btn = document.querySelector('button[onclick="generateExecReport()"]');
   const btnHtml = btn ? btn.innerHTML : '';
-  if (btn) { btn.disabled = true; btn.textContent = lang==='en' ? 'Loading...' : '불러오는 중...'; }
-  try { await loadAdminPage(true); } catch(e) {}
+  if (btn) { btn.disabled = true; btn.textContent = lang === 'en' ? 'Loading...' : '불러오는 중...'; }
+  try { await loadAdminPage(true); } catch (e) {}
   if (btn) { btn.disabled = false; btn.innerHTML = btnHtml; }
-  if (!_adminData.length) { alert(lang==='en' ? 'Please open the Admin tab to load data first.' : '먼저 관리자 탭을 열어 데이터를 로드해주세요.'); return; }
+  if (!_adminData.length) { alert(lang === 'en' ? 'Please open the Admin tab to load data first.' : '먼저 관리자 탭을 열어 데이터를 로드해주세요.'); return; }
 
-  const now = Date.now();
-  const bySys = {};
-  let totalApproved = 0, totalRejected = 0, totalInProgress = 0, totalWithdrawn = 0;
-  let delay3 = 0, delay7 = 0, stag3 = 0, stag7 = 0;
-  const delayList = [];
-  const approverCounts = {};
-  const delayBuckets = { b1:0, b2:0, b3:0, b4:0 }; // 3-6, 7-13, 14-29, 30+
+  const now = Date.now(), DAY = 86400000;
+  const kst = t => new Date(new Date(t).getTime() + 9 * 3600 * 1000);
+  const days = t => (t ? Math.floor((now - new Date(t)) / DAY) : 0);
+  const rd = kst(now), p2 = n => String(n).padStart(2, '0');
+  const dateStr = `${rd.getUTCFullYear()}-${p2(rd.getUTCMonth() + 1)}-${p2(rd.getUTCDate())} ${p2(rd.getUTCHours())}:${p2(rd.getUTCMinutes())}`;
+  const esc = s => escHtml(s == null ? '' : s);   // 보고서 창은 APS 와 같은 출처라 같은 함수로
+  const pct = (a, b) => (b ? (Math.round(a / b * 1000) / 10).toFixed(1) + '%' : '-');
+  const dd = v => (v == null ? '-' : T.d((Math.round(v * 10) / 10).toFixed(1)));
+  const dk = t => { const d = kst(t); return d.getUTCFullYear() * 100 + d.getUTCMonth() + 1; };
 
+  // ── 집계 (철회는 모든 집계에서 뺀다)
+  const bySys = {}, appr = {}, roles = {}, aging = [0, 0, 0, 0, 0], leadAll = [], monthly = {}, action = [];
+  let total = 0, ok = 0, rej = 0, prog = 0, wd = 0, s3 = 0, s7 = 0, stepDone = 0, stepAll = 0, worst = null, minKey = null;
+  const curKey = rd.getUTCFullYear() * 100 + rd.getUTCMonth() + 1, today = rd.getUTCDate();
+  const prevKey = rd.getUTCMonth() === 0 ? (rd.getUTCFullYear() - 1) * 100 + 12 : curKey - 1;
+  let mReq = 0, mDone = 0, pReq = 0;
+  // 시스템 이름은 키(IT · GA_STN …) 대신 화면 이름(IT Ticket · GA Stationery …)으로
+  const _sysNm = {}; try { (typeof SYSTEMS !== 'undefined' ? SYSTEMS : []).forEach(s => { _sysNm[s.key] = s.name || s.key; }); } catch (e) {}
   _adminData.forEach(r => {
-    const sysName = r.sysLabel || r.sysKey;
-    const isWithdrawn = r.reqStatus === '철회' || r.reqStatus === '철회(잠김)';
-    if (!bySys[sysName]) bySys[sysName] = { total:0, pending:0, delay3:0, delay7:0, stag3:0, stag7:0 };
-    const target = bySys[sysName];
-    target.total++;
-    if (isWithdrawn) { totalWithdrawn++; return; } // 철회는 진행중/지연 집계에서 완전 제외
-    if (r.reqStatus === '승인완료') { totalApproved++; return; }
-    if (r.reqStatus === '반려') { totalRejected++; return; }
-    // 대기/진행중 — 지연·정체 계산 대상
-    totalInProgress++;
-    target.pending++;
-    if (r.nextApprover && r.nextApprover !== '-') {
-      const key = r.nextApprover;
-      if (!approverCounts[key]) approverCounts[key] = { count:0, role:r.nextRole, bySys:{} };
-      approverCounts[key].count++;
-      approverCounts[key].bySys[sysName] = (approverCounts[key].bySys[sysName]||0) + 1;
+    const name = _sysNm[r.sysKey] || r.sysLabel || r.sysKey;
+    if (r.reqStatus === '철회' || r.reqStatus === '철회(잠김)') { wd++; return; }
+    const S = bySys[name] || (bySys[name] = { total: 0, ok: 0, rej: 0, prog: 0, s3: 0, s7: 0, lead: [], maxStag: 0 });
+    S.total++; total++;
+    if (r.requestDate) {
+      const k = dk(r.requestDate); minKey = minKey == null ? k : Math.min(minKey, k);
+      const M = monthly[k] || (monthly[k] = { prog: 0, ok: 0, rej: 0 });
+      M[r.reqStatus === '승인완료' ? 'ok' : r.reqStatus === '반려' ? 'rej' : 'prog']++;
+      if (k === curKey) mReq++;
+      if (k === prevKey && kst(r.requestDate).getUTCDate() <= today) pReq++;
     }
-    const delayDays = r.requestDate ? Math.floor((now-new Date(r.requestDate))/86400000) : 0;
-    const stagRef = r.lastApprovalDate || r.requestDate;
-    const stagnantDays = stagRef ? Math.floor((now-new Date(stagRef))/86400000) : 0;
-    if (delayDays >= 3) { target.delay3++; delay3++; }
-    if (delayDays >= 7) { target.delay7++; delay7++; }
-    if (stagnantDays >= 3) { target.stag3++; stag3++; }
-    if (stagnantDays >= 7) { target.stag7++; stag7++; }
-    if (delayDays >= 3) {
-      delayList.push({ ...r, delayDays, stagnantDays });
-      if (delayDays>=30) delayBuckets.b4++;
-      else if (delayDays>=14) delayBuckets.b3++;
-      else if (delayDays>=7) delayBuckets.b2++;
-      else delayBuckets.b1++;
+    if (r.reqStatus === '승인완료' || r.reqStatus === '반려') {
+      r.reqStatus === '승인완료' ? (ok++, S.ok++) : (rej++, S.rej++);
+      if (r.requestDate && r.lastApprovalDate) {
+        const lt = (new Date(r.lastApprovalDate) - new Date(r.requestDate)) / DAY;
+        if (lt >= 0 && isFinite(lt)) { S.lead.push(lt); leadAll.push(lt); }
+        if (dk(r.lastApprovalDate) === curKey) mDone++;
+      }
+      return;
     }
+    // 대기 · 진행중 — 지연 · 정체 계산 대상
+    prog++; S.prog++;
+    const delay = days(r.requestDate), stag = days(r.lastApprovalDate || r.requestDate);
+    const bk = stag >= 30 ? 4 : stag >= 14 ? 3 : stag >= 7 ? 2 : stag >= 3 ? 1 : 0;
+    aging[bk]++; (S.buckets || (S.buckets = [0, 0, 0, 0, 0]))[bk]++;
+    if (stag >= 3) { S.s3++; s3++; }
+    if (stag >= 7) { S.s7++; s7++; }
+    S.maxStag = Math.max(S.maxStag, stag);
+    if (r.totalAprs) { stepAll += r.totalAprs; stepDone += r.doneCount || 0; }
+    const who = r.nextApprover && r.nextApprover !== '-' ? r.nextApprover : '';
+    const role = r.nextRole && r.nextRole !== '-' ? r.nextRole : '';
+    if (who) {
+      const A = appr[who] || (appr[who] = { n: 0, roles: {}, bySys: {}, max: 0, sum: 0 });
+      A.n++; A.sum += stag; A.max = Math.max(A.max, stag); A.bySys[name] = (A.bySys[name] || 0) + 1; if (role) A.roles[role] = (A.roles[role] || 0) + 1;
+    }
+    if (role) roles[role] = (roles[role] || 0) + 1;
+    const item = { sys: name, title: r.title, requester: String(r.requester || '-').split('@')[0], reqDate: r.requestDate, step: r.totalAprs ? ((r.doneCount || 0) + 1) + '/' + r.totalAprs : '-', who: who ? who + (role ? ' (' + role + ')' : '') : '-', delay, stag };
+    if (stag >= 3) action.push(item);
+    if (!worst || stag > worst.stag) worst = item;
   });
-  delayList.sort((a,b)=>b.delayDays-a.delayDays);
-  const topApprovers = Object.entries(approverCounts).sort((a,b)=>b[1].count-a[1].count).slice(0,10);
+  action.sort((a, b) => b.stag - a.stag || b.delay - a.delay);
+  const sysList = Object.entries(bySys).sort((a, b) => b[1].prog - a[1].prog || b[1].s3 - a[1].s3 || b[1].total - a[1].total);
+  const apprList = Object.entries(appr).sort((a, b) => b[1].n - a[1].n || b[1].max - a[1].max);
+  const roleList = Object.entries(roles).sort((a, b) => b[1] - a[1]);
+  const leadMed = _repMedian(leadAll), leadP90 = _repPct(leadAll)(0.9);
+  const verdict = s => (s.s7 ? 'risk' : s.s3 ? 'warn' : 'ok');
 
-  const rd = new Date(now + 9*3600*1000);
-  const p = n=>String(n).padStart(2,'0');
-  const dateStr = `${rd.getUTCFullYear()}-${p(rd.getUTCMonth()+1)}-${p(rd.getUTCDate())} ${p(rd.getUTCHours())}:${p(rd.getUTCMinutes())}`;
+  // 월: 데이터 첫 달부터(최대 12개월 전) 이번 달까지, 빈 달은 0
+  const months = [];
+  { let y = rd.getUTCFullYear(), m = rd.getUTCMonth() + 1; for (let i = 0; i < 12; i++) { const k = y * 100 + m; if (minKey != null && k < minKey && months.length) break; months.unshift(Object.assign({ y, m }, monthly[k] || { prog: 0, ok: 0, rej: 0 })); m--; if (!m) { m = 12; y--; } } }
+  const firstD = minKey ? `${String(minKey).slice(0, 4)}-${String(minKey).slice(4)}` : '-';
 
-  const esc = s => escHtml(s==null?'':s);   // 10-10: < > 만 바꾸던 것을 & · 따옴표까지 — 보고서 창은 APS 와 같은 출처라 같은 함수로
-
-  // ── 차트 데이터 (전체 시스템 표시 — 개수 제한 없음, APS 연동 시스템이 아직 20개 미만이라 다 보여줘도 안 복잡함) ──
-  const sysChartData = Object.entries(bySys).filter(([,s])=>s.pending>0).sort((a,b)=>b[1].pending-a[1].pending)
-    .map(([name,s])=>({label:name, value:s.pending, color:'#1a5fb4'}));
-  const totalVolChartData = Object.entries(bySys).sort((a,b)=>b[1].total-a[1].total)
-    .map(([name,s])=>({label:name, value:s.total, color:'#5c2d91'}));
-  const statusChartData = [
-    { label:T.statusLabels.approved, value:totalApproved, color:'#15803d' },
-    { label:T.statusLabels.inProgress, value:totalInProgress, color:'#c67c1e' },
-    { label:T.statusLabels.rejected, value:totalRejected, color:'#c0392b' },
-  ];
-  const delayBucketData = [
-    { label:'3-6'+T.unit, value:delayBuckets.b1, color:'#fbbf24' },
-    { label:'7-13'+T.unit, value:delayBuckets.b2, color:'#f59e0b' },
-    { label:'14-29'+T.unit, value:delayBuckets.b3, color:'#dc6803' },
-    { label:'30+'+T.unit, value:delayBuckets.b4, color:'#c0392b' },
-  ];
-
-  const sysRows = Object.entries(bySys).sort((a,b)=>b[1].pending-a[1].pending).map(([name,s])=>`
-    <tr>
-      <td>${esc(name)}</td>
-      <td style="text-align:center">${s.total}</td>
-      <td style="text-align:center;font-weight:600">${s.pending}</td>
-      <td style="text-align:center;color:${s.delay3?'#c0392b':'#333'}">${s.delay3}</td>
-      <td style="text-align:center;color:${s.delay7?'#c0392b':'#333'}">${s.delay7}</td>
-      <td style="text-align:center;color:${s.stag3?'#c67c1e':'#333'}">${s.stag3}</td>
-      <td style="text-align:center;color:${s.stag7?'#c67c1e':'#333'}">${s.stag7}</td>
-    </tr>`).join('');
-
-  const approverRows = topApprovers.map(([name,d])=>{
-    const sysBreakdown = Object.entries(d.bySys).sort((a,b)=>b[1]-a[1]).map(([sys,cnt])=>`${esc(sys)} ${cnt}`).join(', ');
-    return `<tr><td>${esc(name)}</td><td>${esc(d.role||'-')}</td><td style="font-size:11.5px;color:#4b5563">${sysBreakdown}</td><td style="text-align:center;font-weight:700;color:#c67c1e">${d.count}</td></tr>`;
-  }).join('');
-
-  const delayRows = delayList.slice(0,50).map(r=>`
-    <tr>
-      <td>${esc(r.sysLabel)}</td>
-      <td style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(r.title)}</td>
-      <td>${esc(r.requester)}</td>
-      <td>${esc(r.nextApprover)}(${esc(r.nextRole)})</td>
-      <td style="text-align:center">${esc(fmt(r.requestDate))}</td>
-      <td style="text-align:center;font-weight:700;color:${r.delayDays>=7?'#c0392b':'#c67c1e'}">${r.delayDays}${T.unit}</td>
-      <td style="text-align:center;font-weight:700;color:${r.stagnantDays>=7?'#c67c1e':'#6b7280'}">${r.stagnantDays}${T.unit}</td>
-    </tr>`).join('');
-
-  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${T.title} ${dateStr}</title>
-<style>
-  *{box-sizing:border-box}
-  body{font-family:'Malgun Gothic',-apple-system,sans-serif;margin:0;color:#1f2937;line-height:1.5;background:#eef1f5}
-  .page{max-width:920px;margin:0 auto;background:#fff;min-height:100vh;box-shadow:0 0 24px rgba(0,0,0,.06)}
-  .letterhead{background:linear-gradient(135deg,#0f2744 0%,#1a5fb4 100%);color:#fff;padding:36px 44px 28px}
-  .letterhead .eyebrow{font-size:11px;letter-spacing:2px;text-transform:uppercase;opacity:.75;margin-bottom:8px}
-  .letterhead h1{font-size:24px;margin:0 0 6px;font-weight:700}
-  .letterhead .meta{color:rgba(255,255,255,.8);font-size:12px;margin:0}
-  .body-pad{padding:32px 44px 44px}
-  .withdrawn-note{font-size:12px;color:#9ca3af;margin:0 0 22px}
-  .cards{display:flex;gap:12px;margin-bottom:14px}
-  .card{flex:1;background:#f8fafc;border:1px solid #e6e9ef;border-radius:10px;padding:16px 10px;text-align:center;box-shadow:0 1px 3px rgba(15,39,68,.05)}
-  .card .num{font-size:25px;font-weight:800;letter-spacing:-.5px}
-  .card .lbl{font-size:11.5px;color:#6b7280;margin-top:5px;line-height:1.35}
-  table{width:100%;border-collapse:collapse;margin-bottom:30px;font-size:12px;border-radius:8px;overflow:hidden;box-shadow:0 1px 3px rgba(15,39,68,.05)}
-  th{background:#1a5fb4;color:#fff;padding:9px 8px;text-align:left;font-weight:600;font-size:11.5px}
-  td{padding:7px 8px;border-bottom:1px solid #eef0f3}
-  tbody tr:nth-child(even){background:#fafbfc}
-  h2{font-size:15px;margin-top:32px;margin-bottom:12px;border-left:4px solid #1a5fb4;padding-left:10px;color:#111827;font-weight:700}
-  .chart-grid{display:flex;gap:20px;flex-wrap:wrap;margin-bottom:12px}
-  .chart-box{flex:1;min-width:400px;background:#fbfbfd;border:1px solid #eef0f3;border-radius:10px;padding:18px 20px;box-shadow:0 1px 3px rgba(15,39,68,.05)}
-  .chart-box h3{font-size:12px;color:#374151;margin:0 0 12px;line-height:1.3;font-weight:700}
-  .top-btns{position:fixed;top:16px;right:16px;display:flex;gap:8px;z-index:10}
-  .top-btns button{padding:10px 18px;border:none;border-radius:6px;cursor:pointer;font-size:13px;font-family:inherit;box-shadow:0 2px 6px rgba(0,0,0,.15)}
-  .print-btn{background:#1a5fb4;color:#fff}
-  .lang-btn{background:#fff;color:#1a5fb4;border:1px solid #1a5fb4!important}
-  .footer{font-size:11px;color:#9ca3af;margin-top:36px;border-top:1px solid #eee;padding-top:14px;display:flex;justify-content:space-between}
-  table,.chart-box,.cards{page-break-inside:avoid}
-  h2{page-break-after:avoid}
-  @media print{
-    .top-btns{display:none}
-    body{background:#fff}
-    .page{box-shadow:none;max-width:none}
-    .letterhead{background:#0f2744!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  // ── 핵심 판단 문장
+  const F = T.f, finds = [F.done(total.toLocaleString(), (ok + rej).toLocaleString(), pct(ok + rej, total), prog)];
+  finds.push(!prog ? F.noProg : !s3 ? F.noStag(prog) : F.stag(prog, s3, pct(s3, prog), s7));
+  if (worst && worst.stag >= 3) { const t = String(worst.title || ''); finds.push(F.worst(esc(worst.sys), esc(t.length > 34 ? t.slice(0, 33) + '…' : t), worst.stag, esc(worst.who))); }
+  if (apprList.length && apprList[0][1].n >= 2) {
+    const [w, A] = apprList[0], topSys = sysList.filter(x => x[1].prog)[0];
+    const role = Object.entries(A.roles).sort((a, b) => b[1] - a[1])[0];
+    finds.push(F.conc(esc(w + (role ? ' (' + role[0] + ')' : '')), A.n, pct(A.n, prog), esc(topSys ? topSys[0] : '-'), topSys ? topSys[1].prog : 0));
   }
-</style></head>
-<body>
-  <div class="top-btns">
-    <button class="lang-btn" onclick="window.opener && window.opener.generateExecReport('${lang==='ko'?'en':'ko'}');">${T.langBtn}</button>
-    <button class="print-btn" onclick="window.print()">${T.printBtn}</button>
-  </div>
-  <div class="page">
-  <div class="letterhead">
-    <div class="eyebrow">Star Truck Korea · Internal Report</div>
-    <h1>${T.title}</h1>
-    <div class="meta">${T.meta(dateStr, Object.keys(bySys).length, _adminData.length)}</div>
-  </div>
-  <div class="body-pad">
-  ${totalWithdrawn>0 ? `<div class="withdrawn-note">${T.withdrawnNote(totalWithdrawn)}</div>` : ''}
-  <div class="cards">
-    <div class="card"><div class="num">${_adminData.length}</div><div class="lbl">${T.total}</div></div>
-    <div class="card"><div class="num" style="color:#c67c1e">${totalInProgress}</div><div class="lbl">${T.inProgress}</div></div>
-    <div class="card"><div class="num" style="color:#15803d">${totalApproved}</div><div class="lbl">${T.approved}</div></div>
-    <div class="card"><div class="num" style="color:#c0392b">${totalRejected}</div><div class="lbl">${T.rejected}</div></div>
-  </div>
-  <div class="cards">
-    <div class="card"><div class="num" style="color:#c67c1e">${delay3}</div><div class="lbl">${T.delay3}</div></div>
-    <div class="card"><div class="num" style="color:#c0392b">${delay7}</div><div class="lbl">${T.delay7}</div></div>
-    <div class="card"><div class="num" style="color:#c67c1e">${stag3}</div><div class="lbl">${T.stag3}</div></div>
-    <div class="card"><div class="num" style="color:#c0392b">${stag7}</div><div class="lbl">${T.stag7}</div></div>
-  </div>
+  const slow = sysList.filter(x => x[1].lead.length >= 5).map(x => [x[0], _repMedian(x[1].lead)]).sort((a, b) => b[1] - a[1])[0];
+  if (leadMed != null) finds.push(F.lead(dd(leadMed), dd(leadP90), slow && slow[1] > leadMed ? esc(slow[0]) : '', slow ? dd(slow[1]) : ''));
+  const rejTop = sysList.filter(x => x[1].ok + x[1].rej >= 10 && x[1].rej).map(x => [x[0], x[1].rej / (x[1].ok + x[1].rej), x[1].rej]).sort((a, b) => b[1] - a[1])[0];
+  finds.push(F.rej(pct(rej, ok + rej), rejTop ? esc(rejTop[0]) : '', rejTop ? pct(rejTop[1], 1) : '', rejTop ? rejTop[2] : 0));
+  finds.push(F.month(rd.getUTCMonth() + 1, today, mReq, mDone, pReq));
 
-  <h2>${T.chartSection}</h2>
-  <div class="chart-grid">
-    <div class="chart-box"><h3>${T.chartSysTitle(dateStr.slice(0,10))}</h3>${_svgHBarChart(sysChartData, esc)}</div>
-    <div class="chart-box"><h3>${T.chartStatusTitle}</h3>${_svgDonutChart(statusChartData, esc)}</div>
-    <div class="chart-box"><h3>${T.chartDelayTitle}</h3>${_svgHBarChart(delayBucketData, esc)}</div>
-    <div class="chart-box"><h3>${T.chartTotalTitle}</h3>${_svgHBarChart(totalVolChartData, esc)}</div>
-  </div>
+  // ── 시스템별 관찰(최대 4줄)
+  const obs = [];
+  sysList.filter(x => x[1].s7).sort((a, b) => b[1].s7 - a[1].s7).slice(0, 2).forEach(([n, s]) => obs.push(T.obs.risk(esc(n), s.s7, s.maxStag)));
+  sysList.filter(x => !x[1].s7 && x[1].s3).slice(0, 4 - obs.length - 1).forEach(([n, s]) => obs.push(T.obs.warn(esc(n), s.s3)));
+  if (slow && leadMed != null && slow[1] > leadMed && obs.length < 4) obs.push(T.obs.lead(esc(slow[0]), dd(slow[1]), dd(leadMed)));
+  if (rejTop && obs.length < 4) obs.push(T.obs.rej(esc(rejTop[0]), pct(rejTop[1], 1), rejTop[2]));
+  if (!obs.length) obs.push(T.obs.none);
 
-  <h2>${T.totalVolTitle}</h2>
-  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:10px;margin-bottom:30px">
-    ${Object.entries(bySys).sort((a,b)=>b[1].total-a[1].total).map(([name,s])=>`
-    <div style="background:#f8fafc;border:1px solid #e6e9ef;border-top:3px solid #5c2d91;border-radius:9px;padding:12px 14px;box-shadow:0 1px 3px rgba(15,39,68,.05)">
-      <div style="font-size:11.5px;color:#6b7280;font-weight:700;letter-spacing:.3px;margin-bottom:5px">${esc(name)}</div>
-      <div style="font-size:21px;font-weight:800;color:#111827">${s.total}</div>
-    </div>`).join('')}
-  </div>
+  // ── 화면 조각
+  const vdChip = v => `<span class="vd vd-${v}"><i></i>${T.vd[v]}</span>`;
+  const num = (v, cls) => `<td class="n${cls ? ' ' + cls : ''}">${v}</td>`;
+  const sysRows = sysList.map(([n, s]) => {
+    const dec = s.ok + s.rej, lm = _repMedian(s.lead), lp = _repPct(s.lead)(0.9);
+    return `<tr><td class="sysn">${esc(n)}</td>${num(s.total)}<td class="mixc">${_repMixBar(s, T)}</td>${num(s.ok)}${num(s.rej)}${num(pct(s.rej, dec))}${num(s.prog, s.prog ? 'b' : 'z')}${num(s.s3, s.s3 ? 'b' : 'z')}${num(s.s7, s.s7 ? 'b' : 'z')}${num(dd(lm))}${num(dd(lp))}${num(s.prog ? T.d(s.maxStag) : '-')}<td class="c">${vdChip(verdict(s))}</td></tr>`;
+  }).join('');
+  const sumRow = `<tr class="sum"><td>${T.sum}</td>${num(total)}<td class="mixc">${_repMixBar({ prog, ok, rej }, T)}</td>${num(ok)}${num(rej)}${num(pct(rej, ok + rej))}${num(prog)}${num(s3)}${num(s7)}${num(dd(leadMed))}${num(dd(leadP90))}${num(worst ? T.d(worst.stag) : '-')}<td></td></tr>`;
 
-  <h2>${T.bottleneckSection}</h2>
-  <table><thead><tr><th>${T.bottleneckCols[0]}</th><th>${T.bottleneckCols[1]}</th><th>${T.bottleneckCols[2]}</th><th>${T.bottleneckCols[3]}</th></tr></thead>
-  <tbody>${approverRows||`<tr><td colspan="4" style="text-align:center;color:#9ca3af">${T.none}</td></tr>`}</tbody></table>
+  const apMax = apprList.length ? apprList[0][1].n : 1;
+  const apRowsFn = (lim) => apprList.slice(0, lim).map(([w, A]) => {
+    const role = Object.entries(A.roles).sort((a, b) => b[1] - a[1])[0];
+    const bs = Object.entries(A.bySys).sort((a, b) => b[1] - a[1]);   // 한 줄: 많은 순 두 개 + 「외 N」
+    const sysTxt = bs.slice(0, 2).map(([s, c]) => esc(s) + ' ' + c).join(' · ') + (bs.length > 2 ? ' ' + T.etc(bs.length - 2) : '');
+    return `<tr><td class="who">${esc(w)}</td><td>${esc(role ? role[0] : '-')}</td><td class="n b">${A.n}</td><td class="barc"><span class="hb" style="width:${Math.max(4, A.n / apMax * 100)}%"></span></td><td class="small">${sysTxt}</td><td class="n${A.max >= 7 ? ' b' : ''}">${T.d(A.max)}</td><td class="n">${dd(A.sum / A.n)}</td></tr>`;
+  }).join('');
+  const top3 = apprList.slice(0, 3).reduce((a, x) => a + x[1].n, 0);
+  // 시스템 × 정체 구간(진행 중 건만) — 칸 바탕은 건수(파랑 한 색 단계), 0 은 흐리게
+  const mxSys = sysList.filter(x => x[1].prog);
+  const mxRows = mxSys.map(([n, s]) => {
+    const c = s.buckets || [0, 0, 0, 0, 0];
+    const cell = v => { const k = v >= 5 ? 3 : v >= 3 ? 2 : v >= 2 ? 1 : v ? 0 : -1; return v ? `<td class="n hm" style="background:${['#cde2fb', '#9ec5f4', '#5598e7', '#256abf'][k]};color:${k >= 2 ? '#fff' : _REP_C.ink}">${v}</td>` : '<td class="n z">0</td>'; };
+    return `<tr><td class="sysn">${esc(n)}</td>${num(s.prog, 'b')}${c.map((v, i) => (i ? cell(v) : num(v, v ? '' : 'z'))).join('')}<td class="n${s.maxStag >= 7 ? ' b' : ''}">${T.d(s.maxStag)}</td><td class="c">${vdChip(verdict(s))}</td></tr>`;
+  }).join('');
+  const apLimit = 10, mxSplit = Math.min(apLimit, apprList.length) + mxSys.length > 16;   // 한 장에 다 안 들어가면 정체 경과 표는 다음 장으로
 
-  <h2>${T.sysSection}</h2>
-  <table><thead><tr>${T.sysCols.map(c=>`<th>${c}</th>`).join('')}</tr></thead><tbody>${sysRows}</tbody></table>
+  const ROWS = 18, pages = [];
+  for (let i = 0; i < action.length; i += ROWS) pages.push(action.slice(i, i + ROWS));
+  const acRow = (r, i) => `<tr><td class="n">${i + 1}</td><td class="sysn">${esc(r.sys)}</td><td class="tt" title="${esc(r.title)}">${esc(r.title)}</td><td>${esc(r.requester)}</td><td class="n">${esc(fmt(r.reqDate).slice(0, 10))}</td><td class="c">${esc(r.step)}</td><td class="who">${esc(r.who)}</td><td class="n">${T.d(r.delay)}</td><td class="n b">${T.d(r.stag)}</td><td>${r.stag >= 7 ? '<span class="act act-esc"><i></i>' + T.ac.esc + '</span>' : '<span class="act act-rem"><i></i>' + T.ac.remind + '</span>'}</td></tr>`;
 
-  <h2>${T.delaySection(Math.min(50,delayList.length), delayList.length)}</h2>
-  <table><thead><tr>${T.delayCols.map(c=>`<th>${c}</th>`).join('')}</tr></thead>
-  <tbody>${delayRows||`<tr><td colspan="7" style="text-align:center;color:#9ca3af">${T.none}</td></tr>`}</tbody></table>
+  const totalPages = 3 + (mxSplit ? 1 : 0) + pages.length;
+  const head = (no) => `<header class="rh"><div class="rh-l"><span class="org">${T.org}</span><span class="sep"></span><span>${T.title}</span></div><div class="rh-r">${T.asOf} ${dateStr} KST<span class="sep"></span>${no} / ${totalPages}</div></header>`;
+  const foot = `<footer class="rf"><span>${T.foot(wd)}</span><span>${T.tag}</span></footer>`;
+  const secT = (i, sub) => `<h2 class="st"><span class="no">${i}</span>${T.sec[i - 1]}${sub ? `<span class="sub">${sub}</span>` : ''}</h2>`;
+  const legend = `<div class="lg"><span><i style="background:${_REP_C.prog}"></i>${T.lg.prog}</span><span><i style="background:${_REP_C.ok}"></i>${T.lg.ok}</span><span><i style="background:${_REP_C.rej}"></i>${T.lg.rej}</span></div>`;
+  const kpi = (l, v, s, flag) => `<div class="kpi"><div class="kl">${l}</div><div class="kv">${v}${flag ? '<span class="flag"></span>' : ''}</div><div class="ks">${s}</div></div>`;
 
-  <div class="footer"><span>${T.footer}</span><span>${dateStr} KST</span></div>
-  </div>
-  </div>
+  const sheet1 = `<section class="sheet">${head(1)}
+    <div class="cover"><h1>${T.title}</h1>
+      <dl class="meta"><div><dt>${T.asOf}</dt><dd>${dateStr} KST</dd></div><div><dt>${T.range}</dt><dd>${firstD} ~ ${dateStr.slice(0, 7)}</dd></div><div><dt>${T.sys}</dt><dd>${T.sysN(sysList.length)}</dd></div><div><dt>${T.base}</dt><dd>${T.cnt(total)}${wd ? ` <small>(${T.wdEx(wd)})</small>` : ''}</dd></div></dl></div>
+    <div class="kpis">
+      ${kpi(T.k.total, total.toLocaleString(), T.ks.total(mReq))}
+      ${kpi(T.k.done, (ok + rej).toLocaleString(), T.ks.done(pct(ok + rej, total)))}
+      ${kpi(T.k.prog, prog, T.ks.prog(s7), s7 > 0)}
+      ${kpi(T.k.stag, s3, T.ks.stag(pct(s3, prog)), s3 > 0)}
+      ${kpi(T.k.lead, dd(leadMed), T.ks.lead(dd(leadP90)))}
+      ${kpi(T.k.rej, pct(rej, ok + rej), T.ks.rej(rej))}
+    </div>
+    ${secT(1)}
+    <div class="g1">
+      <div><h3>${T.findT}</h3><ol class="finds">${finds.map(f => `<li>${f}</li>`).join('')}</ol></div>
+      <div>
+        <div class="fig"><h3>${T.trendT}<span class="sub">${T.trendS}</span></h3>${legend}${_repTrendSvg(months, T, esc)}</div>
+        <div class="fig"><h3>${T.agingT}<span class="sub">${T.agingS}</span></h3>${_repHBarsSvg(T.buckets.map((b, i) => ({ label: b, v: aging[i] })), (r, i) => _REP_C.ramp[i], esc, { width: 600, labelW: 64 })}</div>
+      </div>
+    </div>${foot}</section>`;
+
+  const sheet2 = `<section class="sheet">${head(2)}${secT(2)}
+    <table class="tb sys${sysList.length > 12 ? ' dense' : ''}"><colgroup><col style="width:14%"><col style="width:5%"><col style="width:14%"><col style="width:5.5%"><col style="width:5.5%"><col style="width:6%"><col style="width:6%"><col style="width:6.5%"><col style="width:6.5%"><col style="width:7.5%"><col style="width:7.5%"><col style="width:7%"><col style="width:9%"></colgroup>
+      <thead><tr>${T.sysCols.map((c, i) => `<th class="${i === 0 ? '' : i === 2 || i === 12 ? 'c' : 'n'}">${c}</th>`).join('')}</tr></thead>
+      <tbody>${sysRows}</tbody><tfoot>${sumRow}</tfoot></table>
+    <div class="g2"><div>${legend}<p class="rule">${T.vdRule}</p></div><div><h3>${T.obsT}</h3><ul class="obs">${obs.map(o => `<li>${o}</li>`).join('')}</ul></div></div>
+    ${foot}</section>`;
+
+  const mxHtml = `    <h3 class="mxh">${T.mxT}<span class="sub">${T.mxS}</span></h3>
+    <table class="tb mx${mxSys.length > 14 ? ' dense' : ''}"><colgroup><col style="width:17%"><col style="width:9%"><col style="width:9%"><col style="width:9%"><col style="width:9%"><col style="width:9%"><col style="width:9%"><col style="width:9%"><col style="width:12%"></colgroup>
+      <thead><tr><th>${T.mxCols[0]}</th><th class="n">${T.mxCols[1]}</th>${T.buckets.map(x => `<th class="n">${x}</th>`).join('')}<th class="n">${T.mxCols[2]}</th><th class="c">${T.mxCols[3]}</th></tr></thead>
+      <tbody>${mxRows || `<tr><td colspan="9" class="none">${T.none}</td></tr>`}</tbody></table>`;
+  const sheet3 = `<section class="sheet">${head(3)}${secT(3)}
+    <div class="g3">
+      <div><h3>${T.apT}<span class="sub">${T.apS}</span></h3>
+        <table class="tb ap"><colgroup><col style="width:19%"><col style="width:11%"><col style="width:8%"><col style="width:16%"><col style="width:24%"><col style="width:11%"><col style="width:11%"></colgroup>
+        <thead><tr><th>${T.apCols[0]}</th><th>${T.apCols[1]}</th><th class="n">${T.apCols[2]}</th><th></th><th>${T.apCols[3]}</th><th class="n">${T.apCols[4]}</th><th class="n">${T.apCols[5]}</th></tr></thead>
+        <tbody>${apRowsFn(apLimit) || `<tr><td colspan="7" class="none">${T.none}</td></tr>`}</tbody></table>${apprList.length > apLimit ? `<p class="rule">${T.more(apprList.length - apLimit)}</p>` : ''}</div>
+      <div>
+        <div class="fig"><h3>${T.roleT}<span class="sub">${T.roleS}</span></h3>${roleList.length ? _repHBarsSvg(roleList.slice(0, 8).map(([l, v]) => ({ label: l, v })), () => _REP_C.prog, esc, { width: 420, labelW: 92 }) : `<p class="none">${T.none}</p>`}</div>
+        <div class="facts">
+          <div><h4>${T.concT}</h4><p>${prog ? T.conc(top3, pct(top3, prog), Math.min(3, apprList.length)) : T.none}</p></div>
+          <div><h4>${T.stepT}</h4><p>${prog && stepAll ? T.step((stepAll / prog).toFixed(1), (stepDone / prog).toFixed(1)) : T.none}</p></div>
+        </div>
+      </div>
+    </div>
+    ${mxSplit ? '' : mxHtml}
+    ${foot}</section>`;
+
+  const sheet3b = mxSplit ? `<section class="sheet">${head(4)}${secT(3, T.cont)}${mxHtml.replace('class="mxh"', 'class="mxh first"')}${foot}</section>` : '';
+  const sheet4 = pages.map((rows, pi) => `<section class="sheet">${head(4 + (mxSplit ? 1 : 0) + pi)}${secT(4, pi ? T.cont : T.acS)}
+    <p class="rule top">${T.acRule}</p>
+    <table class="tb ac"><colgroup><col style="width:3.5%"><col style="width:12%"><col style="width:18.5%"><col style="width:10%"><col style="width:9%"><col style="width:5%"><col style="width:15%"><col style="width:5.5%"><col style="width:5.5%"><col style="width:16%"></colgroup>
+      <thead><tr>${T.acCols.map((c, i) => `<th class="${[0, 4, 7, 8].includes(i) ? 'n' : i === 5 ? 'c' : ''}">${c}</th>`).join('')}</tr></thead>
+      <tbody>${rows.map((r, i) => acRow(r, pi * ROWS + i)).join('')}</tbody></table>${foot}</section>`).join('');
+
+  const css = `
+  @page{size:A4 landscape;margin:0}
+  *{box-sizing:border-box}
+  html{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  body{margin:0;background:#d9dcdf;color:${_REP_C.ink};font-family:"Malgun Gothic","Apple SD Gothic Neo","Segoe UI",system-ui,sans-serif;font-size:9.4pt;line-height:1.45}
+  .bar{position:sticky;top:0;z-index:5;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 20px;background:#fff;border-bottom:1px solid #c9ccd0}
+  .bar b{font-size:13px}.bar div{display:flex;gap:8px}
+  .bar button{font:inherit;font-size:12.5px;padding:7px 14px;border-radius:4px;border:1px solid #1c3d5a;background:#fff;color:#1c3d5a;cursor:pointer}
+  .bar button.pr{background:#1c3d5a;color:#fff}
+  .sheet{position:relative;width:297mm;height:210mm;margin:14px auto;background:#fff;padding:10mm 12mm 0;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.18);display:flex;flex-direction:column}
+  .rh{display:flex;justify-content:space-between;align-items:center;font-size:7.8pt;color:${_REP_C.ink2};padding-bottom:2.4mm;border-bottom:1.6pt solid #1c3d5a}
+  .rh .org{font-weight:700;letter-spacing:.12em;color:#1c3d5a}
+  .sep{display:inline-block;width:1px;height:8pt;background:#b9bcc0;margin:0 3mm;vertical-align:-1pt}
+  .rf{margin-top:auto;display:flex;justify-content:space-between;gap:8mm;font-size:7pt;color:${_REP_C.mute};border-top:.6pt solid #d4d6d9;padding:2mm 0 6mm}
+  .cover{display:flex;justify-content:space-between;align-items:flex-end;gap:10mm;padding:6mm 0 5mm}
+  h1{font-size:19pt;margin:0;font-weight:700;letter-spacing:-.01em}html[lang=en] h1{font-size:15.5pt}
+  .meta{display:grid;grid-template-columns:repeat(4,auto);gap:0 7mm;margin:0}
+  .meta div{border-left:.6pt solid #cfd2d6;padding-left:3mm}.meta dt{font-size:7.4pt;color:${_REP_C.mute}}.meta dd{margin:0;font-size:9pt;font-weight:600;white-space:nowrap}.meta small{font-weight:400;color:${_REP_C.ink2}}
+  .kpis{display:grid;grid-template-columns:repeat(6,1fr);border-top:.6pt solid #cfd2d6;border-bottom:.6pt solid #cfd2d6}
+  .kpi{padding:3.2mm 4mm 3.4mm;border-left:.6pt solid #e2e4e7}.kpi:first-child{border-left:0;padding-left:0}
+  .kl{font-size:7.8pt;color:${_REP_C.ink2}}.kv{font-size:19pt;font-weight:700;line-height:1.25;letter-spacing:-.01em}.ks{font-size:7.6pt;color:${_REP_C.mute}}
+  .flag{display:inline-block;width:6pt;height:6pt;border-radius:50%;background:#d03b3b;margin-left:2mm;vertical-align:5pt}
+  .st{display:flex;align-items:baseline;gap:2.5mm;font-size:12pt;margin:5mm 0 3mm;font-weight:700}
+  .st .no{color:#1c3d5a;font-size:12pt;min-width:5mm}.st .sub,h3 .sub{font-size:7.8pt;font-weight:400;color:${_REP_C.mute};margin-left:2.5mm}
+  h3{font-size:9.6pt;margin:0 0 2mm;font-weight:700}h4{font-size:8.6pt;margin:0 0 1mm}
+  .g1{display:grid;grid-template-columns:43% 1fr;gap:9mm;min-height:0}
+  .finds{margin:0;padding:0;list-style:none;counter-reset:f}
+  .finds li{counter-increment:f;position:relative;padding:2.1mm 0 2.1mm 7mm;border-bottom:.5pt solid #e7e9eb;font-size:9pt}
+  .finds li::before{content:counter(f);position:absolute;left:0;top:2.1mm;font-weight:700;color:#1c3d5a}
+  .finds b{margin-right:1.6mm}
+  .fig{margin-bottom:3.5mm}.viz{display:block;width:100%;height:auto}
+  .lg{display:flex;gap:5mm;font-size:7.8pt;color:${_REP_C.ink2};margin:0 0 1.5mm}.lg i{display:inline-block;width:7pt;height:7pt;border-radius:1.5pt;margin-right:1.4mm;vertical-align:-.5pt}
+  .tb{width:100%;border-collapse:collapse;table-layout:fixed;font-size:8.4pt}
+  .tb th{font-size:7.6pt;font-weight:600;color:${_REP_C.ink2};text-align:left;padding:1.8mm 1.6mm;border-top:1pt solid ${_REP_C.ink};border-bottom:.6pt solid #9fa3a8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .tb td{padding:1.55mm 1.6mm;border-bottom:.5pt solid #e5e7ea;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
+  .tb .n{text-align:right}.tb .c{text-align:center}.tb .b{font-weight:700}.tb .z{color:#b4b7bb}.tb .sysn{font-weight:600}.tb .small{font-size:7.6pt;color:${_REP_C.ink2}}.tb .none{text-align:center;color:${_REP_C.mute}}
+  .tb tfoot td{border-top:.8pt solid #9fa3a8;border-bottom:1pt solid ${_REP_C.ink};font-weight:700}
+  .mix{display:flex;gap:1px;height:7pt;border-radius:1.5pt;overflow:hidden}.mix i{display:block;min-width:1.5px}
+  .barc{padding-right:4mm!important}.hb{display:block;height:7pt;background:${_REP_C.prog};border-radius:0 1.5pt 1.5pt 0}
+  .vd{display:inline-flex;align-items:center;gap:1.4mm;font-size:7.8pt;font-weight:600}.vd i{display:inline-block;width:6.5pt;height:6.5pt}
+  .vd-ok i{background:#0ca30c;border-radius:50%}.vd-warn i{width:0;height:0;border-left:4pt solid transparent;border-right:4pt solid transparent;border-bottom:7pt solid #fab219}.vd-risk i{background:#d03b3b}
+  .act{display:inline-flex;align-items:center;gap:1.4mm}.act i{display:inline-block;width:5.5pt;height:5.5pt;border-radius:50%}.act-rem i{background:#fab219}.act-esc i{background:#d03b3b;border-radius:0}
+  .g2{display:grid;grid-template-columns:40% 1fr;gap:10mm;margin-top:4mm}
+  .rule{font-size:7.6pt;color:${_REP_C.ink2};margin:1.5mm 0 0}.rule.top{margin:-1mm 0 2.5mm}
+  .obs{margin:0;padding:0;list-style:none}.obs li{padding:1.2mm 0;border-bottom:.5pt solid #e7e9eb;font-size:8.6pt}
+  .g3{display:grid;grid-template-columns:58% 1fr;gap:9mm}
+  .facts{display:grid;grid-template-columns:1fr 1fr;gap:6mm;margin-top:3mm;border-top:.6pt solid #cfd2d6;padding-top:3mm}.facts p{margin:0;font-size:8.6pt;color:${_REP_C.ink2}}
+  .tb.ac .tt{white-space:nowrap}
+  .tb .wrap{white-space:normal;line-height:1.3}
+  .tb.dense td{padding-top:1.05mm;padding-bottom:1.05mm}.tb.dense th{padding-top:1.4mm;padding-bottom:1.4mm}
+  .mxh{margin-top:5mm}.mxh.first{margin-top:0}.tb.mx td.hm{font-weight:700}
+  @media print{body{background:#fff}.bar{display:none}.sheet{margin:0;box-shadow:none;page-break-after:always;break-after:page}.sheet:last-child{page-break-after:auto;break-after:auto}}
+  `;
+
+  const html = `<!DOCTYPE html><html lang="${lang}"><head><meta charset="utf-8"><title>${T.title} ${dateStr}</title><style>${css}</style></head><body>
+  <div class="bar"><b>${T.title}</b><div><button onclick="window.opener && window.opener.generateExecReport('${lang === 'ko' ? 'en' : 'ko'}');">${T.langBtn}</button><button class="pr" onclick="window.print()">${T.printBtn}</button></div></div>
+  ${sheet1}${sheet2}${sheet3}${sheet3b}${sheet4}
 </body></html>`;
 
   const w = window.open('', '_blank');
-  /* 출력 기록(10-10) — 보고서 창 열기 · 인쇄(「인쇄 / PDF로 저장」 단추와 Ctrl+P 모두 afterprint)를 Excel 내보내기와 같은 logAction 으로.
-     비차단(logAction 은 fire-and-forget) · 실패해도 보고서 · 인쇄는 그대로. 보고서 HTML 은 바꾸지 않는다. */
-  const _repLog = { 화면: '전체 결재관리', 보고서: '경영진 보고서', 언어: lang==='en' ? 'English' : '한국어', 건수: _adminData.length, 시스템수: Object.keys(bySys).length };
-  if (!w) { try { logAction('APS', '경영진 보고서 출력 실패', Object.assign({}, _repLog, { 사유: '팝업 차단' })); } catch(e) {} alert(lang==='en' ? 'Popup blocked. Please allow popups for this site.' : '팝업이 차단되어 보고서를 열 수 없습니다. 팝업 차단을 해제해주세요.'); return; }
+  /* 출력 기록(10-10) — 보고서 창 열기 · 인쇄(「인쇄 / PDF 저장」 단추와 Ctrl+P 모두 afterprint)를 Excel 내보내기와 같은 logAction 으로.
+     비차단(logAction 은 fire-and-forget) · 실패해도 보고서 · 인쇄는 그대로. */
+  const _repLog = { 화면: '전체 결재관리', 보고서: '경영진 보고서', 언어: lang === 'en' ? 'English' : '한국어', 건수: _adminData.length, 시스템수: sysList.length };
+  if (!w) { try { logAction('APS', '경영진 보고서 출력 실패', Object.assign({}, _repLog, { 사유: '팝업 차단' })); } catch (e) {} alert(lang === 'en' ? 'Popup blocked. Please allow popups for this site.' : '팝업이 차단되어 보고서를 열 수 없습니다. 팝업 차단을 해제해주세요.'); return; }
   w.document.write(html);
   w.document.close();
-  try { logAction('APS', '경영진 보고서 출력', Object.assign({}, _repLog, { 결과: '보고서 창 열기' })); } catch(e) { console.warn('[Log] 기록 호출 실패(무시됨):', e && e.message); }
-  try { w.addEventListener('afterprint', () => { try { logAction('APS', '경영진 보고서 인쇄', Object.assign({}, _repLog, { 결과: '인쇄 창(인쇄 · PDF로 저장) 닫힘' })); } catch(e) { console.warn('[Log] 기록 호출 실패(무시됨):', e && e.message); } }); } catch(e) {}
+  try { logAction('APS', '경영진 보고서 출력', Object.assign({}, _repLog, { 결과: '보고서 창 열기' })); } catch (e) { console.warn('[Log] 기록 호출 실패(무시됨):', e && e.message); }
+  try { w.addEventListener('afterprint', () => { try { logAction('APS', '경영진 보고서 인쇄', Object.assign({}, _repLog, { 결과: '인쇄 창(인쇄 · PDF 저장) 닫힘' })); } catch (e) { console.warn('[Log] 기록 호출 실패(무시됨):', e && e.message); } }); } catch (e) {}
 }
 
 function exportAdminExcel() {
