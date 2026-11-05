@@ -324,6 +324,9 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#f5f7f
 .appr-history{background:#f8fafc;border-radius:12px;border:1px solid #f1f5f9;overflow:hidden;margin-top:4px}
 .appr-item{display:flex;justify-content:space-between;align-items:flex-start;padding:12px 14px;border-bottom:1px solid #f1f5f9}
 .appr-item:last-child{border-bottom:none}
+/* 11-05 결재 이력 — 의견에 띄어쓰기 없는 긴 글(공유 폴더 주소 등)이 있어도 칸 안에서 줄을 바꾸고, 오른쪽 상태(승인 · 대기 …)가 밀려나지 않게(모든 화면 폭 · PDF 포함) */
+.appr-item>div:first-child{flex:1 1 auto;min-width:0;overflow-wrap:anywhere}
+.appr-item>:last-child:not(:first-child){flex:none;white-space:nowrap}
 .appr-order{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;background:#3b82f6;color:#fff;border-radius:50%;font-size:.62rem;font-weight:700;flex-shrink:0;margin-right:8px;margin-top:1px}
 .appr-info{flex:1}
 .appr-role{font-size:.78rem;font-weight:700;color:#1e293b}
