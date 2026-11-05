@@ -5595,7 +5595,7 @@ const _REPORT_T = {
     lg: { prog: '진행 중', ok: '승인완료', rej: '반려' },
     d: v => v + '일', n: v => v + '건', mon: (y, m) => m + '월', monY: (y, m) => String(y).slice(2) + '년 ' + m + '월',
     buckets: ['0~2일', '3~6일', '7~13일', '14~29일', '30일+'],
-    sysCols: ['시스템', '전체', '상태 구성', '승인', '반려', '반려율', '진행 중', '정체 3일+', '정체 7일+', '처리 기간 중앙', '처리 기간 P90', '최장 정체', '판정'],
+    sysCols: ['시스템', '전체', '상태 구성', '승인', '반려', '반려율', '진행 중', '정체<br>3일+', '정체<br>7일+', '처리 기간<br>중앙값', '처리 기간<br>P90', '최장<br>정체', '판정'],
     sum: '합계', vd: { ok: '정상', warn: '주의', risk: '위험' },
     vdRule: '판정 — 위험: 7일 이상 정체 1건 이상 · 주의: 3일 이상 정체 1건 이상 · 정상: 정체 없음.  처리 기간 — 신청일부터 마지막 결재일까지(승인완료 · 반려 건).',
     obsT: '시스템별 관찰',
@@ -5608,7 +5608,7 @@ const _REPORT_T = {
     },
     apT: '결재자별 대기', apS: '다음 결재 차례 기준 · 상위 10', apCols: ['결재자', '역할', '대기', '시스템별', '최장 정체', '평균 정체'],
     roleT: '결재 단계(역할)별 대기', roleS: '진행 중 건의 현재 단계',
-    mxT: '시스템별 정체 경과', mxS: '진행 중 건 · 최근 결재 후 지난 일수 · 3일 이상 칸은 건수가 많을수록 진하게', mxCols: ['시스템', '진행 중', '최장 정체', '판정'], more: n => `외 ${n}명은 생략했습니다.`, etc: n => `외 ${n}`,
+    mxT: '시스템별 정체 경과', mxS: '진행 중 건 · 최근 결재 후 지난 일수 · 3일 이상 칸은 건수가 많을수록 진하게', mxCols: ['시스템', '진행 중', '최장 정체', '판정'], more: n => `외 ${n}명은 생략했습니다.`, etc: n => `외 ${n}곳`,
     concT: '대기 집중도', conc: (n, p, k) => `상위 ${k}명이 진행 중 결재의 <b>${p}</b>(${n}건)를 갖고 있습니다.`,
     stepT: '결재 단계 진행률', step: (a, b) => `진행 중 건은 평균 <b>${a}</b>단계 중 <b>${b}</b>단계까지 결재됐습니다.`,
     acT: '조치 필요 건', acS: '진행 중 · 최근 결재 후 3일 이상 정체 · 정체 긴 순',
@@ -5641,7 +5641,7 @@ const _REPORT_T = {
     lg: { prog: 'In progress', ok: 'Approved', rej: 'Rejected' },
     d: v => v + 'd', n: v => String(v), mon: (y, m) => ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][m - 1], monY: (y, m) => ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][m - 1] + " '" + String(y).slice(2),
     buckets: ['0–2d', '3–6d', '7–13d', '14–29d', '30d+'],
-    sysCols: ['System', 'Total', 'Status mix', 'Approved', 'Rejected', 'Rej. rate', 'In prog.', 'Stall 3d+', 'Stall 7d+', 'Lead median', 'Lead P90', 'Longest stall', 'Rating'],
+    sysCols: ['System', 'Total', 'Status mix', 'Appr.', 'Rej.', 'Rej.<br>rate', 'In prog.', 'Stall<br>3d+', 'Stall<br>7d+', 'Lead time<br>median', 'Lead time<br>P90', 'Longest<br>stall', 'Rating'],
     sum: 'Total', vd: { ok: 'Normal', warn: 'Watch', risk: 'At risk' },
     vdRule: 'Rating — At risk: 1+ item stalled 7+ days · Watch: 1+ item stalled 3+ days · Normal: no stalls.  Lead time — request date to last approval (approved and rejected items).',
     obsT: 'Observations',
@@ -5652,15 +5652,15 @@ const _REPORT_T = {
       rej: (s, r, n) => `<b>${s}</b> — highest rejection rate at ${r} (${n} items).`,
       none: 'No system has stalled items.',
     },
-    apT: 'Pending by approver', apS: 'whose turn it is · top 10', apCols: ['Approver', 'Role', 'Pending', 'By system', 'Longest stall', 'Avg stall'],
+    apT: 'Pending by approver', apS: 'whose turn it is · top 10', apCols: ['Approver', 'Role', 'Wait', 'By system', 'Longest', 'Avg stall'],
     roleT: 'Pending by approval step (role)', roleS: 'current step of in-progress items',
-    mxT: 'Stall age by system', mxS: 'in-progress items · days since last approval · 3d+ cells darker with more items', mxCols: ['System', 'In prog.', 'Longest stall', 'Rating'], more: n => `${n} more approver(s) not shown.`, etc: n => `+${n}`,
+    mxT: 'Stall age by system', mxS: 'in-progress items · days since last approval · 3d+ cells darker with more items', mxCols: ['System', 'In prog.', 'Longest stall', 'Rating'], more: n => `${n} more approver(s) not shown.`, etc: n => `+${n} more`,
     concT: 'Concentration', conc: (n, p, k) => `The top ${k} approvers hold <b>${p}</b> (${n} items) of in-progress approvals.`,
     stepT: 'Step progress', step: (a, b) => `In-progress items have cleared <b>${b}</b> of <b>${a}</b> steps on average.`,
     acT: 'Items requiring action', acS: 'in progress · stalled 3+ days since last approval · longest first',
     acRule: 'Recommended action — stalled 3–6 days: send a reminder · 7+ days: check approver availability; consider a delegate (AAC) or changing the approval line',
     acCols: ['No', 'System', 'Title', 'Requester', 'Requested', 'Step', 'Current approver', 'Delay', 'Stall', 'Recommended action'],
-    ac: { remind: 'Send reminder', esc: 'Check availability · delegate' },
+    ac: { remind: 'Send reminder', esc: 'Check · delegate' },
     none: 'None', noAct: 'No in-progress item has stalled for 3+ days.',
     foot: n => 'Delay: from request date · Stall: from last approval (or request) · calendar days' + (n ? ' · ' + n + ' withdrawn excluded' : '') + ' · Source: SharePoint lists of APS-linked systems',
     f: {
@@ -5680,6 +5680,8 @@ const _REPORT_T = {
 // 보고서 그림 색 — 상태 3색(진행 중 · 승인완료 · 반려)은 쌓는 순서 그대로 색약 구분 검사 통과(dataviz validate_palette), 정체 경과는 파랑 한 색의 단계
 const _REP_C = { prog: '#eb6834', ok: '#2a78d6', rej: '#e34948', ramp: ['#86b6ef', '#5598e7', '#2a78d6', '#1c5cab', '#104281'], grid: '#e1e0d9', axis: '#c3c2b7', ink: '#0b0b0b', ink2: '#52514e', mute: '#898781' };
 
+// 역할 이름 — 결재선 설정의 「n차결재자(역할)」 · 「결재자(역할)」 를 보고서에서는 괄호 없이(괄호가 겹쳐 「Kim (결재자(…))」 처럼 되던 것)
+function _repRole(r) { const s = String(r == null ? '' : r).trim(); const m = s.match(/^(\d+\s*차)?\s*결재자\s*\((.+)\)$/); return m ? (m[1] ? m[1].replace(/\s+/g, '') + ' · ' : '') + m[2].trim() : s; }
 function _repMedian(a) { if (!a.length) return null; const s = a.slice().sort((x, y) => x - y), m = s.length >> 1; return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; }
 function _repPct(a) { return function (p) { if (!a.length) return null; const s = a.slice().sort((x, y) => x - y); return s[Math.min(s.length - 1, Math.max(0, Math.ceil(p * s.length) - 1))]; }; }
 function _repNice(v) { if (v <= 5) return 5; const p = Math.pow(10, Math.floor(Math.log10(v))), f = v / p; return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 2.5 ? 2.5 : f <= 5 ? 5 : 10) * p; }
@@ -5790,13 +5792,13 @@ async function generateExecReport(lang) {
     S.maxStag = Math.max(S.maxStag, stag);
     if (r.totalAprs) { stepAll += r.totalAprs; stepDone += r.doneCount || 0; }
     const who = r.nextApprover && r.nextApprover !== '-' ? r.nextApprover : '';
-    const role = r.nextRole && r.nextRole !== '-' ? r.nextRole : '';
+    const role = r.nextRole && r.nextRole !== '-' ? _repRole(r.nextRole) : '';
     if (who) {
       const A = appr[who] || (appr[who] = { n: 0, roles: {}, bySys: {}, max: 0, sum: 0 });
       A.n++; A.sum += stag; A.max = Math.max(A.max, stag); A.bySys[name] = (A.bySys[name] || 0) + 1; if (role) A.roles[role] = (A.roles[role] || 0) + 1;
     }
     if (role) roles[role] = (roles[role] || 0) + 1;
-    const item = { sys: name, title: r.title, requester: String(r.requester || '-').split('@')[0], reqDate: r.requestDate, step: r.totalAprs ? ((r.doneCount || 0) + 1) + '/' + r.totalAprs : '-', who: who ? who + (role ? ' (' + role + ')' : '') : '-', delay, stag };
+    const item = { sys: name, title: r.title, requester: String(r.requester || '-').split('@')[0], reqDate: r.requestDate, step: r.totalAprs ? ((r.doneCount || 0) + 1) + '/' + r.totalAprs : '-', who: who ? who + (role ? ' · ' + role : '') : '-', delay, stag };
     if (stag >= 3) action.push(item);
     if (!worst || stag > worst.stag) worst = item;
   });
@@ -5819,7 +5821,7 @@ async function generateExecReport(lang) {
   if (apprList.length && apprList[0][1].n >= 2) {
     const [w, A] = apprList[0], topSys = sysList.filter(x => x[1].prog)[0];
     const role = Object.entries(A.roles).sort((a, b) => b[1] - a[1])[0];
-    finds.push(F.conc(esc(w + (role ? ' (' + role[0] + ')' : '')), A.n, pct(A.n, prog), esc(topSys ? topSys[0] : '-'), topSys ? topSys[1].prog : 0));
+    finds.push(F.conc(esc(w + (role ? ' · ' + role[0] : '')), A.n, pct(A.n, prog), esc(topSys ? topSys[0] : '-'), topSys ? topSys[1].prog : 0));
   }
   const slow = sysList.filter(x => x[1].lead.length >= 5).map(x => [x[0], _repMedian(x[1].lead)]).sort((a, b) => b[1] - a[1])[0];
   if (leadMed != null) finds.push(F.lead(dd(leadMed), dd(leadP90), slow && slow[1] > leadMed ? esc(slow[0]) : '', slow ? dd(slow[1]) : ''));
@@ -5848,8 +5850,9 @@ async function generateExecReport(lang) {
   const apRowsFn = (lim) => apprList.slice(0, lim).map(([w, A]) => {
     const role = Object.entries(A.roles).sort((a, b) => b[1] - a[1])[0];
     const bs = Object.entries(A.bySys).sort((a, b) => b[1] - a[1]);   // 한 줄: 많은 순 두 개 + 「외 N」
-    const sysTxt = bs.slice(0, 2).map(([s, c]) => esc(s) + ' ' + c).join(' · ') + (bs.length > 2 ? ' ' + T.etc(bs.length - 2) : '');
-    return `<tr><td class="who">${esc(w)}</td><td>${esc(role ? role[0] : '-')}</td><td class="n b">${A.n}</td><td class="barc"><span class="hb" style="width:${Math.max(4, A.n / apMax * 100)}%"></span></td><td class="small">${sysTxt}</td><td class="n${A.max >= 7 ? ' b' : ''}">${T.d(A.max)}</td><td class="n">${dd(A.sum / A.n)}</td></tr>`;
+    const sysTxt = esc(bs[0][0]) + ' ' + bs[0][1] + (bs.length > 1 ? ' · ' + T.etc(bs.length - 1) : '');   // 가장 많은 곳 + 「외 N곳」(마우스 올리면 전체)
+    const sysAll = bs.map(([s, c]) => s + ' ' + c).join(' · ');
+    return `<tr><td class="who">${esc(w)}</td><td title="${esc(role ? role[0] : '')}">${esc(role ? role[0] : '-')}</td><td class="n b">${A.n}</td><td class="barc"><span class="hb" style="width:${Math.max(4, A.n / apMax * 100)}%"></span></td><td class="small" title="${esc(sysAll)}">${sysTxt}</td><td class="n${A.max >= 7 ? ' b' : ''}">${T.d(A.max)}</td><td class="n">${dd(A.sum / A.n)}</td></tr>`;
   }).join('');
   const top3 = apprList.slice(0, 3).reduce((a, x) => a + x[1].n, 0);
   // 시스템 × 정체 구간(진행 중 건만) — 칸 바탕은 건수(파랑 한 색 단계), 0 은 흐리게
@@ -5861,9 +5864,9 @@ async function generateExecReport(lang) {
   }).join('');
   const apLimit = 10, mxSplit = Math.min(apLimit, apprList.length) + mxSys.length > 16;   // 한 장에 다 안 들어가면 정체 경과 표는 다음 장으로
 
-  const ROWS = 18, pages = [];
+  const ROWS = 14, pages = [];
   for (let i = 0; i < action.length; i += ROWS) pages.push(action.slice(i, i + ROWS));
-  const acRow = (r, i) => `<tr><td class="n">${i + 1}</td><td class="sysn">${esc(r.sys)}</td><td class="tt" title="${esc(r.title)}">${esc(r.title)}</td><td>${esc(r.requester)}</td><td class="n">${esc(fmt(r.reqDate).slice(0, 10))}</td><td class="c">${esc(r.step)}</td><td class="who">${esc(r.who)}</td><td class="n">${T.d(r.delay)}</td><td class="n b">${T.d(r.stag)}</td><td>${r.stag >= 7 ? '<span class="act act-esc"><i></i>' + T.ac.esc + '</span>' : '<span class="act act-rem"><i></i>' + T.ac.remind + '</span>'}</td></tr>`;
+  const acRow = (r, i) => `<tr><td class="n">${i + 1}</td><td class="sysn">${esc(r.sys)}</td><td class="tt" title="${esc(r.title)}">${esc(r.title)}</td><td>${esc(r.requester)}</td><td class="n">${esc(fmt(r.reqDate).slice(0, 10))}</td><td class="c">${esc(r.step)}</td><td class="who wrap" title="${esc(r.who)}">${esc(r.who)}</td><td class="n">${T.d(r.delay)}</td><td class="n b">${T.d(r.stag)}</td><td>${r.stag >= 7 ? '<span class="act act-esc"><i></i>' + T.ac.esc + '</span>' : '<span class="act act-rem"><i></i>' + T.ac.remind + '</span>'}</td></tr>`;
 
   const totalPages = 3 + (mxSplit ? 1 : 0) + pages.length;
   const head = (no) => `<header class="rh"><div class="rh-l"><span class="org">${T.org}</span><span class="sep"></span><span>${T.title}</span></div><div class="rh-r">${T.asOf} ${dateStr} KST<span class="sep"></span>${no} / ${totalPages}</div></header>`;
@@ -5906,11 +5909,11 @@ async function generateExecReport(lang) {
   const sheet3 = `<section class="sheet">${head(3)}${secT(3)}
     <div class="g3">
       <div><h3>${T.apT}<span class="sub">${T.apS}</span></h3>
-        <table class="tb ap"><colgroup><col style="width:19%"><col style="width:11%"><col style="width:8%"><col style="width:16%"><col style="width:24%"><col style="width:11%"><col style="width:11%"></colgroup>
+        <table class="tb ap"><colgroup><col style="width:16%"><col style="width:25%"><col style="width:7%"><col style="width:8%"><col style="width:22%"><col style="width:11%"><col style="width:11%"></colgroup>
         <thead><tr><th>${T.apCols[0]}</th><th>${T.apCols[1]}</th><th class="n">${T.apCols[2]}</th><th></th><th>${T.apCols[3]}</th><th class="n">${T.apCols[4]}</th><th class="n">${T.apCols[5]}</th></tr></thead>
         <tbody>${apRowsFn(apLimit) || `<tr><td colspan="7" class="none">${T.none}</td></tr>`}</tbody></table>${apprList.length > apLimit ? `<p class="rule">${T.more(apprList.length - apLimit)}</p>` : ''}</div>
       <div>
-        <div class="fig"><h3>${T.roleT}<span class="sub">${T.roleS}</span></h3>${roleList.length ? _repHBarsSvg(roleList.slice(0, 8).map(([l, v]) => ({ label: l, v })), () => _REP_C.prog, esc, { width: 420, labelW: 92 }) : `<p class="none">${T.none}</p>`}</div>
+        <div class="fig"><h3>${T.roleT}<span class="sub">${T.roleS}</span></h3>${roleList.length ? `<div class="hbl">${roleList.slice(0, 8).map(([l, v]) => `<div class="r"><span class="l" title="${esc(l)}">${esc(l)}</span><span class="t"><i style="width:${Math.max(3, v / roleList[0][1] * 100)}%"></i></span><b>${v}</b></div>`).join('')}</div>` : `<p class="none">${T.none}</p>`}</div>
         <div class="facts">
           <div><h4>${T.concT}</h4><p>${prog ? T.conc(top3, pct(top3, prog), Math.min(3, apprList.length)) : T.none}</p></div>
           <div><h4>${T.stepT}</h4><p>${prog && stepAll ? T.step((stepAll / prog).toFixed(1), (stepDone / prog).toFixed(1)) : T.none}</p></div>
@@ -5923,7 +5926,7 @@ async function generateExecReport(lang) {
   const sheet3b = mxSplit ? `<section class="sheet">${head(4)}${secT(3, T.cont)}${mxHtml.replace('class="mxh"', 'class="mxh first"')}${foot}</section>` : '';
   const sheet4 = pages.map((rows, pi) => `<section class="sheet">${head(4 + (mxSplit ? 1 : 0) + pi)}${secT(4, pi ? T.cont : T.acS)}
     <p class="rule top">${T.acRule}</p>
-    <table class="tb ac"><colgroup><col style="width:3.5%"><col style="width:12%"><col style="width:18.5%"><col style="width:10%"><col style="width:9%"><col style="width:5%"><col style="width:15%"><col style="width:5.5%"><col style="width:5.5%"><col style="width:16%"></colgroup>
+    <table class="tb ac"><colgroup><col style="width:3.5%"><col style="width:11%"><col style="width:18.5%"><col style="width:9.5%"><col style="width:8.5%"><col style="width:4.5%"><col style="width:19.5%"><col style="width:5%"><col style="width:5%"><col style="width:15%"></colgroup>
       <thead><tr>${T.acCols.map((c, i) => `<th class="${[0, 4, 7, 8].includes(i) ? 'n' : i === 5 ? 'c' : ''}">${c}</th>`).join('')}</tr></thead>
       <tbody>${rows.map((r, i) => acRow(r, pi * ROWS + i)).join('')}</tbody></table>${foot}</section>`).join('');
 
@@ -5972,10 +5975,14 @@ async function generateExecReport(lang) {
   .g2{display:grid;grid-template-columns:40% 1fr;gap:10mm;margin-top:4mm}
   .rule{font-size:7.6pt;color:${_REP_C.ink2};margin:1.5mm 0 0}.rule.top{margin:-1mm 0 2.5mm}
   .obs{margin:0;padding:0;list-style:none}.obs li{padding:1.2mm 0;border-bottom:.5pt solid #e7e9eb;font-size:8.6pt}
-  .g3{display:grid;grid-template-columns:58% 1fr;gap:9mm}
+  .g3{display:grid;grid-template-columns:62% 1fr;gap:8mm}
   .facts{display:grid;grid-template-columns:1fr 1fr;gap:6mm;margin-top:3mm;border-top:.6pt solid #cfd2d6;padding-top:3mm}.facts p{margin:0;font-size:8.6pt;color:${_REP_C.ink2}}
-  .tb.ac .tt{white-space:nowrap}
+  .tb.ac .tt{white-space:nowrap;font-size:8pt}
   .tb .wrap{white-space:normal;line-height:1.3}
+  .tb.sys th{white-space:normal;line-height:1.25;vertical-align:bottom}
+  .hbl .r{display:grid;grid-template-columns:42% 1fr 7mm;align-items:center;gap:2.5mm;padding:1.05mm 0;font-size:8.4pt}
+  .hbl .l{text-align:right;color:${_REP_C.ink2};white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .hbl .t i{display:block;height:8pt;background:${_REP_C.prog};border-radius:0 1.5pt 1.5pt 0}.hbl b{font-weight:700;font-variant-numeric:tabular-nums}
   .tb.dense td{padding-top:1.05mm;padding-bottom:1.05mm}.tb.dense th{padding-top:1.4mm;padding-bottom:1.4mm}
   .mxh{margin-top:5mm}.mxh.first{margin-top:0}.tb.mx td.hm{font-weight:700}
   @media print{body{background:#fff}.bar{display:none}.sheet{margin:0;box-shadow:none;page-break-after:always;break-after:page}.sheet:last-child{page-break-after:auto;break-after:auto}}
