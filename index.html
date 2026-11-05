@@ -97,15 +97,17 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#f5f7f
 /* ── Top bar ── */
 .topbar{display:flex;align-items:center;gap:8px;margin-bottom:18px;flex-wrap:nowrap}
 .topbar-title{font-size:1.05rem;font-weight:700;color:#1e293b;white-space:nowrap}
-.topbar-cnt{background:#3b82f6;color:#fff;border-radius:20px;padding:3px 12px;font-size:.75rem;font-weight:700;white-space:nowrap}
+.topbar-cnt{background:#f1f5f9;color:#475569;border:1px solid #e2e8f0;border-radius:20px;padding:2px 10px;font-size:.72rem;font-weight:600;white-space:nowrap;font-variant-numeric:tabular-nums}   /* 11-05 건수 — 파란 알약 대신 옅은 회색(제목보다 튀지 않게) */
 .topbar-space{flex:1}
 /* 상단 도구 단추(10-01) — 결재함 · 내 신청 · 내 결재 · 전체 결재 관리의 새로고침 · 이력 조회 · Excel · 보고서 출력 · ← 결재함 을 한 모양으로
    (전에는 새로고침만 알약, 나머지는 각자 인라인 스타일이라 테두리 색 · 높이 · 굵기가 제각각이었다). 바탕 흰색 = 보통 단추, 초록 = Excel, 파랑 = 보고서 */
 .tb-btn{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 14px;border-radius:6px;border:1px solid #d1d5db;background:#fff;color:#374151;font-size:.8rem;font-weight:600;line-height:1;cursor:pointer;font-family:inherit;white-space:nowrap;transition:all .15s;box-shadow:0 1px 2px rgba(0,0,0,.04)}
 .tb-btn:hover{border-color:#3b82f6;color:#1d4ed8;background:#f8fafc}
 .tb-btn.on{border-color:#3b82f6;color:#1d4ed8;background:#eff6ff}   /* 이력 창이 열려 있는 동안 */
-.tb-btn.green{background:#1d6f42;border-color:#1d6f42;color:#fff}
-.tb-btn.green:hover{background:#17592f;border-color:#17592f;color:#fff}
+/* 11-05 Excel · 보고서도 같은 흰 단추 — 아이콘 색으로만 구분(초록 · 파랑 채운 단추가 섞여 어수선하던 것) */
+.tb-btn.green svg{color:#15803d}
+.tb-btn.green:hover svg{color:#15803d}
+.tb-sep{flex:none;width:1px;height:18px;background:#e2e8f0;margin:0 2px}
 /* My Requests · My Approvals 표(10-02) — colgroup 비율로 열 고정(쪽을 넘겨도 열이 안 움직임), 모든 칸 한 줄 · 넘치면 줄임표,
    잘린 칸에 마우스를 올리면 전체 글 말풍선(#rec-tip). 좁은 화면은 가로 스크롤. */
 .rec-tbl{width:100%;border-collapse:collapse;table-layout:fixed;background:#fff}
@@ -137,20 +139,52 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#f5f7f
 #rec-tip{position:fixed;z-index:3000;max-width:440px;padding:6px 10px;border-radius:6px;background:#1e293b;color:#fff;font-size:.74rem;line-height:1.5;
   white-space:pre-wrap;word-break:break-all;box-shadow:0 4px 14px rgba(0,0,0,.18);pointer-events:none;opacity:0;transform:translateY(2px);transition:opacity .12s,transform .12s}
 #rec-tip.show{opacity:1;transform:none}
-.tb-btn.blue{background:#0078d4;border-color:#0078d4;color:#fff}
-.tb-btn.blue:hover{background:#106ebe;border-color:#106ebe;color:#fff}
+.tb-btn.blue svg{color:#2563eb}
 .tb-btn svg{flex:none}
+
+/* ── 이력 조회 창(11-05 정리) — 시스템 이력 · 결재자 이력 같은 모양: 머리(제목 · 짧은 설명 · 닫기 ×) → 조작 줄(같은 높이 32px · 왼쪽부터) → 결과 줄 ── */
+.sl-bar{margin:0 0 12px;padding:12px 14px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px}
+.sl-head{display:flex;align-items:center;gap:10px;min-width:0;margin-bottom:10px}
+.sl-title{font-size:.8rem;font-weight:700;color:#1e293b;white-space:nowrap}
+.sl-desc{min-width:0;font-size:.72rem;color:#94a3b8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sl-x{margin-left:auto;flex:none;width:28px;height:28px;border:none;border-radius:6px;background:transparent;color:#94a3b8;font-size:18px;line-height:1;cursor:pointer;font-family:inherit}
+.sl-x:hover{background:#e2e8f0;color:#334155}
+.sl-ctrl{display:flex;align-items:center;flex-wrap:wrap;gap:8px}
+.sl-in{height:32px;box-sizing:border-box;padding:0 10px;border:1px solid #d1d5db;border-radius:6px;background:#fff;color:#334155;font-size:.75rem;font-family:inherit}
+.sl-in:focus{outline:none;border-color:#3b82f6}
+select.sl-in{min-width:180px;padding-right:8px}
+.sl-btn{display:inline-flex;align-items:center;justify-content:center;gap:5px;height:32px;box-sizing:border-box;padding:0 12px;border:1px solid #d1d5db;border-radius:6px;background:#fff;color:#475569;font-size:.75rem;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap}
+.sl-btn:hover{border-color:#94a3b8;color:#1e293b}
+.sl-btn.primary{background:#0078d4;border-color:#0078d4;color:#fff;padding:0 16px;font-weight:700}
+.sl-btn.primary:hover{background:#106ebe;border-color:#106ebe;color:#fff}
+.sl-btn:disabled{opacity:.55;cursor:default}
+.sl-ico{width:32px;padding:0;font-size:15px;color:#64748b}
+.sl-sep{flex:none;width:1px;height:18px;background:#e2e8f0}
+.sl-range{display:inline-flex;align-items:center;gap:6px}
+.sl-tilde{color:#94a3b8;font-size:.75rem}
+.sl-seg{display:inline-flex;height:32px;border:1px solid #d1d5db;border-radius:6px;overflow:hidden;background:#fff}
+.sl-seg > button{height:100%;padding:0 12px;border:none;background:transparent;color:#475569;font-size:.75rem;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap}
+.sl-seg > button + button{border-left:1px solid #d1d5db}
+.sl-seg > button:hover{background:#f1f5f9}
+.sl-seg > button.on{background:#eff6ff;color:#1d4ed8}
+.sl-chk{display:inline-flex;align-items:center;gap:5px;height:32px;box-sizing:border-box;padding:0 10px;border:1px solid #d1d5db;border-radius:6px;background:#fff;color:#475569;font-size:.74rem;cursor:pointer;user-select:none;white-space:nowrap}
+.sl-chk input{margin:0;cursor:pointer;accent-color:#475569}
+.sl-note{font-size:.72rem;color:#64748b}
+.sl-body{margin-top:12px;padding-top:12px;border-top:1px solid #e2e8f0}
+.sl-tools{display:flex;align-items:center;gap:8px;margin-bottom:8px;min-width:0}
+.sl-tools .sl-in{width:280px;flex:none}
+.sl-count{margin-left:auto;min-width:0;font-size:.74rem;color:#475569;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
 
 /* ── Filters ── */
 .filter-row{display:flex;gap:8px;margin-bottom:20px;flex-wrap:nowrap}
-.filter-select{background:#fff;border:1px solid #e2e8f0;border-radius:20px;padding:6px 28px 6px 12px;font-size:.78rem;font-family:inherit;color:#334155;cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%2394a3b8'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;box-shadow:0 1px 3px rgba(0,0,0,.06);transition:all .15s;white-space:nowrap}
+.filter-select{background:#fff;border:1px solid #d1d5db;border-radius:6px;height:32px;box-sizing:border-box;padding:0 28px 0 12px;font-size:.78rem;font-family:inherit;color:#334155;cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%2394a3b8'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;box-shadow:0 1px 3px rgba(0,0,0,.06);transition:all .15s;white-space:nowrap}
 .filter-select:focus{outline:none;border-color:#3b82f6}
 /* 검색창은 select 가 아니므로 화살표 여백을 빼고 돋보기 아이콘을 넣는다 */
-.filter-input{background:#fff;border:1px solid #e2e8f0;border-radius:20px;padding:6px 12px 6px 28px;
+.filter-input{background:#fff;border:1px solid #d1d5db;border-radius:6px;height:32px;box-sizing:border-box;padding:0 12px 0 28px;
   font-size:.78rem;font-family:inherit;color:#334155;box-shadow:0 1px 3px rgba(0,0,0,.06);transition:all .15s;
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='11' viewBox='0 0 16 16'%3E%3Cpath d='M6.5 1a5.5 5.5 0 013.9 9.4l4.1 4.1-1 1-4.1-4.1A5.5 5.5 0 116.5 1zm0 1.5a4 4 0 100 8 4 4 0 000-8z' fill='%2394a3b8'/%3E%3C/svg%3E");
   background-repeat:no-repeat;background-position:left 10px center}
-.filter-input::placeholder{color:#a0aab5;font-size:.70rem}
+.filter-input::placeholder{color:#94a3b8;font-size:.74rem}
 .filter-input:focus{outline:none;border-color:#3b82f6}
 /* 관리자 필터 바 — 각 칸을 내용에 맞는 폭으로 고정해 가로로 늘어지지 않게 한다 */
 #admin-filter-sys{width:146px}
@@ -514,24 +548,16 @@ body.aps-year-off #aps-year-empty{display:block!important}
   #aps-admin-page .topbar-space{flex:0 0 100%;height:0}
   #aps-admin-page .topbar .tb-btn{flex:1 1 calc(33.333% - 6px);min-width:0;justify-content:center;height:34px;padding:0 6px;font-size:.72rem;gap:4px}
   #aps-admin-page .topbar .tb-btn svg{flex:none}
+  #aps-admin-page .tb-sep{display:none}
   #aps-admin-page .filter-row{display:grid!important;grid-template-columns:1fr 1fr;gap:8px;margin:4px 0 12px!important}
   #aps-admin-page .filter-row .filter-select{width:100%;min-width:0}
   #aps-admin-page .filter-row .filter-input,#aps-admin-page .filter-row button{grid-column:1 / -1;width:100%;min-width:0;box-sizing:border-box}
   #apr-history-bar,#apr-replace-bar{padding:10px!important;gap:8px!important}
   #apr-history-bar input,#apr-replace-bar input{min-width:0!important;flex:1 1 100%;box-sizing:border-box}
   #apr-history-bar button,#apr-replace-bar button{flex:1 1 auto}
-  #sys-log-bar{padding:10px!important}
-  #sys-log-bar > div:first-child > span:nth-child(2){display:none}          /* 긴 설명 줄 — 폰에선 숨김(버튼 title 에 같은 설명) */
-  #sys-log-bar > div:first-child > span:last-child{margin-left:0!important;width:100%;display:grid!important;grid-template-columns:auto 1fr auto 1fr auto;gap:6px!important;align-items:center}
-  #sys-log-system{grid-column:1 / -1;min-width:0!important;width:100%}
-  #sys-log-bar > div:first-child > span:last-child > button{padding:7px 6px!important}
-  #sys-log-from,#sys-log-to{min-width:0;width:100%;box-sizing:border-box}
-  /* 단추 순서: 이전 · 다음 · 최근 7일 · 불러오기 · 닫기 → 3줄째를 「최근 7일 | 불러오기 | 닫기」 로 */
-  #sys-log-bar > div:first-child > span:last-child > button:nth-of-type(3){grid-column:1 / 3}
-  #sys-log-btn{grid-column:3 / 5}
-  #sys-log-bar > div:first-child > span:last-child > button:last-child{grid-column:5 / 6}
-  #sys-log-q{min-width:0!important;flex:1 1 100%;box-sizing:border-box}
-  #sys-log-count{margin-left:0!important;flex:1 1 100%;line-height:1.5}
+  #sys-log-bar,#apr-history-bar{padding:10px!important}
+  .sl-desc{display:none}
+  .sl-x{flex:none!important;min-height:0!important}
   #sys-log-table table{min-width:760px}
   #aps-admin-page .rec-wrap{-webkit-overflow-scrolling:touch}
 }
@@ -631,25 +657,32 @@ html, * { scrollbar-width: thin; scrollbar-color: #CBD5E1 transparent; }
   #apr-history-bar, #apr-replace-bar { padding: 10px !important; gap: 8px !important; }
   #apr-history-bar input, #apr-replace-bar input { min-width: 0 !important; flex: 1 1 100%; box-sizing: border-box; font-size: 16px !important; }
   #apr-history-bar button, #apr-replace-bar button { flex: 1 1 auto; min-height: 36px; }
-  #sys-log-bar { padding: 10px !important; }
-  #sys-log-system, #sys-log-q { font-size: 16px !important; }
-  /* 시스템 이력 조회 줄(10-10) — ≤640 의 5칸 격자는 360px 에서 날짜 칸이 좁아 연도가 잘렸고(10/03/202…), 641~767px 은 격자 없이 줄바꿈돼
-     선택 34px · 날짜 · 단추 27px 로 들쭉날쭉했다. 7칸 격자로 [시스템] / [시작일 ~ 종료일] / [‹ 이전 | 최근 7일 | 다음 ›] / [불러오기 | 닫기], 높이 36px 통일 */
-  #sys-log-bar > div:first-child > span:last-child { margin-left: 0 !important; width: 100%; display: grid !important; grid-template-columns: repeat(3, minmax(0, 1fr)) 10px repeat(3, minmax(0, 1fr)); gap: 8px 6px !important; align-items: center; }
-  #sys-log-bar > div:first-child > span:last-child > * { height: 36px; min-width: 0 !important; margin: 0; }
-  #sys-log-bar > div:first-child > span:last-child > span { height: auto; justify-self: center; }
-  #sys-log-system { grid-column: 1 / -1; grid-row: 1; width: 100%; }
-  #sys-log-from { grid-column: 1 / 4; grid-row: 2; width: 100%; font-size: 16px !important; }
-  #sys-log-bar > div:first-child > span:last-child > span { grid-column: 4 / 5; grid-row: 2; }
-  #sys-log-to { grid-column: 5 / 8; grid-row: 2; width: 100%; font-size: 16px !important; }
-  #sys-log-bar > div:first-child > span:last-child > button { padding: 0 6px !important; font-size: .74rem !important; }
-  #sys-log-bar > div:first-child > span:last-child > button:nth-of-type(1) { grid-column: 1 / 3; grid-row: 3; }
-  #sys-log-bar > div:first-child > span:last-child > button:nth-of-type(3) { grid-column: 3 / 6; grid-row: 3; }
-  #sys-log-bar > div:first-child > span:last-child > button:nth-of-type(2) { grid-column: 6 / 8; grid-row: 3; }
-  #sys-log-btn { grid-column: 1 / 5 !important; grid-row: 4; }
-  #sys-log-bar > div:first-child > span:last-child > button:last-child { grid-column: 5 / 8; grid-row: 4; }
-  #sys-log-q { min-width: 0 !important; flex: 1 1 100%; box-sizing: border-box; }
-  #sys-log-count { margin-left: 0 !important; flex: 1 1 100%; line-height: 1.5; }
+  /* 이력 조회 창(11-05 새 구조) — [시스템 | System] / [‹ 시작일 ~ 종료일 ›] / [오늘 | 최근 7일 | 불러오기], 높이 36px · 입력 글자 16px(iOS 확대 방지) */
+  #sys-log-bar, #apr-history-bar { padding: 10px !important; }
+  .sl-desc { display: none; }
+  .sl-x { flex: none !important; min-height: 0 !important; height: 28px; }
+  .sl-ctrl { gap: 8px; }
+  .sl-ctrl > * { height: 36px; }
+  .sl-in, .sl-btn, .sl-chk, .sl-seg { height: 36px; }
+  .sl-in { font-size: 16px !important; }
+  #sys-log-system { flex: 1 1 0; min-width: 0 !important; }
+  .sl-ctrl > .sl-sep { display: none; }
+  /* 날짜 칸이 좁으면 한국어 날짜(2026. 11. 05.)가 잘려 ‹ › 는 아래 줄로 — 줄마다 [시스템 · System] / [시작일 ~ 종료일] / [‹ 오늘 | 최근 7일 › 불러오기] */
+  .sl-range { display: contents; }
+  #sys-log-system { order: 1; flex: 1 0 60% !important; } #sys-log-it-wrap { order: 2; }
+  #sys-log-from { order: 3; flex: 0 0 calc(50% - 14px); width: auto; min-width: 0; }
+  .sl-tilde { order: 4; flex: 0 0 12px; text-align: center; }
+  #sys-log-to { order: 5; flex: 0 0 calc(50% - 14px); width: auto; min-width: 0; }
+  .sl-range .sl-ico { width: 36px; flex: none; }
+  .sl-range .sl-ico:first-child { order: 6; }
+  .sl-seg { order: 7; flex: 0 1 auto; }
+  .sl-range .sl-ico:last-child { order: 8; }
+  #sys-log-btn { order: 9; flex: 1 1 auto; }
+  .sl-tools { flex-wrap: wrap; }
+  .sl-tools .sl-in { width: auto; flex: 1 1 100%; }
+  .sl-count { margin-left: 0; flex: 1 1 0; white-space: normal; line-height: 1.5; }
+  #apr-hist-email { flex: 1 1 100%; }
+  #apr-history-bar .sl-ctrl .sl-btn { flex: 1 1 0; }
 
   /* ── 상세 모달 — 좌우 10px · 최대 90% 높이 · 안쪽 스크롤 · 라벨 폭 축소 ── */
   #detail-modal { padding: 5vh 10px; align-items: flex-start; }
@@ -1081,18 +1114,21 @@ window.apsYear = (function () {
       <div class="topbar-space"></div>
       <button id="apr-history-btn" class="tb-btn" onclick="apsToggleApvHistoryBar()" title="특정 결재자가 승인·반려한 기록을 My Approvals Record 형식으로 봅니다">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-        결재자 이력 조회
+        결재자 이력
       </button>
-      <button id="sys-log-toggle" class="tb-btn" onclick="apsToggleSysLogBar()" title="각 시스템이 SharePoint Logging_data 에 남긴 접근 · 내보내기 · 편집 기록을 7일 단위로 봅니다">
+      <button id="sys-log-toggle" class="tb-btn" onclick="apsToggleSysLogBar()" title="각 시스템이 SharePoint Logging_data 에 남긴 접근 · 조회 · 내보내기 · 편집 기록을 봅니다(기본: 오늘 하루)">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
-        이력 조회
+        시스템 이력
       </button>
+      <span class="tb-sep" aria-hidden="true"></span>
       <button class="tb-btn" onclick="loadAdminPage(true)">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
         새로고침
       </button>
+      <span class="tb-sep" aria-hidden="true"></span>
       <button onclick="exportAdminExcel()" class="tb-btn green"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Excel</button>
       <button onclick="generateExecReport()" class="tb-btn blue"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="14" y2="17"/></svg>보고서 출력</button>
+      <span class="tb-sep" aria-hidden="true"></span>
       <button onclick="switchApsTab('main')" class="tb-btn">← 결재함</button>
     </div>
     <div id="lp-top-admin-table-wrap" class="lp-top"></div>
@@ -1132,44 +1168,47 @@ window.apsYear = (function () {
       <input id="admin-search-approver" class="filter-input" type="text" placeholder="결재자 (이름·이메일·역할)"
         title="아직 처리되지 않은 결재자 전부에서 찾습니다. 담당자가 바뀐 뒤 옛 사람이 결재선에 남아 있는 건을 찾을 때 쓰세요."
         oninput="renderAdminTable(true)" />
-      <button onclick="pickAllMatched()" title="검색에 걸린 결재행을 모두 선택합니다"
-        style="padding:6px 12px;border:1px solid #cbd5e1;border-radius:6px;background:#fff;color:#475569;font-size:.75rem;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap">검색결과 전체선택</button>
+      <button onclick="pickAllMatched()" title="검색에 걸린 결재행을 모두 선택합니다" class="tb-btn">검색결과 전체선택</button>
     </div>
 
-    <!-- 결재자 이력 조회 — 「결재자 이력 조회」 버튼을 눌렀을 때만 나타난다 -->
-    <div id="apr-history-bar" style="display:none;align-items:center;flex-wrap:wrap;gap:10px;margin:0 0 12px;padding:10px 14px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px">
-      <span style="font-size:.78rem;font-weight:700;color:#1e40af">결재자 이력 조회</span>
-      <input id="apr-hist-email" list="apr-emp-list" placeholder="이름 또는 이메일" onfocus="loadApsEmployees().then(fillEmpList).catch(e=>console.warn(e.message))"
-        onkeydown="if(event.key==='Enter'){event.preventDefault();apsViewApproverHistory();}"
-        style="min-width:260px;padding:6px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:.75rem;font-family:inherit" />
-      <button onclick="apsViewApproverHistory()"
-        style="padding:6px 16px;border:none;border-radius:6px;background:#0078d4;color:#fff;font-size:.75rem;font-weight:700;cursor:pointer;font-family:inherit">조회</button>
-      <button onclick="apsToggleApvHistoryBar(false)"
-        style="padding:6px 12px;border:1px solid #d1d5db;border-radius:6px;background:#fff;color:#64748b;font-size:.75rem;cursor:pointer;font-family:inherit">닫기</button>
-      <span style="font-size:.7rem;color:#3b82f6">그 사람이 승인·반려한 결재행을 My Approvals Record 와 같은 표로 보여줍니다. 읽기 전용이며 조회 사실은 로그에 남습니다.</span>
-    </div>
-
-    <!-- 시스템 이력 조회(09-28) — SharePoint Logging_data/<시스템>/…/YYYY-MM-DD/*.json 을 7일 단위(기본 오늘까지 7일)로 읽어 표로. 「이력 조회」 버튼으로 연다 -->
-    <div id="sys-log-bar" style="display:none;margin:0 0 12px;padding:10px 14px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px">
-      <div style="display:flex;align-items:center;flex-wrap:wrap;gap:10px">
-        <span style="font-size:.78rem;font-weight:700;color:#1e293b;white-space:nowrap">시스템 이력 조회</span>
-        <span style="font-size:.7rem;color:#64748b">각 시스템이 Logging_data 에 남긴 접근 · 조회 · 내보내기 · 편집 기록을 7일 단위로 읽습니다(기본: 오늘까지 7일). 조회 사실도 기록에 남습니다.</span>
-        <span style="margin-left:auto;display:flex;gap:6px;align-items:center;flex-wrap:wrap">
-          <select id="sys-log-system" style="min-width:190px;padding:5px 8px;border:1px solid #d1d5db;border-radius:6px;font-size:.75rem;font-family:inherit;background:#fff"><option value="">전체 시스템</option></select>
-          <label id="sys-log-it-wrap" title="IT 운영 계정(설정 파일 Role: IT Manager · IT system service)의 기록만 따로 봅니다 — Logging_data/System 에 따로 쌓입니다" style="display:inline-flex;align-items:center;gap:5px;padding:4px 9px;border:1px solid #d1d5db;border-radius:6px;background:#fff;color:#475569;font-size:.74rem;cursor:pointer;user-select:none;white-space:nowrap"><input type="checkbox" id="sys-log-it" onchange="apsSysLogItMode()" style="margin:0;cursor:pointer;accent-color:#475569"><span aria-hidden="true">⚙</span>System</label>
-          <button onclick="apsSysLogShift(-1)" title="고른 기간 길이만큼 앞으로" style="padding:5px 8px;border:1px solid #d1d5db;border-radius:6px;background:#fff;color:#64748b;font-size:.72rem;cursor:pointer;font-family:inherit">‹ 이전</button>
-          <input type="date" id="sys-log-from" onchange="apsSysLogRangeFix('from')" style="padding:4px 8px;border:1px solid #d1d5db;border-radius:6px;font-size:.75rem;font-family:inherit;background:#fff"><span style="color:#94a3b8;font-size:.74rem">~</span><input type="date" id="sys-log-to" onchange="apsSysLogRangeFix('to')" style="padding:4px 8px;border:1px solid #d1d5db;border-radius:6px;font-size:.75rem;font-family:inherit;background:#fff">
-          <button onclick="apsSysLogShift(1)" title="고른 기간 길이만큼 뒤로" style="padding:5px 8px;border:1px solid #d1d5db;border-radius:6px;background:#fff;color:#64748b;font-size:.72rem;cursor:pointer;font-family:inherit">다음 ›</button>
-          <button onclick="apsSysLogRangeDefault(true)" title="오늘까지 7일" style="padding:5px 8px;border:1px solid #d1d5db;border-radius:6px;background:#fff;color:#64748b;font-size:.72rem;cursor:pointer;font-family:inherit">최근 7일</button>
-          <button id="sys-log-btn" onclick="apsLoadSysLogs()" style="padding:6px 16px;border:none;border-radius:6px;background:#0078d4;color:#fff;font-size:.75rem;font-weight:700;cursor:pointer;font-family:inherit">불러오기</button>
-          <button onclick="apsToggleSysLogBar(false)" style="padding:6px 12px;border:1px solid #d1d5db;border-radius:6px;background:#fff;color:#64748b;font-size:.75rem;cursor:pointer;font-family:inherit">닫기</button>
-        </span>
+    <!-- 결재자 이력 조회 — 「결재자 이력」 단추를 눌렀을 때만 나타난다(11-05 시스템 이력과 같은 모양). 켜면 display:flex → 세로로 쌓는다 -->
+    <div id="apr-history-bar" class="sl-bar" style="display:none;flex-direction:column;align-items:stretch">
+      <div class="sl-head">
+        <span class="sl-title">결재자 이력 조회</span>
+        <span class="sl-desc">그 사람이 승인 · 반려한 결재행을 My Approvals Record 표로 · 읽기 전용 · 조회 사실은 기록에 남습니다</span>
+        <button class="sl-x" onclick="apsToggleApvHistoryBar(false)" title="닫기" aria-label="닫기">×</button>
       </div>
-      <div id="sys-log-body" style="display:none;margin-top:10px">
-        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px">
-          <input id="sys-log-q" type="text" placeholder="시스템 / 사용자 / 행위 / 내용으로 거르기" oninput="apsRenderSysLogs(true)" style="min-width:280px;padding:5px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:.74rem;font-family:inherit">
-          <span id="sys-log-count" style="margin-left:auto;font-size:.74rem;color:#475569"></span>
-          <button onclick="apsExportSysLogs()" style="padding:4px 10px;border:1px solid #d1d5db;border-radius:6px;background:#fff;color:#374151;font-size:.7rem;cursor:pointer;font-family:inherit">Excel 내보내기</button>
+      <div class="sl-ctrl">
+        <input id="apr-hist-email" class="sl-in" list="apr-emp-list" placeholder="이름 또는 이메일" onfocus="loadApsEmployees().then(fillEmpList).catch(e=>console.warn(e.message))"
+          onkeydown="if(event.key==='Enter'){event.preventDefault();apsViewApproverHistory();}" style="width:300px" />
+        <button class="sl-btn primary" onclick="apsViewApproverHistory()">조회</button>
+      </div>
+    </div>
+
+    <!-- 시스템 이력 조회(09-28 · 11-05 정리) — SharePoint Logging_data/<시스템>/…/YYYY-MM-DD/*.json 을 고른 기간(기본: 오늘 하루 · 최대 31일)만 읽어 표로. 「시스템 이력」 단추로 연다 -->
+    <div id="sys-log-bar" class="sl-bar" style="display:none">
+      <div class="sl-head">
+        <span class="sl-title">시스템 이력 조회</span>
+        <span class="sl-desc">각 시스템의 접근 · 조회 · 내보내기 · 편집 기록 · 기본은 오늘 하루(최대 31일) · 조회 사실도 기록에 남습니다</span>
+        <button class="sl-x" onclick="apsToggleSysLogBar(false)" title="닫기" aria-label="닫기">×</button>
+      </div>
+      <div class="sl-ctrl">
+        <select id="sys-log-system" class="sl-in"><option value="">전체 시스템</option></select>
+        <label id="sys-log-it-wrap" class="sl-chk" title="IT 운영 계정(설정 파일 Role: IT Manager · IT system service)의 기록만 따로 봅니다 — Logging_data/System 에 따로 쌓입니다"><input type="checkbox" id="sys-log-it" onchange="apsSysLogItMode()"><span aria-hidden="true">⚙</span>System</label>
+        <span class="sl-sep" aria-hidden="true"></span>
+        <span class="sl-range">
+          <button class="sl-btn sl-ico" onclick="apsSysLogShift(-1)" title="고른 기간 길이만큼 앞으로" aria-label="이전 기간">‹</button>
+          <input type="date" id="sys-log-from" class="sl-in" onchange="apsSysLogRangeFix('from')" aria-label="시작일"><span class="sl-tilde">~</span><input type="date" id="sys-log-to" class="sl-in" onchange="apsSysLogRangeFix('to')" aria-label="종료일">
+          <button class="sl-btn sl-ico" onclick="apsSysLogShift(1)" title="고른 기간 길이만큼 뒤로" aria-label="다음 기간">›</button>
+        </span>
+        <span class="sl-seg" role="group" aria-label="기간 빨리 고르기"><button type="button" data-days="1" onclick="apsSysLogDays(1)" title="오늘 하루">오늘</button><button type="button" data-days="7" onclick="apsSysLogDays(7)" title="오늘까지 7일">최근 7일</button></span>
+        <button id="sys-log-btn" class="sl-btn primary" onclick="apsLoadSysLogs()">불러오기</button>
+      </div>
+      <div id="sys-log-body" class="sl-body" style="display:none">
+        <div class="sl-tools">
+          <input id="sys-log-q" class="sl-in" type="text" placeholder="시스템 · 사용자 · 행위 · 내용으로 거르기" oninput="apsRenderSysLogs(true)">
+          <span id="sys-log-count" class="sl-count"></span>
+          <button class="sl-btn" onclick="apsExportSysLogs()">Excel 내보내기</button>
         </div>
         <div id="sys-log-table"></div>
       </div>
@@ -4486,7 +4525,7 @@ async function apsViewApproverHistory() {
    파일이 행위마다 하나라 자동으로 읽지 않고 「불러오기」 로만. 조회 자체도 APS 이력으로 남긴다. */
 const _sysLog = { systems: null, items: [], view: [], page: 1, range: '', from: '', to: '', system: '' };
 const SYS_LOG_PAGE = 20;                                             // 한 쪽 20건(09-28 — 50건은 너무 길었다)
-const SYS_LOG_DAYS = 7;
+const SYS_LOG_DAYS = 1;                                               // 11-05 기본 기간 — 오늘 하루(「최근 7일」 은 단추로)
 const SYS_LOG_MAX_DAYS = 31;                                            // 한 번에 읽을 수 있는 최대 기간(일) — 하루 · 사흘 · 한 달 등 자유롭게(09-29)                                              // 한 번에 읽는 기간(일) — 한 달은 파일이 수백 개라 오래 걸렸다(09-28)
 function apsDayStr(d) { return d.getUTCFullYear() + '-' + String(d.getUTCMonth() + 1).padStart(2, '0') + '-' + String(d.getUTCDate()).padStart(2, '0'); }
 function apsDayAdd(str, n) { const d = new Date(str + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return apsDayStr(d); }
@@ -4496,6 +4535,18 @@ function apsSysLogRangeDefault(force) {
   const today = apsTodayKst();
   if (force || !f.value || !t.value) { t.value = today; f.value = apsDayAdd(today, -(SYS_LOG_DAYS - 1)); }
   f.max = today; t.max = today;
+  apsSysLogMarkPreset();
+}
+/* 11-05 기간 빨리 고르기 — 오늘(1일) · 최근 7일. 지금 기간이 그것과 같으면 그 단추를 켜 보인다 */
+function apsSysLogDays(n) {
+  const f = document.getElementById('sys-log-from'), t = document.getElementById('sys-log-to'); if (!f || !t) return;
+  const today = apsTodayKst(); t.value = today; f.value = apsDayAdd(today, -(n - 1)); f.max = today; t.max = today;
+  apsSysLogMarkPreset();
+}
+function apsSysLogMarkPreset() {
+  const f = document.getElementById('sys-log-from'), t = document.getElementById('sys-log-to'); if (!f || !t) return;
+  const today = apsTodayKst();
+  document.querySelectorAll('#sys-log-bar .sl-seg [data-days]').forEach(b => { const n = +b.getAttribute('data-days'); b.classList.toggle('on', t.value === today && f.value === apsDayAdd(today, -(n - 1))); });
 }
 /* 시작 · 끝을 자유롭게 고른다(09-29) — 예전에는 한쪽을 바꾸면 다른 쪽을 7일 폭으로 되돌려 하루짜리 조회가 안 됐다.
    지키는 것: 시작 ≤ 끝, 끝 ≤ 오늘, 기간 ≤ SYS_LOG_MAX_DAYS일(넘으면 바꾼 쪽을 기준으로 다른 쪽을 당긴다). */
@@ -4511,6 +4562,7 @@ function apsSysLogRangeFix(which) {
     if (!f.value || f.value > t.value) f.value = t.value;
     if (apsDayAdd(t.value, -(SYS_LOG_MAX_DAYS - 1)) > f.value) f.value = apsDayAdd(t.value, -(SYS_LOG_MAX_DAYS - 1));
   }
+  apsSysLogMarkPreset();
 }
 /* ‹ 이전 · 다음 › — 지금 고른 기간 길이만큼 앞뒤로 옮긴다(끝은 오늘까지). */
 function apsSysLogShift(dir) {
@@ -4521,6 +4573,7 @@ function apsSysLogShift(dir) {
   let nf = apsDayAdd(f.value, dir * len), nt = apsDayAdd(t.value, dir * len);
   if (nt > today) { nt = today; nf = apsDayAdd(today, -(len - 1)); }
   f.value = nf; t.value = nt;
+  apsSysLogMarkPreset();
 }
 async function apsToggleSysLogBar(show) {
   const bar = document.getElementById('sys-log-bar'); if (!bar) return;
@@ -4572,7 +4625,7 @@ async function apsLoadSysLogs() {
   const from = document.getElementById('sys-log-from').value, to = document.getElementById('sys-log-to').value, system = document.getElementById('sys-log-system').value;
   if (!/^\d{4}-\d{2}-\d{2}$/.test(from) || !/^\d{4}-\d{2}-\d{2}$/.test(to) || from > to) { alert('조회 기간을 확인해 주세요.'); return; }
   if (apsDayAdd(from, SYS_LOG_MAX_DAYS - 1) < to) { alert('한 번에 ' + SYS_LOG_MAX_DAYS + '일까지 조회할 수 있습니다. 기간을 줄여 주세요.'); return; }
-  const range = from + ' ~ ' + to;
+  const range = from === to ? from : from + ' ~ ' + to;   // 11-05 하루면 날짜 하나로
   const btn = document.getElementById('sys-log-btn'); btn.disabled = true;
   loading(true, range + ' 이력을 찾는 중...');
   try {
