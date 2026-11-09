@@ -955,6 +955,14 @@ window.apsYear = (function () {
   <div class="ql-strip-wrap">
     <button class="ql-scroll-btn ql-scroll-left" id="ql-left" onclick="qlScroll(-160)">‹</button>
     <div class="ql-strip-inner" id="ql-strip-inner">
+    <!-- HS-APS 전환 안내(11-09) — 맨 앞 칸. 누르면 안내 창(종료일 · 같은 기능 · 접속하기), Ctrl/가운데 클릭 · 오른쪽 클릭은 그냥 링크 -->
+    <div class="ql-group" id="hsmv-group">
+      <div class="ql-group-label">새 APS</div>
+      <div class="ql-group-row">
+        <a id="ql-hsaps" href="https://hs-aps.startruckkorea.com/" target="_self" class="ql-btn hsmv-tile" onclick="return hsmvOpen(event)" aria-haspopup="dialog"><div class="qi hsmv-qi"><b>HS</b></div><span class="ql">HS APS</span><i class="hsmv-new">NEW</i></a>
+      </div>
+    </div>
+    <div class="ql-group-sep"></div>
     <div class="ql-group">
       <div class="ql-group-label">APS 연동 시스템</div>
       <div class="ql-group-row">
@@ -6284,6 +6292,115 @@ function exportAdminExcel() {
     }).observe(document.documentElement, { childList: true, subtree: true });
   } catch (e) {}
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', schedule); else schedule();
+})();
+</script>
+<!-- HS-APS 전환 안내(11-09, 시안 E) — 상단 줄 맨 앞 「새 APS · HS APS」 를 누르면 뜨는 창.
+     기존 APS 는 2026-11-18(수)부터 접속 불가 · HS-APS 는 같은 기능 · 같은 데이터(같은 SharePoint) · 기존 APS 는 프로토타입.
+     「HS-APS 접속하기」 는 같은 탭에서 hs-aps.startruckkorea.com 으로. Esc · 바깥 클릭 · 닫기로 닫힘. 데이터를 읽거나 쓰지 않는다. -->
+<style id="hsmv-css">
+.hsmv-tile{position:relative}
+.hsmv-qi{background:linear-gradient(145deg,#101B34 0%,#1f3a5c 100%)!important;color:#fff!important;box-shadow:0 2px 8px rgba(16,27,52,.25),inset 0 0 0 1px rgba(255,255,255,.08)}
+.hsmv-qi b{font-size:.78rem;font-weight:800;letter-spacing:.02em;line-height:1;position:relative}
+.hsmv-qi b::after{content:"";position:absolute;right:-5px;top:-3px;width:5px;height:5px;border-radius:50%;background:#3FA3A1}
+.hsmv-tile .ql{color:#101B34!important;font-weight:700!important}
+.hsmv-new{position:absolute;top:3px;right:6px;font-style:normal;font-size:8.5px;font-weight:800;letter-spacing:.04em;line-height:1;padding:2px 4px;border-radius:5px;background:#2F7B7A;color:#fff}
+.hsmv-tile:hover{border-bottom-color:#2F7B7A!important;background:#f2f8f8!important}
+#hsmv{position:fixed;inset:0;z-index:10000;display:none;align-items:center;justify-content:center;padding:16px;background:rgba(15,23,42,.52);backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px)}
+#hsmv.on{display:flex;animation:hsmvFade .16s ease-out}
+@keyframes hsmvFade{from{opacity:0}to{opacity:1}}
+@keyframes hsmvUp{from{transform:translateY(8px) scale(.985);opacity:.4}to{transform:none;opacity:1}}
+.hsmv-d{position:relative;background:#fff;border-radius:16px;box-shadow:0 24px 64px -12px rgba(15,23,42,.45),0 0 0 1px rgba(15,23,42,.06);width:min(580px,100%);max-height:calc(100vh - 32px);overflow:auto;color:#1e293b;animation:hsmvUp .2s ease-out;font-family:inherit;word-break:keep-all;overflow-wrap:anywhere}
+.hsmv-d h2{margin:0;color:#101B34;font-weight:800;letter-spacing:-.01em;line-height:1.35;font-size:1.18rem}
+.hsmv-d h2 em{font-style:normal;color:#C2410C}
+.hsmv-d p{margin:0}
+.hsmv-x{position:absolute;top:12px;right:12px;width:32px;height:32px;border:0;border-radius:8px;background:transparent;color:rgba(255,255,255,.7);cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:2}
+.hsmv-x:hover{background:rgba(255,255,255,.12);color:#fff}
+.hsmv-hd{background:linear-gradient(120deg,#101B34 0%,#17304f 60%,#1f4a5a 100%);color:#fff;padding:22px 26px 20px;position:relative}
+.hsmv-hd .mk{display:flex;align-items:center;gap:10px}
+.hsmv-hd .w{font-size:1.45rem;font-weight:800;letter-spacing:-.01em}
+.hsmv-hd .w i{font-style:normal;color:#5cc2bf}
+.hsmv-hd .ch{font-size:.68rem;font-weight:700;padding:3px 9px;border-radius:999px;background:rgba(92,194,191,.18);color:#9fe0de;border:1px solid rgba(92,194,191,.35)}
+.hsmv-hd .sb{margin-top:4px;font-size:.74rem;color:rgba(255,255,255,.6);letter-spacing:.02em}
+.hsmv-bd{padding:22px 26px 22px}
+.hsmv-bd .en{margin-top:4px;font-size:.76rem;color:#94a3b8}
+.hsmv-tl{list-style:none;margin:18px 0 0;padding:0;display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.hsmv-tl li{border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:3px;font-size:.78rem}
+.hsmv-tl li .d{font-size:.7rem;font-weight:800;letter-spacing:.02em}
+.hsmv-tl li b{font-size:.9rem;color:#101B34}
+.hsmv-tl li span:last-child{color:#64748b}
+.hsmv-tl li.nw{background:#effaf9;border:1px solid #b9dedc}.hsmv-tl li.nw .d{color:#2F7B7A}
+.hsmv-tl li.ed{background:#FFF7ED;border:1px solid #FED7AA}.hsmv-tl li.ed .d{color:#C2410C}
+.hsmv-fc{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:14px;font-size:.78rem;color:#475569}
+.hsmv-fc span{display:inline-flex;align-items:center;gap:6px}
+.hsmv-i{flex-shrink:0;width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center}
+.hsmv-i svg{width:11px;height:11px}
+.hsmv-i.ok{background:#E4F1F0;color:#2F7B7A}.hsmv-i.inf{background:#f1f5f9;color:#64748b}
+.hsmv-act{display:flex;gap:8px;justify-content:flex-end;align-items:center;margin-top:22px}
+.hsmv-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;height:42px;padding:0 18px;border-radius:10px;font-size:.88rem;font-weight:700;cursor:pointer;text-decoration:none;border:1px solid transparent;font-family:inherit;transition:background .15s}
+.hsmv-btn svg{width:16px;height:16px}
+.hsmv-btn.n{background:#101B34;color:#fff}.hsmv-btn.n:hover{background:#17253F}
+.hsmv-btn.g{background:#fff;color:#475569;border-color:#e2e8f0}.hsmv-btn.g:hover{background:#f8fafc}
+@media (max-width:560px){
+  .hsmv-tl{grid-template-columns:1fr}
+  .hsmv-act{flex-direction:column-reverse;align-items:stretch}.hsmv-act .hsmv-btn{width:100%}
+}
+</style>
+<div id="hsmv" role="dialog" aria-modal="true" aria-labelledby="hsmv-t"></div>
+<script id="hsmv-js">
+(function () {
+  var NEW_URL = 'https://hs-aps.startruckkorea.com/';
+  var IC = {
+    x: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>',
+    ok: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>',
+    inf: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 11v6M12 7.2v.1"/></svg>',
+    go: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>'
+  };
+  var ic = function (k) { return '<span class="hsmv-i ' + k + '">' + IC[k] + '</span>'; };
+  var HTML =
+    '<div class="hsmv-d">' +
+    '<div class="hsmv-hd"><button type="button" class="hsmv-x" data-hsmv="close" aria-label="닫기">' + IC.x + '</button>' +
+    '<div class="mk"><span class="w"><i>HS</i>-APS</span><span class="ch">정식 오픈</span></div><div class="sb">STK Integrated Approval System</div></div>' +
+    '<div class="hsmv-bd">' +
+    '<h2 id="hsmv-t"><em>2026.11.18(수)</em>부터 기존 APS 는 접근이 불가합니다</h2>' +
+    '<p class="en">From Nov 18, 2026, the legacy APS will no longer be available. Please use HS-APS.</p>' +
+    '<ol class="hsmv-tl">' +
+    '<li class="nw"><span class="d">지금 ~ 11.17(화)</span><b>두 시스템 모두 사용 가능</b><span>HS-APS 사용을 권장합니다</span></li>' +
+    '<li class="ed"><span class="d">11.18(수)부터</span><b>기존 APS 종료</b><span>HS-APS 로만 접속합니다</span></li>' +
+    '</ol>' +
+    '<div class="hsmv-fc"><span>' + ic('ok') + '기존 APS 와 동일하게 작동</span><span>' + ic('ok') + '신청 · 결재 내역 그대로</span><span>' + ic('inf') + '기존 APS 는 프로토타입 버전</span></div>' +
+    '<div class="hsmv-act"><button type="button" class="hsmv-btn g" data-hsmv="close">닫기</button>' +
+    '<a class="hsmv-btn n" href="' + NEW_URL + '" data-hsmv="go">HS-APS 접속하기' + IC.go + '</a></div>' +
+    '</div></div>';
+  var root = null, lastFocus = null;
+  function onKey(e) { if (e.key === 'Escape') { e.preventDefault(); close(); } }
+  function close() {
+    if (!root || !root.classList.contains('on')) return;
+    root.classList.remove('on'); root.innerHTML = '';
+    document.documentElement.style.overflow = '';
+    document.removeEventListener('keydown', onKey, true);
+    if (lastFocus && lastFocus.focus) try { lastFocus.focus(); } catch (e) {}
+  }
+  function open() {
+    root = root || document.getElementById('hsmv');
+    if (!root) { location.href = NEW_URL; return; }
+    lastFocus = document.activeElement;
+    root.innerHTML = HTML;
+    root.classList.add('on');
+    document.documentElement.style.overflow = 'hidden';
+    document.addEventListener('keydown', onKey, true);
+    var go = root.querySelector('[data-hsmv="go"]'); if (go) try { go.focus({ preventScroll: true }); } catch (e) {}
+  }
+  document.addEventListener('click', function (e) {
+    if (!root || !root.classList.contains('on')) return;
+    if (e.target === root) { close(); return; }
+    var a = e.target.closest && e.target.closest('[data-hsmv="close"]');
+    if (a) { e.preventDefault(); close(); }
+  });
+  // 타일 — 그냥 클릭은 안내 창, Ctrl · Shift · 가운데 클릭 · 오른쪽 클릭 메뉴는 링크 그대로(HS-APS 를 새 탭으로)
+  window.hsmvOpen = function (ev) {
+    if (ev && (ev.ctrlKey || ev.metaKey || ev.shiftKey || ev.altKey || ev.button > 0)) return true;
+    open(); return false;
+  };
 })();
 </script>
 </body>
